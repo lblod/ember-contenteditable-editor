@@ -1,0 +1,628 @@
+import { isDisplayedAsBlock, invisibleSpace, insertTextNodeWithSpace, insertNodeBAfterNodeA, sliceTextIntoTextNode, removeNodeFromTree, isVoidElement, isIgnorableElement, tagName } from './dom-helpers';
+import getRichNodeMatchingDomNode from './get-rich-node-matching-dom-node';
+import CappedHistory from './capped-history';
+import forgivingAction from './forgiving-action';
+import EmberObject from '@ember/object';
+import replaceTextWithHtml from './replace-text-with-html';
+import flatMap from './flat-map';
+import NodeWalker from './node-walker';
+import { debug, warn } from '@ember/debug';
+import { get, computed } from '@ember/object';
+import JsDiff from 'diff';
+import { getTextContent } from './text-node-walker';
+
+const highlightDataAttribute = 'data-editor-highlight';
+
+/**
+ * raw contenteditable editor, a utility class that shields editor internals from consuming applications.
+ *
+ * @module contenteditable-editor
+ * @class RawEditor
+ * @constructor
+ * @extends EmberObject
+ */
+const RawEditor = EmberObject.extend({
+  /**
+   * root node of the editor
+   * @property rootNode
+   * @type DOMNode
+   * @public
+   */
+  rootNode: null,
+
+  /**
+   * richNode, a rich representation of the dom tree created with NodeWalker
+   * @property richNode
+   * @type RichNode
+   * @public
+   */
+  richNode: null,
+
+  /**
+   * the current selection in the editor
+   * @property currentSelection
+   * @type Array
+   * @public
+   */
+  currentSelection: null,
+
+
+  /**
+   * the richNode containing our caret
+   * @property currentNode
+   * @type RichNode
+   * @public
+   */
+  currentNode: null,
+
+  /**
+   * Returns current textContent from editor
+   *
+   * @property currentTextContent
+   * @type String
+   * @public
+   */
+  currentTextContent: null,
+
+  /**
+   * is current selection a cursor
+   * @property currentSelectionIsACursor
+   * @type boolean
+   * @public
+   */
+  currentSelectionIsACursor: computed('currentSelection', function() {
+    let sel = this.get('currentSelection');
+    return sel[0] === sel[1];
+  }),
+
+  init() {
+    this.set('history', CappedHistory.create({ maxItems: 100}));
+  },
+  /**
+   *
+   * @method replaceTextWithHTML
+   * @param {Number} start index absolute
+   * @param {Number} end index absolute
+   * @param {String} html string
+   * @public
+   */
+  replaceTextWithHTML(start, end, html) {
+    debug("replacing text with a new node");
+    this.createSnapshot();
+    let newNodes = replaceTextWithHtml(this.get('richNode'), start, end, html);
+    let contentLength = newNodes.map( node => node.textContent.length).reduce( (total, i) => total + i);
+    let content = newNodes.map( node => node.textContent).reduce((string, partial) => "" + string + partial);
+    this.updateRichNode();
+    this.set('currentNode', newNodes[0].parentNode);
+    this.setCurrentPosition(start + contentLength);
+    let before = this.get('currentTextContent').slice(0,start);
+    let after = this.get('currentTextContent').slice(end);
+    this.set('currentTextContent', before + after);
+    forgivingAction('textRemove', this)(start, end);
+    this.set('currentTextContent', before + content + after);
+    forgivingAction('textInsert', this)(start, content);
+    forgivingAction('handleFullContentUpdate', this)();
+    return newNodes;
+  },
+
+  /**
+   * Higlight a section of the editor text
+   *
+   * @method highlightRange
+   *
+   * @param {number} start Start of the region
+   * @param {number} end End of the region
+   * @param {Object} data map of data to be included on the highlight, can be used to add rdfa or data- attributes
+   * @public
+   */
+  highlightRange(start, end, data = {}) {
+    debug(`higlight ${start} ${end}`);
+    let match = this.findHighlights(node => get(node, 'end') === end && get(node, 'start') === start);
+    if (match.length === 0) {
+      let text = this.get('currentTextContent').slice(start,end);
+      let elements = replaceTextWithHtml(this.get('richNode'), start, end, `<mark>${text}</mark>`);
+      let element = elements[0];
+      for (const prop in data) {
+        element.setAttribute(prop,data[prop]);
+      }
+      element.setAttribute(highlightDataAttribute, 'true');
+      let currentNode = this.getRichNodeFor(this.get('currentNode'));
+      if (currentNode && get(currentNode, 'start') <= start && get(currentNode, 'end') >= end) {
+        let parent = element.parentNode;
+        this.set('currentNode', parent);
+        if (!element.nextSibling) {
+          let node = document.createTextNode('');
+          insertNodeBAfterNodeA(parent, element, node);
+          this.set('currentNode', node);
+        }
+      }
+      this.updateRichNode();
+      this.setCurrentPosition(this.get('currentSelection')[0], false); //ensure caret is still correct
+    }
+    else {
+      warn('highlighting already highlighted region', {id: 'content-editable.highlight-it'});
+    }
+  },
+
+  /**
+   * Clear the highlights contained in a specified range
+   *
+   * @method clearHightlightForRange
+   *
+   * @param {number} start Start of the range
+   * @param {number} end End of the range
+   *
+   * @public
+   */
+  clearHighlightForRange(start,end) {
+    debug(`removing highlight for range ${start} ${end}`);
+    let nodes = this.findHighlights(node => get(node,'start') >= start && get(node, 'end') <= end);
+    if (nodes.length === 0) warn(`no highlight found contained in range [$start, $end]`, {id: "content-editable.highlight-not-found"});
+    nodes.forEach( highlight => { this.removeHighlight(highlight); });
+    this.updateRichNode();
+    this.setCurrentPosition(this.get('currentSelection')[0], false); //ensure caret is still correct
+  },
+
+  /**
+   * Given a list of locations, clear the linked highlight
+   *
+   * @method clearHighlightForLocations
+   *
+   * @param {Array} [[start, end], ...,[start, end]]
+   *
+   * @public
+   */
+  clearHighlightForLocations(locations){
+
+    let nodeForLocation = node => {
+      return locations.find(location => {
+        return get(node,'start') === location[0] && get(node, 'end') === location[1];
+      });
+    };
+
+    let highlights = this.findHighlights(nodeForLocation);
+
+    if(get(highlights, 'length') > 0){
+      this.clearHighlights(highlights);
+    }
+  },
+
+  /**
+   *
+   * @method removeHighlight
+   * @param {RichNode} highlight
+   * @private
+   */
+  removeHighlight(highlight) {
+    let node = get(highlight, 'domNode');
+    removeNodeFromTree(node);
+    this.updateRichNode();
+  },
+
+  /**
+   * Clear all highlights in the editor
+   *
+   * @method clearAllHightlights
+   *
+   * @public
+   */
+  clearAllHighlights() {
+    debug('removing all highlights');
+    let highlights = this.findHighlights(() =>true);
+    if (highlights.length === 0) warn("no highlights found", {id: "content-editable.highlight-not-found"});
+    this.clearHighlights(highlights);
+  },
+
+  /**
+   * Clear list of  highlights in the editor
+   *
+   * @method clearAllHightlights
+   *
+   * @private
+   */
+  clearHighlights(highlights){
+    highlights.forEach(
+      highlight => {
+        this.removeHighlight(highlight);
+      }
+    );
+    this.setCurrentPosition(this.get('currentSelection')[0], false); //ensure caret is still correct
+    this.updateRichNode();
+  },
+
+  /**
+   * retun all elements with tag name 'mark' that match provided predicate
+   * @method findHighlights
+   * @param {Function} predicate
+   * @private
+   */
+  findHighlights(predicate) {
+    let filter = node => { return predicate(node) && get(node, 'type') == 'tag' && tagName(get(node, 'domNode')) === 'mark'; };
+    return flatMap(this.get('richNode'), filter);
+  },
+
+
+  /**
+   * Whether an element is displayed as a block
+   *
+   * @method isDisplayedAsBlock
+   *
+   * @param {RichNode} richNode Node to validate
+   *
+   * @return {boolean} true iff the element is displayed as a block
+   *
+   * @private
+   */
+  isDisplayedAsBlock(richNode) {
+    isDisplayedAsBlock(get(richNode, 'domNode'));
+  },
+
+  /**
+   * insert text at provided position,
+   * @method insertText
+   * @param {String} text to insert
+   * @param {Number} position
+   *
+   * @return {DOMNode} node
+   * @public
+   */
+  insertText(text, position) {
+    if (!this.get('richNode')) {
+      warn(`richNode wasn't set before inserting text onposition ${position}`,{id: 'content-editable.rich-node-not-set'});
+      this.updateRichNode();
+    }
+    debug(`inserting ${text} at ${position}`);
+    let textNode = this.findSuitableNodeForPosition(position);
+    let type = get(textNode, 'type');
+    let domNode;
+    if (type === 'text') {
+      if (text === " ")
+        text = '\u00A0';
+      let parent = get(textNode, 'parent');
+      if (position === get(textNode, 'end') && tagName(get(parent, 'domNode')) === 'mark') {
+        let mark = get(parent, 'domNode');
+        let markParent = get(parent, 'parent.domNode');
+        // there is no inserting at the end of highlight, we insert next to the highlight
+        domNode = document.createTextNode(text);
+        insertNodeBAfterNodeA(markParent, mark, domNode);
+      }
+      else {
+        domNode = get(textNode, 'domNode');
+        let relativePosition = position - get(textNode, 'start');
+        sliceTextIntoTextNode(domNode, text, relativePosition);
+      }
+      this.set('currentNode', domNode);
+    }
+    else {
+      // we should always have a suitable node... last attempt to safe things somewhat
+      warn(`no text node found at position ${position}`,{id: 'content-editable.no-text-node-found'});
+      warn('inconsistent state in editor!');
+      debug(get(textNode,'domNode'));
+      domNode = document.createTextNode(text);
+      get(textNode, 'domNode').appendChild(domNode);
+      this.set('currentNode', domNode);
+    }
+    this.updateRichNode();
+    return domNode;
+  },
+
+  isTagWithOnlyABreakAsChild(node) {
+    let type = get(node, 'domNode').nodeType;
+    let children = get(node, 'children');
+    return (type === Node.ELEMENT_NODE &&
+            children.length === 1 &&
+            get(children[0], 'type') === 'tag' &&
+            tagName(get(children[0], 'domNode')) === 'br'
+           );
+  },
+
+  insertTextNodeWithSpace(parent, relativeToSibling = null, after = false) {
+    let parentDomNode = get(parent, 'domNode');
+    let textNode = insertTextNodeWithSpace(parentDomNode, relativeToSibling, after);
+    this.updateRichNode();
+    this.generateDiffEvents();
+    return this.getRichNodeFor(textNode);
+  },
+
+
+  /**
+   * determines best suitable node to position caret in for provided rich node and position
+   * creates a text node if necessary
+   * @method findSuitableNodeInRichNode
+   * @param {RichNode} node
+   * @param {number} position
+   * @return {RichNode}
+   * @private
+   */
+  findSuitableNodeInRichNode(node, position) {
+    if (!node)
+      throw new Error('no node provided to findSuitableNodeinRichNode');
+    let type = get(node, 'type');
+    // in some browsers voidElements don't implement the interface of an element
+    // for positioning we provide it's own type
+    if (isVoidElement(get(node, 'domNode')))
+      type = 'void';
+    if (type === 'text') {
+      return node;
+    }
+    else if (type === 'void') {
+      let textNode = document.createTextNode(invisibleSpace);
+      let parent = get(node, 'parent');
+      let parentDomNode = get(parent,'domNode');
+      let children = get(parent, 'children');
+      parentDomNode.replaceChild(textNode, get(node, 'domNode'));
+      if(children.length > 1 && tagName(get(node,'domNode')) === 'br')
+        parentDomNode.insertBefore(document.createElement('br'), textNode); // new br to work around funky br type="moz"
+      else if (children.length !== 1 || tagName(get(node,'domNode')) !== 'br')
+        parentDomNode.insertBefore(get(node, 'domNode'), textNode); // restore original void element
+      this.updateRichNode();
+      return this.getRichNodeFor(textNode);
+    }
+    else if (type === 'tag') {
+      if (this.isTagWithOnlyABreakAsChild(node)) {
+        debug('suitable node: is tag with only a break as child');
+        let domNode = get(node, 'domNode');
+        let textNode = document.createTextNode(invisibleSpace);
+        domNode.replaceChild(textNode, domNode.firstChild);
+        this.updateRichNode();
+        return this.getRichNodeFor(textNode);
+      }
+      else {
+        debug('suitable node: using deepest matching node');
+        let filter = node => get(node, 'start') <= position && get(node, 'end') >= position && ! isVoidElement(get(node, 'domNode')) && ! isIgnorableElement(get(node, 'domNode'));
+        let nodesContainingPosition = flatMap(node, filter);
+        if (nodesContainingPosition.length > 0) {
+          let deepestContainingNode = nodesContainingPosition[nodesContainingPosition.length -1];
+          if (deepestContainingNode === node) {
+            debug(`creating new textnode in provided node of type ${get(node,'type')} range ${get(node,'start')} ${get(node, 'end')}`);
+            return this.insertTextNodeWithSpace(node);
+          }
+          else {
+            debug('retrying');
+            return this.findSuitableNodeInRichNode(deepestContainingNode, position);
+          }
+        }
+        else {
+          return this.insertTextNodeWithSpace(node);
+        }
+      }
+    }
+    throw new Error(`unsupported node type ${type} for richNode`);
+  },
+
+  /*
+   * select a node based on the provided caret position, taking into account the current active node
+   * if no suitable node exists, create one (within reason)
+   * @method findSuitableNodeForPosition
+   * @param {Number} position
+   * @return {RichNode} node containing position or null if not found
+   * @private
+   */
+  findSuitableNodeForPosition(position) {
+    debug(`finding suitable node for position ${position}`);
+    let currentRichNode = this.getRichNodeFor(this.get('currentNode'));
+    let richNode = this.get('richNode');
+    if (currentRichNode && get(currentRichNode, 'start') <= position && get(currentRichNode, 'end') >= position) {
+      debug('searching for suitable node in current node');
+      let node = this.findSuitableNodeInRichNode(currentRichNode, position);
+      debug(`found node of type ${get(node,'type')} range [${get(node, 'start')},${get(node, 'end')}]`);
+      return node;
+    }
+    else if (get(richNode, 'start') <= position && get(richNode, 'end') >= position){
+      let node = this.findSuitableNodeInRichNode(this.get('richNode'),position);
+      debug(`found node of type ${get(node,'type')} range [${get(node, 'start')},${get(node, 'end')}]`);
+      return node;
+    }
+    else {
+      warn(`position ${position} is not in range of document ${get(richNode, 'start')} ${get(richNode, 'end')}`, {id: 'content-editable:not-a-suitable-position'});
+      return this.findSuitableNodeForPosition(get(richNode, 'end'));
+    }
+  },
+
+  /**
+   * create a snapshot for undo history
+   * @method createSnapshot
+   * @public
+   */
+  createSnapshot() {
+    let document = {
+      content: this.get('rootNode').innerHTML,
+      currentSelection: this.get('currentSelection')
+    };
+    this.get('history').push(document);
+  },
+
+  /**
+   * @method updateRichNode
+   * @private
+   */
+  updateRichNode() {
+    let richNode = NodeWalker.create().processDomNode(this.get('rootNode'));
+    this.set('richNode', richNode);
+  },
+
+  /**
+   * restore a snapshot from undo history
+   * @method undo
+   * @public
+   */
+  undo() {
+    let previousSnapshot = this.get('history').pop();
+    if (previousSnapshot) {
+      this.get('rootNode').innerHTML = previousSnapshot.content;
+      this.updateRichNode();
+      this.set('currentNode', null);
+      this.setCurrentPosition(previousSnapshot.currentSelection[0]);
+    }
+    else {
+      warn('no more history to undo', {id: 'contenteditable-editor:history-empty'});
+    }
+  },
+
+  /**
+   * @method moveCaretInTextNode
+   * @param {TEXTNode} textNode
+   * @param {number} position
+   * @private
+   */
+  moveCaretInTextNode(textNode, position){
+    let docRange = document.createRange();
+    let currentSelection = window.getSelection();
+    docRange.setStart(textNode, position);
+    docRange.collapse(true);
+    currentSelection.removeAllRanges();
+    currentSelection.addRange(docRange);
+    this.get('rootNode').focus();
+  },
+
+   /**
+   * get richnode matching a DOMNode
+   *
+   * @method getRichNodeFor
+   *
+   * @param {DOMNode} node
+   *
+   * @return {RichNode} node
+   *
+   * @private
+   */
+  getRichNodeFor(domNode, tree = this.get('richNode')) {
+    return getRichNodeMatchingDomNode(domNode, tree);
+  },
+
+
+  /**
+   * update the selection based on dom window selection
+   * to be used when we are unsure what sort of input actually happened
+   *
+   * @method updateSelectionAfterComplexInput
+   * @private
+   */
+  updateSelectionAfterComplexInput() {
+    let windowSelection = window.getSelection();
+    if (windowSelection.rangeCount > 0) {
+      let range = windowSelection.getRangeAt(0);
+      let commonAncestor = range.commonAncestorContainer;
+      // IE does not support contains for text nodes
+      commonAncestor = commonAncestor.nodeType === Node.TEXT_NODE ? commonAncestor.parentNode : commonAncestor;
+      if (this.get('rootNode').contains(commonAncestor)) {
+        let startNode = this.getRichNodeFor(range.startContainer);
+        let endNode = this.getRichNodeFor(range.endContainer);
+        let start = this.calculatePosition(startNode, range.startOffset);
+        let end = this.calculatePosition(endNode, range.endOffset);
+        let newSelection  = [start, end];
+        debug(`updating selection after complex input ${newSelection[0]} ${newSelection[1]}`);
+        if (newSelection[0] === newSelection[1]) {
+          if (get(startNode,'type') === 'tag') {
+            this.set('currentNode', range.startContainer.childNodes[range.startOffset]);
+          }
+          else
+            this.set('currentNode', range.startContainer);
+          this.setCurrentPosition(newSelection[0]);
+        } else {
+          this.set('currentNode', null);
+        }
+        this.set('currentSelection', newSelection);
+        forgivingAction('selectionUpdate', this)(this.get('currentSelection'));
+      }
+    }
+    else {
+      warn('no selection found on window',{ id: 'content-editable.unsupported-browser'});
+    }
+  },
+
+  /**
+   * calculate the cursor position based on a richNode and an offset from a domRANGE
+   * see https://developer.mozilla.org/en-US/docs/Web/API/Range/endOffset and
+   * https://developer.mozilla.org/en-US/docs/Web/API/Range/startOffset
+   *
+   * @method calculatePosition
+   * @param {RichNode} node
+   * @param {Number} offset
+   * @private
+   */
+  calculatePosition(richNode, offset) {
+    let type = get(richNode, 'type');
+    if (type === 'text')
+      return get(richNode, 'start') + offset;
+    else if (type === 'tag') {
+      let children = get(richNode, 'children');
+      if (children && children.length > offset)
+        return get(children[offset], 'start');
+      else if (children && children.length == offset)
+        // this happens and in that case we want to be at the end of that node, but not outside
+        return get(children[offset-1], 'end') -1;
+      else {
+        warn(`provided offset (${offset}) is invalid for richNode of type tag with ${children.length} children`, {id: 'contenteditable-editor.invalid-range'});
+      }
+    }
+    else {
+      throw new Error(`can't calculate position for richNode of type ${type}`);
+    }
+  },
+
+  /**
+   * set the carret position in the editor
+   *
+   * @method setCurrentPosition
+   * @param {number} position of the range
+   * @param {boolean} notify observers, default true
+   * @public
+   */
+  setCurrentPosition(position, notify = true) {
+    debug(`trying to set current selection to ${position} ${position}`);
+    let richNode = this.get('richNode');
+    if (get(richNode, 'end') < position || get(richNode, 'start') > position) {
+      warn(`received invalid position, resetting to ${get(richNode,'end')} end of document`, {id: 'contenteditable-editor.invalid-position'});
+      position = get(richNode, 'end');
+    }
+    let node = this.findSuitableNodeForPosition(position);
+    debug(`selection in node of type ${get(node, 'type')} [${get(node, 'start')}, ${get(node,'end')}]`);
+    this.moveCaretInTextNode(get(node,'domNode'), position - get(node, 'start'));
+    this.set('currentNode', get(node, 'domNode'));
+    this.set('currentSelection', [ position, position ]);
+    if (notify)
+      forgivingAction('selectionUpdate', this)();
+  },
+
+
+  /**
+   * Called after relevant input. Checks content and calls closureActions when changes detected
+   * handleTextInsert, handleTextRemove, handleFullContentUpdate
+   * @method generateDiffEvents
+   *
+   * @private
+   */
+  generateDiffEvents(){
+    let newText = getTextContent(this.get('rootNode'));
+    let oldText = this.get('currentTextContent');
+    let differences = JsDiff.diffChars(oldText, newText);
+    let pos = 0;
+    let textHasChanges = false;
+
+    differences.forEach(function(part) {
+      if (part.added) {
+        textHasChanges = true;
+        this.set('currentTextContent', oldText.slice(0, pos) + part.value + oldText.slice(pos, oldText.length));
+        forgivingAction('textInsert', this)(pos, part.value);
+        pos = pos + part.value.length;
+      }
+      else if (part.removed) {
+        textHasChanges = true;
+        this.set('currentTextContent', oldText.slice(0,pos) + oldText.slice(pos + part.value.length, oldText.length));
+        forgivingAction('textRemove', this)(pos, pos + part.value.length);
+      }
+      else {
+        pos = pos + part.value.length;
+      }
+      oldText = this.get('currentTextContent');
+    }, this);
+
+    if(textHasChanges){
+      forgivingAction('handleFullContentUpdate', this)();
+    }
+
+  }
+});
+
+export default RawEditor;

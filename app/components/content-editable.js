@@ -1,0 +1,1 @@
+export { default } from 'ember-contenteditable-editor/components/content-editable';

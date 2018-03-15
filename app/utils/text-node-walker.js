@@ -1,1 +1,1 @@
-export { default } from 'ember-contenteditable-editor/utils/text-node-walker';
+export { default } from '@lblod/ember-contenteditable-editor/utils/text-node-walker';

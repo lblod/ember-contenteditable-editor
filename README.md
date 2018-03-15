@@ -1,6 +1,11 @@
-# ember-contenteditable-editor
+# @lblod/ember-contenteditable-editor
 
 Addon providing a content editable component
+
+## Installation
+```
+ember install @lblod/ember-contenteditable-editor
+```
 
 ## Usage
 This addon provides a component `content-editable` and a object `raw-editor` that are best used together. By binding the `currentSelectionUpdated` and `rootNodeUpdated` actions to the `updateCurrentSelection` and `updateRootNode` methods on an instance of raw-editor you can use the raw-editor interface to interact with the content of the content-editable.
@@ -48,7 +53,7 @@ export default Controller.extend({
 
 See dummy app for a working example.
 
-## actions
+## Actions
 ### textInsert
 This function is called after text is inserted. 
 
@@ -76,15 +81,15 @@ This function is called on component init and provides the rawEditor interface t
 Paras:
 * [RawEditor] raw editor, the interfacec to the editor
 
-## properties
+## Properties
 
 * focused [boolean]
 * yieldHTML [boolean]
 * editable [boolean]
 
-## extending the editor
+## Extending the editor
 
-### responding to input
+### Responding to input
 All keyboard and mouse input is captured in the content-editable component. These events are then passed on to inputHandlers.
 
 An input handler should implement at least the following methods:
@@ -136,5 +141,5 @@ export default EmberObject.extend({
 }
 ```
 
-### providing extra api's 
+### Providing extra APIs
 These should be defined on the raw-editor interface.

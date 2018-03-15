@@ -4,7 +4,7 @@ var Funnel = require('broccoli-funnel');
 var MergeTrees = require('broccoli-merge-trees');
 
 module.exports = {
-  name: 'ember-contenteditable-editor',
+  name: '@lblod/ember-contenteditable-editor',
   included: function (app) {
     this._super.included(app);
     app.import('vendor/diff.min.js');

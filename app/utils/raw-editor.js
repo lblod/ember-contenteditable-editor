@@ -1,1 +1,1 @@
-export { default } from 'ember-contenteditable-editor/utils/raw-editor';
+export { default } from '@lblod/ember-contenteditable-editor/utils/raw-editor';

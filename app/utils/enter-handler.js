@@ -1,1 +1,1 @@
-export { default } from 'ember-contenteditable-editor/utils/enter-handler';
+export { default } from '@lblod/ember-contenteditable-editor/utils/enter-handler';

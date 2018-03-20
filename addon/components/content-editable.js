@@ -104,7 +104,6 @@ export default Component.extend({
     let textInputHandler = TextInputHandler.create(({rawEditor: this.get('rawEditor')}));
     let textInputDataFlaggedRemoveHandler = TextInputDataFlaggedRemoveHandler.create(({rawEditor: this.get('rawEditor')}));
     this.set('inputHandlers', [enterHandler, backspaceHandler, textInputDataFlaggedRemoveHandler, textInputHandler]);
-    forgivingAction('rawEditorInit', this)(this.get('rawEditor'));
   },
 
   /**
@@ -153,7 +152,8 @@ export default Component.extend({
     if (this.get('focused'))
       el.focus();
     this.get('rawEditor').updateRichNode();
-    forgivingAction('elementUpdate', this)(this.get('rawEditor'));
+    forgivingAction('rawEditorInit', this)(this.get('rawEditor'));
+    forgivingAction('elementUpdate', this)();
     this.get('rawEditor').generateDiffEvents();
   },
 

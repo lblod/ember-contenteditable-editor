@@ -130,7 +130,7 @@ const insertNodeBAfterNodeA = function(parent, nodeA, nodeB) {
 
 const tagName = function(node) {
   return node.nodeType === node.ELEMENT_NODE ? node.tagName.toLowerCase() : '';
-}
+};
 
 export {
   tagName,

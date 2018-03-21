@@ -5,7 +5,7 @@ import HandlerResponse from './handler-response';
 import { get } from '@ember/object';
 import getRichNodeMatchingDomNode from './get-rich-node-matching-dom-node';
 import NodeWalker from './node-walker';
-import RdfaRichNodeHelpers from './rdfa-rich-node-helpers';
+import { isRdfaNode } from './rdfa-rich-node-helpers';
 
 export default EmberObject.extend({
   rootNode: reads('rawEditor.rootNode'),
@@ -335,7 +335,7 @@ export default EmberObject.extend({
    */
   isRdfaNode(node){
     let nodeWalker = NodeWalker.create();
-    return RdfaRichNodeHelpers.create().isRdfaNode(nodeWalker.processDomNode(node));
+    return isRdfaNode(nodeWalker.processDomNode(node));
   },
 
   /**

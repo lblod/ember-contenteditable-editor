@@ -102,6 +102,7 @@ const RawEditor = EmberObject.extend({
     this.set('currentTextContent', before + content + after);
     forgivingAction('textInsert', this)(start, content);
     forgivingAction('handleFullContentUpdate', this)();
+    forgivingAction('elementUpdate', this)();
     return newNodes;
   },
 

@@ -492,6 +492,20 @@ const RawEditor = EmberObject.extend({
     return getRichNodeMatchingDomNode(domNode, tree);
   },
 
+  /**
+   * execute a DOM transformation on the editor content, ensures a consistent editor state
+   * @method externalDomUpdate
+   * @param {function} domUpdate
+   * @public
+   */
+  externalDomUpdate(description, domUpdate) {
+    warn(`executing an external dom update: ${description}`, {id: 'contenteditable.external-dom-update'} );
+    domUpdate();
+    this.updateRichNode();
+    this.updateSelectionAfterComplexInput();
+    forgivingAction('elementUpdate', this)();
+    this.generateDiffEvents();
+  },
 
   /**
    * update the selection based on dom window selection

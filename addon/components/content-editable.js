@@ -8,6 +8,7 @@ import EnterHandler from '../utils/enter-handler';
 import BackspaceHandler from '../utils/backspace-handler';
 import TextInputHandler from '../utils/text-input-handler';
 import TextInputDataFlaggedRemoveHandler from '../utils/text-input-data-flagged-remove-handler';
+
 /**
  * Content editable editor component
  * @module contenteditable-editor
@@ -81,7 +82,7 @@ export default Component.extend({
    * ordered set of input handlers
    * @property eventHandlers
    * @type Array
-   * @private
+   * @public
    */
   inputHandlers: null,
 
@@ -99,11 +100,17 @@ export default Component.extend({
     }));
     this.set('currentTextContent', '');
     this.set('currentSelection', [0,0]);
-    let enterHandler = EnterHandler.create({rawEditor: this.get('rawEditor')});
-    let backspaceHandler = BackspaceHandler.create({rawEditor: this.get('rawEditor')});
-    let textInputHandler = TextInputHandler.create(({rawEditor: this.get('rawEditor')}));
-    let textInputDataFlaggedRemoveHandler = TextInputDataFlaggedRemoveHandler.create(({rawEditor: this.get('rawEditor')}));
-    this.set('inputHandlers', [enterHandler, backspaceHandler, textInputDataFlaggedRemoveHandler, textInputHandler]);
+    const enterHandler = EnterHandler.create({rawEditor: this.get('rawEditor')});
+    const backspaceHandler = BackspaceHandler.create({rawEditor: this.get('rawEditor')});
+    const textInputHandler = TextInputHandler.create(({rawEditor: this.get('rawEditor')}));
+    const textInputDataFlaggedRemoveHandler = TextInputDataFlaggedRemoveHandler.create(({rawEditor: this.get('rawEditor')}));
+    const handlers = [enterHandler, backspaceHandler, textInputDataFlaggedRemoveHandler, textInputHandler];
+    if (! isEmpty(this.get('inputHandlers'))) {
+      this.set('inputHandlers', this.get('inputHandlers').concat(handlers));
+    }
+    else {
+      this.set('inputHandlers', handlers);
+    }
   },
 
   /**

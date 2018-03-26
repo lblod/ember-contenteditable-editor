@@ -45,24 +45,30 @@ export default EmberObject.extend({
     let newCurrentNode;
     if (tagName(get(nodeForEnter, 'domNode')) === "li") {
       debug('enter in li');
-      this.insertEnterInLi(node, nodeForEnter, currentPosition, currentNode);
+      this.get('rawEditor').externalDomUpdate(
+        'inserting enter in li',
+        () => this.insertEnterInLi(node, nodeForEnter, currentPosition, currentNode)
+      );
       return HandlerResponse.create({allowPropagation: false});
     }
     else {
       if (currentNode.nodeType === Node.TEXT_NODE) {
-        debug('placing br');
-        let splitAt = currentPosition - get(node, 'start');
-        let above = document.createTextNode(currentNode.textContent.slice(0,splitAt));
-        let content = currentNode.textContent.slice(splitAt);
-        if (isBlank(content))
+        let insertBr = () => {
+          debug('placing br');
+          let splitAt = currentPosition - get(node, 'start');
+          let above = document.createTextNode(currentNode.textContent.slice(0,splitAt));
+          let content = currentNode.textContent.slice(splitAt);
+          if (isBlank(content))
             content = invisibleSpace;
-        let below = document.createTextNode(content);
-        let br = document.createElement('br');
-        currentNode.parentNode.insertBefore(above, currentNode);
-        currentNode.parentNode.insertBefore(br, currentNode);
-        currentNode.parentNode.insertBefore(below, currentNode);
-        currentNode.parentNode.removeChild(currentNode);
-        newCurrentNode = below;
+          let below = document.createTextNode(content);
+          let br = document.createElement('br');
+          currentNode.parentNode.insertBefore(above, currentNode);
+          currentNode.parentNode.insertBefore(br, currentNode);
+          currentNode.parentNode.insertBefore(below, currentNode);
+          currentNode.parentNode.removeChild(currentNode);
+          newCurrentNode = below;
+        };
+        this.get('rawEditor').externalDomUpdate('inserting enter in text', insertBr);
       }
       else {
         debug('-------------- not handling this enter yet------------------');

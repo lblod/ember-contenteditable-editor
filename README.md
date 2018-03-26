@@ -141,5 +141,17 @@ export default EmberObject.extend({
 }
 ```
 
+You can provide externalHandlers by providing them in a sorted array to the component.
+
+```
+#js
+    handleRawEditorInit(editor) {
+      this.set('editor', editor);
+      this.set('handlers', [MyHandler.create({rawEditor: editor })]);
+    }
+# hbs
+{{content-editable externalHandlers=handlers}}
+```
+
 ### Providing extra APIs
 These should be defined on the raw-editor interface.

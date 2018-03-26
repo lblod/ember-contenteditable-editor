@@ -1,6 +1,6 @@
 import Component from '@ember/component';
 import { computed } from '@ember/object';
-import { alias } from '@ember/object/computed';
+import { alias, union } from '@ember/object/computed';
 import { isEmpty } from '@ember/utils';
 import layout from '../templates/components/content-editable';
 import forgivingAction from '../utils/forgiving-action';
@@ -9,6 +9,7 @@ import EnterHandler from '../utils/enter-handler';
 import BackspaceHandler from '../utils/backspace-handler';
 import TextInputHandler from '../utils/text-input-handler';
 import TextInputDataFlaggedRemoveHandler from '../utils/text-input-data-flagged-remove-handler';
+
 
 /**
  * Content editable editor component
@@ -85,8 +86,23 @@ export default Component.extend({
    * @type Array
    * @public
    */
-  inputHandlers: null,
+  inputHandlers: union('externalHandlers', 'defaultHandlers'),
 
+  /**
+   * default input handlers
+   * @property defaultHandlers
+   * @type Array
+   * @private
+   */
+  defaultHandlers: null,
+
+  /**
+   * external input handlersg
+   * @property externalHandlers
+   * @type Array
+   * @private
+   */
+  externalHandlers: null,
   /**
    * @constructor
    */
@@ -99,19 +115,16 @@ export default Component.extend({
       selectionUpdate: this.get('selectionUpdate'),
       elementUpdate: this.get('elementUpdate')
     }));
-    this.set('currentTextContent', '');
-    this.set('currentSelection', [0,0]);
     const enterHandler = EnterHandler.create({rawEditor: this.get('rawEditor')});
     const backspaceHandler = BackspaceHandler.create({rawEditor: this.get('rawEditor')});
     const textInputHandler = TextInputHandler.create(({rawEditor: this.get('rawEditor')}));
     const textInputDataFlaggedRemoveHandler = TextInputDataFlaggedRemoveHandler.create(({rawEditor: this.get('rawEditor')}));
-    const handlers = [enterHandler, backspaceHandler, textInputDataFlaggedRemoveHandler, textInputHandler];
-    if (! isEmpty(this.get('inputHandlers'))) {
-      this.set('inputHandlers', this.get('inputHandlers').concat(handlers));
-    }
-    else {
-      this.set('inputHandlers', handlers);
-    }
+    const defaultInputHandlers = [enterHandler, backspaceHandler, textInputDataFlaggedRemoveHandler, textInputHandler];
+
+    this.set('currentTextContent', '');
+    this.set('currentSelection', [0,0]);
+    this.set('defaultHandlers', defaultInputHandlers);
+//    this.set('externalHandlers', []);
   },
 
   /**
@@ -189,13 +202,16 @@ export default Component.extend({
       }
       else {
         this.get('rawEditor').createSnapshot();
+        console.log(this.get('inputHandlers'));
+        console.log(this.get('externalHandlers'));
         let handlers = this.get('inputHandlers').filter(h => h.isHandlerFor(event));
+        console.log(handlers);
         handlers.some( handler => {
           let response = handler.handleEvent(event);
           if (!response.get('allowBrowserDefault'))
             event.preventDefault();
           if (!response.get('allowPropagation'))
-            return;
+            return true;
         });
       }
       this.get('rawEditor').updateRichNode();

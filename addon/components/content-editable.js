@@ -223,9 +223,7 @@ export default Component.extend({
 
   handleUncapturedEvent(event) {
     if (!this.get('isCaptured')) {
-      this.get('rawEditor').updateRichNode();
-      this.get('rawEditor').updateSelectionAfterComplexInput(event);
-      this.get('rawEditor').generateDiffEvents();
+      this.get('rawEditor').externalDomUpdate('uncaptured event', () => {});
     }
     this.set('isCaptured', false);
   },

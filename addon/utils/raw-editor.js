@@ -6,10 +6,11 @@ import EmberObject from '@ember/object';
 import replaceTextWithHtml from './replace-text-with-html';
 import flatMap from './flat-map';
 import NodeWalker from './node-walker';
-import { debug, warn } from '@ember/debug';
-import { get, computed } from '@ember/object';
 import JsDiff from 'diff';
 import { getTextContent } from './text-node-walker';
+import { isEmpty } from '@ember/utils';
+import { debug, warn } from '@ember/debug';
+import { get, computed } from '@ember/object';
 
 const HIGHLIGHT_DATA_ATTRIBUTE = 'data-editor-highlight';
 const NON_BREAKING_SPACE = '\u00A0';

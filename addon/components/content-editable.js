@@ -1,6 +1,7 @@
 import Component from '@ember/component';
 import { computed } from '@ember/object';
 import { alias } from '@ember/object/computed';
+import { isEmpty } from '@ember/utils';
 import layout from '../templates/components/content-editable';
 import forgivingAction from '../utils/forgiving-action';
 import RawEditor from '../utils/raw-editor';
@@ -228,7 +229,7 @@ export default Component.extend({
     this.get('rawEditor').generateDiffEvents();
   },
 
-  handleUncapturedEvent(event) {
+  handleUncapturedEvent() {
     if (!this.get('isCaptured')) {
       this.get('rawEditor').externalDomUpdate('uncaptured event', () => {});
     }

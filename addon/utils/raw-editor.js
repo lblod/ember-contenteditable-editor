@@ -11,8 +11,8 @@ import { get, computed } from '@ember/object';
 import JsDiff from 'diff';
 import { getTextContent } from './text-node-walker';
 
-const highlightDataAttribute = 'data-editor-highlight';
-
+const HIGHLIGHT_DATA_ATTRIBUTE = 'data-editor-highlight';
+const NON_BREAKING_SPACE = '\u00A0';
 /**
  * raw contenteditable editor, a utility class that shields editor internals from consuming applications.
  *
@@ -126,7 +126,7 @@ const RawEditor = EmberObject.extend({
       for (const prop in data) {
         element.setAttribute(prop,data[prop]);
       }
-      element.setAttribute(highlightDataAttribute, 'true');
+      element.setAttribute(HIGHLIGHT_DATA_ATTRIBUTE, 'true');
       let currentNode = this.getRichNodeFor(this.get('currentNode'));
       if (currentNode && get(currentNode, 'start') <= start && get(currentNode, 'end') >= end) {
         let parent = element.parentNode;
@@ -273,31 +273,32 @@ const RawEditor = EmberObject.extend({
       this.updateRichNode();
     }
     debug(`inserting ${text} at ${position}`);
-    let textNode = this.findSuitableNodeForPosition(position);
-    let type = get(textNode, 'type');
+    const textNode = this.findSuitableNodeForPosition(position);
+    const type = get(textNode, 'type');
     let domNode;
     if (type === 'text') {
       if (text === " ")
-        text = '\u00A0';
-      let parent = get(textNode, 'parent');
+        text = NON_BREAKING_SPACE;
+      const parent = get(textNode, 'parent');
       if (position === get(textNode, 'end') && tagName(get(parent, 'domNode')) === 'mark') {
-        let mark = get(parent, 'domNode');
-        let markParent = get(parent, 'parent.domNode');
+        const mark = get(parent, 'domNode');
+        const markParent = get(parent, 'parent.domNode');
         // there is no inserting at the end of highlight, we insert next to the highlight
         domNode = document.createTextNode(text);
         insertNodeBAfterNodeA(markParent, mark, domNode);
       }
       else {
         domNode = get(textNode, 'domNode');
-        let relativePosition = position - get(textNode, 'start');
+        const relativePosition = position - get(textNode, 'start');
+        const previousChar = domNode.textContent.slice(max(0, relativePosition - 1), relativePosition);
         sliceTextIntoTextNode(domNode, text, relativePosition);
       }
       this.set('currentNode', domNode);
     }
     else {
       // we should always have a suitable node... last attempt to safe things somewhat
-      warn(`no text node found at position ${position}`,{id: 'content-editable.no-text-node-found'});
-      warn('inconsistent state in editor!');
+      warn(`no text node found at position ${position}`, {id: 'content-editable.no-text-node-found'});
+      warn('inconsistent state in editor!', {id: 'content-editable.no-text-node-found'});
       debug(get(textNode,'domNode'));
       domNode = document.createTextNode(text);
       get(textNode, 'domNode').appendChild(domNode);

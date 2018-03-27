@@ -76,7 +76,7 @@ export default EmberObject.extend({
    * @private
    */
   domCleanUp(domNode){
-    let isEmptyTextNode = node => {4
+    let isEmptyTextNode = node => {
       return this.isParentFlaggedForAlmostRemoval(node) ||
         this.isTextNodeWithContent(node);
     };

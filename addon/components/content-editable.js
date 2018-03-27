@@ -1,7 +1,6 @@
 import Component from '@ember/component';
 import { computed } from '@ember/object';
 import { alias, union } from '@ember/object/computed';
-import { isEmpty } from '@ember/utils';
 import layout from '../templates/components/content-editable';
 import forgivingAction from '../utils/forgiving-action';
 import RawEditor from '../utils/raw-editor';
@@ -202,10 +201,7 @@ export default Component.extend({
       }
       else {
         this.get('rawEditor').createSnapshot();
-        console.log(this.get('inputHandlers'));
-        console.log(this.get('externalHandlers'));
         let handlers = this.get('inputHandlers').filter(h => h.isHandlerFor(event));
-        console.log(handlers);
         handlers.some( handler => {
           let response = handler.handleEvent(event);
           if (!response.get('allowBrowserDefault'))

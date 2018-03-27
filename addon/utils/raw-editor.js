@@ -8,7 +8,6 @@ import flatMap from './flat-map';
 import NodeWalker from './node-walker';
 import JsDiff from 'diff';
 import { getTextContent } from './text-node-walker';
-import { isEmpty } from '@ember/utils';
 import { debug, warn } from '@ember/debug';
 import { get, computed } from '@ember/object';
 
@@ -291,7 +290,6 @@ const RawEditor = EmberObject.extend({
       else {
         domNode = get(textNode, 'domNode');
         const relativePosition = position - get(textNode, 'start');
-        const previousChar = domNode.textContent.slice(max(0, relativePosition - 1), relativePosition);
         sliceTextIntoTextNode(domNode, text, relativePosition);
       }
       this.set('currentNode', domNode);

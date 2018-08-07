@@ -1,4 +1,14 @@
-import { isDisplayedAsBlock, invisibleSpace, insertTextNodeWithSpace, insertNodeBAfterNodeA, sliceTextIntoTextNode, removeNodeFromTree, isVoidElement, isIgnorableElement, tagName } from './dom-helpers';
+import {
+  isDisplayedAsBlock,
+  invisibleSpace,
+  insertTextNodeWithSpace,
+  insertNodeBAfterNodeA,
+  sliceTextIntoTextNode,
+  removeNodeFromTree,
+  isVoidElement,
+  isIgnorableElement,
+  tagName
+} from './dom-helpers';
 import getRichNodeMatchingDomNode from './get-rich-node-matching-dom-node';
 import CappedHistory from './capped-history';
 import forgivingAction from './forgiving-action';

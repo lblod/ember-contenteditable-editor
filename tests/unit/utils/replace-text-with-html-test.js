@@ -1,9 +1,10 @@
-import { module, test } from 'ember-qunit';
+import { setupRenderingTest } from 'ember-qunit';
 import hbs from 'htmlbars-inline-precompile';
 import { render } from '@ember/test-helpers';
 import replaceTextWithHtml from 'dummy/utils/replace-text-with-html';
 import NodeWalker from 'dummy/utils/node-walker';
-import { setupRenderingTest } from 'ember-qunit';
+import { module, test } from 'qunit';
+import 'ember-qunit';
 
 module('Unit | Utility | replace text with html', function(hooks){
 

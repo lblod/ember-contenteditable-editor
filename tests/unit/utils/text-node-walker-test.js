@@ -1,8 +1,9 @@
-import { module, test } from 'ember-qunit';
+import { setupRenderingTest } from 'ember-qunit';
 import hbs from 'htmlbars-inline-precompile';
 import { render } from '@ember/test-helpers';
 import TextNodeWalker from 'dummy/utils/text-node-walker';
-import { setupRenderingTest } from 'ember-qunit';
+import { module, test } from 'qunit';
+import 'ember-qunit';
 
 module('Unit | Utility | text node walker', function(hooks){
 

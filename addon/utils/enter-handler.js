@@ -1,7 +1,14 @@
 import EmberObject from '@ember/object';
 import { reads, alias } from '@ember/object/computed';
 import getRichNodeMatchingDomNode from './get-rich-node-matching-dom-node';
-import { tagName, isDisplayedAsBlock, invisibleSpace, isEmptyList, insertNodeBAfterNodeA, insertTextNodeWithSpace } from './dom-helpers';
+import {
+  tagName,
+  isDisplayedAsBlock,
+  invisibleSpace,
+  isEmptyList,
+  insertNodeBAfterNodeA,
+  insertTextNodeWithSpace
+} from './dom-helpers';
 import HandlerResponse from './handler-response';
 import { get } from '@ember/object';
 import { debug } from '@ember/debug';

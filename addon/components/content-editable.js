@@ -8,6 +8,8 @@ import EnterHandler from '../utils/enter-handler';
 import BackspaceHandler from '../utils/backspace-handler';
 import TextInputHandler from '../utils/text-input-handler';
 import TextInputDataFlaggedRemoveHandler from '../utils/text-input-data-flagged-remove-handler';
+import HeaderMarkdownHandler from '../utils/header-markdown-handler';
+import EmphasisMarkdownHandler from '../utils/emphasis-markdown-handler';
 
 
 /**
@@ -122,11 +124,19 @@ export default Component.extend({
       selectionUpdate: this.get('selectionUpdate'),
       elementUpdate: this.get('elementUpdate')
     }));
+
+    const headerMarkdownHandler = HeaderMarkdownHandler.create({rawEditor: this.get('rawEditor')});
     const enterHandler = EnterHandler.create({rawEditor: this.get('rawEditor')});
     const backspaceHandler = BackspaceHandler.create({rawEditor: this.get('rawEditor')});
+    const emphasisMarkdownHandler = EmphasisMarkdownHandler.create({rawEditor: this.get('rawEditor')});
     const textInputHandler = TextInputHandler.create(({rawEditor: this.get('rawEditor')}));
     const textInputDataFlaggedRemoveHandler = TextInputDataFlaggedRemoveHandler.create(({rawEditor: this.get('rawEditor')}));
-    const defaultInputHandlers = [enterHandler, backspaceHandler, textInputDataFlaggedRemoveHandler, textInputHandler];
+    const defaultInputHandlers = [headerMarkdownHandler,
+                                  enterHandler,
+                                  backspaceHandler,
+                                  emphasisMarkdownHandler,
+                                  textInputDataFlaggedRemoveHandler,
+                                  textInputHandler];
 
     this.set('currentTextContent', '');
     this.set('currentSelection', [0,0]);

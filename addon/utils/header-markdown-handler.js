@@ -68,7 +68,12 @@ export default EmberObject.extend({
       let headerTextNode = document.createTextNode(headerContent);
       let headerNode = document.createElement(`h${headerLevel}`);
       headerNode.append(headerTextNode);
-      let afterHeader = document.createTextNode(currentNode.textContent.slice(headerEnd));
+      let afterHeaderContent = currentNode.textContent.slice(headerEnd);
+
+      if (isBlank(afterHeaderContent))
+        afterHeaderContent = invisibleSpace;
+
+      let afterHeader = document.createTextNode(afterHeaderContent);
       let br = document.createElement('br');
 
       currentNode.parentNode.insertBefore(beforeHeader, currentNode);

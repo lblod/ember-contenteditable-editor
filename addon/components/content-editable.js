@@ -80,6 +80,14 @@ export default Component.extend({
   rawEditor: null,
 
   /**
+   * components present in the editor
+   * @property components
+   * @type {Object}
+   * @public
+   */
+  components: alias('rawEditor.components'),
+
+  /**
    * ordered set of input handlers
    * @property eventHandlers
    * @type Array
@@ -171,6 +179,7 @@ export default Component.extend({
     let el = this.get('element');
     if (this.get('focused'))
       el.focus();
+    this.extractAndInsertComponents();
     this.get('rawEditor').updateRichNode();
     forgivingAction('rawEditorInit', this)(this.get('rawEditor'));
     forgivingAction('elementUpdate', this)();
@@ -249,6 +258,21 @@ export default Component.extend({
   },
 
   /**
+   * find defined components, and recreate them
+   */
+  extractAndInsertComponents() {
+    for (let element of this.get('element').querySelectorAll('[data-contenteditable-cw-id]')) {
+      let name = element.getAttribute('data-contenteditable-cw-name');
+      let content = JSON.parse(element.getAttribute('data-contenteditable-cw-content'));
+      let id = element.getAttribute('data-contenteditable-cw-id');
+      let parent = element.parentNode;
+      console.log(parent);
+      parent.innerHTML = '';
+      this.rawEditor.insertComponent(parent, name, content, id);
+    }
+  },
+
+  /**
    * specifies whether an input event is "simple" or not
    * simple events can be translated to a increment of the cursor position
    *
@@ -265,5 +289,10 @@ export default Component.extend({
 
   isCtrlZ(event) {
     return event.ctrlKey && event.key === 'z';
+  },
+  actions: {
+    removeComponent(id) {
+      this.rawEditor.removeComponent(id);
+    }
   }
 });

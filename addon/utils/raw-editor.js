@@ -20,9 +20,10 @@ import JsDiff from 'diff';
 import { getTextContent } from './text-node-walker';
 import { debug, warn } from '@ember/debug';
 import { get, computed } from '@ember/object';
-
+import { A } from '@ember/array';
 const HIGHLIGHT_DATA_ATTRIBUTE = 'data-editor-highlight';
 const NON_BREAKING_SPACE = '\u00A0';
+
 /**
  * raw contenteditable editor, a utility class that shields editor internals from consuming applications.
  *
@@ -66,13 +67,21 @@ const RawEditor = EmberObject.extend({
   currentNode: null,
 
   /**
-   * Returns current textContent from editor
+   * current textContent from editor
    *
    * @property currentTextContent
    * @type String
    * @public
    */
   currentTextContent: null,
+
+  /**
+   * components present in the editor
+   * @property components
+   * @type {Object}
+   * @public
+   */
+  components: null,
 
   /**
    * is current selection a cursor
@@ -87,7 +96,9 @@ const RawEditor = EmberObject.extend({
 
   init() {
     this.set('history', CappedHistory.create({ maxItems: 100}));
+    this.set('components', A());
   },
+
   /**
    *
    * @method replaceTextWithHTML
@@ -315,6 +326,41 @@ const RawEditor = EmberObject.extend({
     }
     this.updateRichNode();
     return domNode;
+  },
+
+  /**
+   * insert a component at the provided position
+   * @method insertComponent
+   * @param {Number} position
+   * @param {String} componentName
+   * @param {Object} componentContent
+   * @return {String} componentID
+   * @public
+   */
+  insertComponent(position, name, content, id = uuidv4()) {
+    var el;
+    if (position instanceof Element)
+      el = position;
+    else
+      [el] = this.replaceTextWithHTML(position, position, `<div contenteditable="false" id="editor-${id}"><!-- component ${id} --></div>`);
+    let config = { id, element: el, name, content };
+    this.components.pushObject(config);
+    this.updateRichNode();
+    this.updateSelectionAfterComplexInput();
+    return id;
+  },
+
+  /**
+   * remove a component
+   * @method removeComponent
+   * @param {String} componentID
+   * @public
+   */
+  removeComponent(id) {
+    let item = this.components.find( (item) => item.id === id);
+    this.components.removeObject(item);
+    this.updateRichNode();
+    this.updateSelectionAfterComplexInput();
   },
 
   isTagWithOnlyABreakAsChild(node) {
@@ -650,4 +696,9 @@ const RawEditor = EmberObject.extend({
   }
 });
 
+function uuidv4() {
+  return ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, c =>
+                                              (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16)
+                                             );
+}
 export default RawEditor;

@@ -132,9 +132,9 @@ export default Component.extend({
     const textInputHandler = TextInputHandler.create(({rawEditor: this.get('rawEditor')}));
     const textInputDataFlaggedRemoveHandler = TextInputDataFlaggedRemoveHandler.create(({rawEditor: this.get('rawEditor')}));
     const defaultInputHandlers = [headerMarkdownHandler,
+                                  emphasisMarkdownHandler,
                                   enterHandler,
                                   backspaceHandler,
-                                  emphasisMarkdownHandler,
                                   textInputDataFlaggedRemoveHandler,
                                   textInputHandler];
 

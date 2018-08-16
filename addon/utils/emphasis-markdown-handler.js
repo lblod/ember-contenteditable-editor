@@ -51,7 +51,7 @@ export default EmberObject.extend({
   isHandlerFor(event) {
     return event.type === "keydown" &&
       this.get('rawEditor.currentSelectionIsACursor') &&
-      event.key == ' ' &&
+      event.key == 'Enter' &&
       this.nodeContainsRelevantMarkdown(this.get('currentNode'));
   },
 

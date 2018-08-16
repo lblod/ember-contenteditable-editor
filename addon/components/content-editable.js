@@ -276,7 +276,6 @@ export default Component.extend({
       let content = JSON.parse(element.getAttribute('data-contenteditable-cw-content'));
       let id = element.getAttribute('data-contenteditable-cw-id');
       let parent = element.parentNode;
-      console.log(parent);
       parent.innerHTML = '';
       this.rawEditor.insertComponent(parent, name, content, id);
     }

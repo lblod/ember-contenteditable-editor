@@ -73,7 +73,7 @@ export default EmberObject.extend({
       let matchGroups = currentNode.textContent.match(markdown);
       let contentEnd = currentPosition - matchGroups[1].length - get(node, 'start');
       let contentStart = currentPosition - get(node, 'start') - matchGroups[0].length + matchGroups[1].length;
-      let beforeElement = document.createTextNode(currentNode.textContent.slice(0, matchGroups.index));
+      let beforeContentNode = document.createTextNode(currentNode.textContent.slice(0, matchGroups.index));
       let elementContent = currentNode.textContent.slice(contentStart, contentEnd);
 
       if (isBlank(elementContent))
@@ -82,16 +82,21 @@ export default EmberObject.extend({
       let contentTextNode = document.createTextNode(elementContent);
       let contentNode = document.createElement(this.findMarkdown(currentNode.textContent).tag);
       contentNode.append(contentTextNode);
-      let afterContent = document.createTextNode(currentNode.textContent.slice(contentEnd + matchGroups[1].length));
+      let afterContent = currentNode.textContent.slice(contentEnd + matchGroups[1].length);
 
-      currentNode.parentNode.insertBefore(beforeElement, currentNode);
+      if(isBlank(afterContent))
+        afterContent = invisibleSpace;
+
+      let afterContentNode = document.createTextNode(afterContent);
+
+      currentNode.parentNode.insertBefore(beforeContentNode, currentNode);
       currentNode.parentNode.insertBefore(contentNode, currentNode);
-      currentNode.parentNode.insertBefore(afterContent, currentNode);
+      currentNode.parentNode.insertBefore(afterContentNode, currentNode);
       currentNode.parentNode.removeChild(currentNode);
-      newCurrentNode = afterContent;
+      newCurrentNode = afterContentNode;
     };
 
-    this.get('rawEditor').externalDomUpdate('inserting header', insertElement);
+    this.get('rawEditor').externalDomUpdate('inserting markdown', insertElement);
     this.get('rawEditor').updateRichNode();
     let richNode = getRichNodeMatchingDomNode(newCurrentNode, this.get('richNode'));
     this.get('rawEditor').setCurrentPosition(get(richNode, 'start'));

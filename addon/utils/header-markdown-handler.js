@@ -37,7 +37,7 @@ export default EmberObject.extend({
    */
   isHandlerFor(event) {
     return event.type === "keydown" &&
-      event.key === "Enter" &&
+      event.key === " " &&
       this.get('rawEditor.currentSelectionIsACursor') &&
       this.nodeContainsHeaderMarkdown(this.get('currentNode'));
   },
@@ -74,11 +74,9 @@ export default EmberObject.extend({
         afterHeaderContent = invisibleSpace;
 
       let afterHeader = document.createTextNode(afterHeaderContent);
-      let br = document.createElement('br');
 
       currentNode.parentNode.insertBefore(beforeHeader, currentNode);
       currentNode.parentNode.insertBefore(headerNode, currentNode);
-      currentNode.parentNode.insertBefore(br, currentNode);
       currentNode.parentNode.insertBefore(afterHeader, currentNode);
       currentNode.parentNode.removeChild(currentNode);
       newCurrentNode = afterHeader;

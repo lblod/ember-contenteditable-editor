@@ -343,7 +343,7 @@ const RawEditor = EmberObject.extend({
       el = position;
     else
       [el] = this.replaceTextWithHTML(position, position, `<div contenteditable="false" id="editor-${id}"><!-- component ${id} --></div>`);
-    let config = { id, element: el, name, content };
+    let config = { id, element: el, name, content: EmberObject.create(content) };
     this.components.pushObject(config);
     this.updateRichNode();
     this.updateSelectionAfterComplexInput();

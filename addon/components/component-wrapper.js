@@ -14,6 +14,10 @@ export default Component.extend({
   actions: {
     close() {
       this.removeComponent(this.id);
+    },
+    contentUpdate(content) {
+      this.set('content',content);
+      this.notifyPropertyChange('content');
     }
   }
 });

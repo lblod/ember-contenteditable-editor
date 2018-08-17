@@ -8,7 +8,7 @@ import { invisibleSpace } from './dom-helpers';
 
 
 let BOLDMARKDOWN = /(\*\*)(.*?)\1/;
-let EMPHASISMARKDOWN = /(\*)(.*?)\1/;
+let EMPHASISMARKDOWN = /(\*)([^\*].+?)\1/;
 let UNDERLINEMARKDOWN = /(_)(.*?)\1/;
 
 let MARKDOWNS = [
@@ -51,7 +51,7 @@ export default EmberObject.extend({
   isHandlerFor(event) {
     return event.type === "keydown" &&
       this.get('rawEditor.currentSelectionIsACursor') &&
-      event.key == 'Enter' &&
+      event.key == ' ' &&
       this.nodeContainsRelevantMarkdown(this.get('currentNode'));
   },
 

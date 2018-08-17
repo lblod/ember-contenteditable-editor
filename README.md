@@ -155,3 +155,15 @@ You can provide externalHandlers by providing them in a sorted array to the comp
 
 ### Providing extra APIs
 These should be defined on the raw-editor interface.
+
+### Build-in styling through markdown
+Some basic styling is provided.
+```
+## Header "<h2>"  (after pressing enter)
+
+** bold text ** (after pressing space)
+
+* em text * (after pressing space)
+
+_ underline _ (after pressing space)
+```

@@ -125,16 +125,7 @@ export default EmberObject.extend({
     let liDomNode = get(nodeForEnter, 'domNode');
     let parentOfUl = get(ulOrOl, 'parent.domNode');
     let textNode;
-    if (this.liIsEmpty(nodeForEnter)) {
-      // remove li
-      let after = liDomNode.nextElementSibling === null;
-      domNode.removeChild(liDomNode);
-      textNode = insertTextNodeWithSpace(parentOfUl, domNode, after);
-      if (isEmptyList(domNode))
-        parentOfUl.removeChild(domNode);
-      this.set('currentNode', textNode);
-    }
-    else if (currentPosition === get(nodeForEnter, 'start')) {
+    if (! this.liIsEmpty(nodeForEnter) && (currentPosition === get(nodeForEnter, 'start'))) {
       // insert li before li
       let newElement = document.createElement('li');
       domNode.insertBefore(newElement,liDomNode);

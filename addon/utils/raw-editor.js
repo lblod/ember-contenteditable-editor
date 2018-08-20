@@ -585,7 +585,7 @@ const RawEditor = EmberObject.extend({
         debug(`updating selection after complex input ${newSelection[0]} ${newSelection[1]}`);
         if (newSelection[0] === newSelection[1]) {
           if (get(startNode,'type') === 'tag') {
-            this.set('currentNode', range.startContainer.childNodes[range.startOffset]);
+            this.set('currentNode', range.startContainer.childNodes[range.startOffset-1]);
           }
           else
             this.set('currentNode', range.startContainer);

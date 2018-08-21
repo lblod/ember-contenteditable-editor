@@ -238,7 +238,7 @@ export default Component.extend({
       this.capturedEvents.pushObject(event);
     }
     else {
-      warn('unhandled keydown');
+      warn('unhandled keydown', {id: 'contenteditable.event-handling'});
       this.get('rawEditor').createSnapshot();
     }
   },
@@ -266,7 +266,9 @@ export default Component.extend({
   },
 
   handleUncapturedEvent(event) {
-    if (this.capturedEvents[0].key !== event.key && this.capturedEvents[0].target !== event.target) {
+    if (this.capturedEvents.length > 0 &&
+        this.capturedEvents[0].key !== event.key &&
+        this.capturedEvents[0].target !== event.target) {
       this.get('rawEditor').externalDomUpdate('uncaptured input event', () => {});
     }
     else

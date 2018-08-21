@@ -108,11 +108,11 @@ const RawEditor = EmberObject.extend({
    * @public
    */
   replaceTextWithHTML(start, end, html) {
-    debug("replacing text with a new node");
     this.createSnapshot();
     let newNodes = replaceTextWithHtml(this.get('richNode'), start, end, html);
     let contentLength = newNodes.map( node => node.textContent.length).reduce( (total, i) => total + i);
     let content = newNodes.map( node => node.textContent).reduce((string, partial) => "" + string + partial);
+    var nextSibling = newNodes[newNodes.length-1].nextSibling;
     this.updateRichNode();
     this.set('currentNode', newNodes[0].parentNode);
     this.setCurrentPosition(start + contentLength);
@@ -138,7 +138,6 @@ const RawEditor = EmberObject.extend({
    * @public
    */
   highlightRange(start, end, data = {}) {
-    debug(`higlight ${start} ${end}`);
     let match = this.findHighlights(node => get(node, 'end') === end && get(node, 'start') === start);
     if (match.length === 0) {
       let text = this.get('currentTextContent').slice(start,end);
@@ -177,7 +176,6 @@ const RawEditor = EmberObject.extend({
    * @public
    */
   clearHighlightForRange(start,end) {
-    debug(`removing highlight for range ${start} ${end}`);
     let nodes = this.findHighlights(node => get(node,'start') >= start && get(node, 'end') <= end);
     if (nodes.length === 0) warn(`no highlight found contained in range [$start, $end]`, {id: "content-editable.highlight-not-found"});
     nodes.forEach( highlight => { this.removeHighlight(highlight); });
@@ -229,7 +227,6 @@ const RawEditor = EmberObject.extend({
    * @public
    */
   clearAllHighlights() {
-    debug('removing all highlights');
     let highlights = this.findHighlights(() =>true);
     if (highlights.length === 0) warn("no highlights found", {id: "content-editable.highlight-not-found"});
     this.clearHighlights(highlights);
@@ -456,18 +453,14 @@ const RawEditor = EmberObject.extend({
    * @private
    */
   findSuitableNodeForPosition(position) {
-    debug(`finding suitable node for position ${position}`);
     let currentRichNode = this.getRichNodeFor(this.get('currentNode'));
     let richNode = this.get('richNode');
     if (currentRichNode && get(currentRichNode, 'start') <= position && get(currentRichNode, 'end') >= position) {
-      debug('searching for suitable node in current node');
       let node = this.findSuitableNodeInRichNode(currentRichNode, position);
-      debug(`found node of type ${get(node,'type')} range [${get(node, 'start')},${get(node, 'end')}]`);
       return node;
     }
     else if (get(richNode, 'start') <= position && get(richNode, 'end') >= position){
       let node = this.findSuitableNodeInRichNode(this.get('richNode'),position);
-      debug(`found node of type ${get(node,'type')} range [${get(node, 'start')},${get(node, 'end')}]`);
       return node;
     }
     else {
@@ -554,7 +547,7 @@ const RawEditor = EmberObject.extend({
    * @public
    */
   externalDomUpdate(description, domUpdate) {
-    warn(`executing an external dom update: ${description}`, {id: 'contenteditable.external-dom-update'} );
+    debug(`executing an external dom update: ${description}`, {id: 'contenteditable.external-dom-update'} );
     domUpdate();
     this.updateRichNode();
     this.updateSelectionAfterComplexInput();

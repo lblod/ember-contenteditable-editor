@@ -10,7 +10,9 @@ import TextInputHandler from '../utils/text-input-handler';
 import TextInputDataFlaggedRemoveHandler from '../utils/text-input-data-flagged-remove-handler';
 import HeaderMarkdownHandler from '../utils/header-markdown-handler';
 import EmphasisMarkdownHandler from '../utils/emphasis-markdown-handler';
-
+import { normalizeEvent } from 'ember-jquery-legacy';
+import { warn } from '@ember/debug';
+import { A } from '@ember/array';
 
 /**
  * Content editable editor component
@@ -141,6 +143,7 @@ export default Component.extend({
     this.set('currentTextContent', '');
     this.set('currentSelection', [0,0]);
     this.set('defaultHandlers', defaultInputHandlers);
+    this.set('capturedEvents', A());
 //    this.set('externalHandlers', []);
   },
 
@@ -212,7 +215,7 @@ export default Component.extend({
    * keyDown events are handled for simple input we take over from browser input
    */
   keyDown(event) {
-    event = event.originalEvent ? event.originalEvent : event;
+    event = normalizeEvent(event);
     if (this.isHandledInputEvent(event)) {
       if (this.isCtrlZ(event)) {
         event.preventDefault();
@@ -227,13 +230,15 @@ export default Component.extend({
             event.preventDefault();
           if (!response.get('allowPropagation'))
             return true;
+          return false;
         });
       }
       this.get('rawEditor').updateRichNode();
       this.get('rawEditor').generateDiffEvents();
-      this.set('isCaptured', true);
+      this.capturedEvents.pushObject(event);
     }
     else {
+      warn('unhandled keydown');
       this.get('rawEditor').createSnapshot();
     }
   },
@@ -260,11 +265,12 @@ export default Component.extend({
     this.get('rawEditor').generateDiffEvents();
   },
 
-  handleUncapturedEvent() {
-    if (!this.get('isCaptured')) {
-      this.get('rawEditor').externalDomUpdate('uncaptured event', () => {});
+  handleUncapturedEvent(event) {
+    if (this.capturedEvents[0].key !== event.key && this.capturedEvents[0].target !== event.target) {
+      this.get('rawEditor').externalDomUpdate('uncaptured input event', () => {});
     }
-    this.set('isCaptured', false);
+    else
+      this.capturedEvents.shift();
   },
 
   /**
@@ -292,7 +298,7 @@ export default Component.extend({
    * @private
    */
   isHandledInputEvent(event) {
-    event = (event.originalEvent) ? event.originalEvent : event ;
+    event = normalizeEvent(event);
     return this.isCtrlZ(event) || this.get('inputHandlers').filter(h => h.isHandlerFor(event)).length > 0;
   },
 

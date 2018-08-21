@@ -58,7 +58,7 @@ export default EmberObject.extend({
 
   isFlaggedRemove(domNode){
     let parent = domNode.parentNode;
-    return parent.getAttribute('data-flagged-remove');
+    return parent && parent.getAttribute('data-flagged-remove');
   },
 
   aSelectionWeUnderstand() {
@@ -69,7 +69,7 @@ export default EmberObject.extend({
     if (this.get('rootNode').contains(range.commonAncestorContainer)) {
       let startNode = this.get('rawEditor').getRichNodeFor(range.startContainer);
       let endNode = this.get('rawEditor').getRichNodeFor(range.endContainer);
-      if (startNode === endNode && get(startNode,'type') === 'text')
+      if (startNode && startNode === endNode && get(startNode,'type') === 'text')
         return true;
     }
     return false;

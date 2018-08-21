@@ -73,7 +73,7 @@ export default EmberObject.extend({
     if (this.get('rootNode').contains(range.commonAncestorContainer)) {
       let startNode = this.get('rawEditor').getRichNodeFor(range.startContainer);
       let endNode = this.get('rawEditor').getRichNodeFor(range.endContainer);
-      if (startNode === endNode && get(startNode,'type') === 'text')
+      if (startNode && startNode === endNode && get(startNode,'type') === 'text')
         return true;
     }
     else

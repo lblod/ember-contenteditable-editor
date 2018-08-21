@@ -113,8 +113,12 @@ const RawEditor = EmberObject.extend({
     let contentLength = newNodes.map( node => node.textContent.length).reduce( (total, i) => total + i);
     let content = newNodes.map( node => node.textContent).reduce((string, partial) => "" + string + partial);
     var nextSibling = newNodes[newNodes.length-1].nextSibling;
+    if (nextSibling === null || nextSibling.nodeType !== Node.TEXT_NODE) {
+      nextSibling = document.createTextNode(invisibleSpace);
+      insertNodeBAfterNodeA(newNodes[0].parentNode, newNodes[newNodes.length-1], nextSibling);
+    }
     this.updateRichNode();
-    this.set('currentNode', newNodes[0].parentNode);
+    this.set('currentNode', nextSibling );
     this.setCurrentPosition(start + contentLength);
     let before = this.get('currentTextContent').slice(0,start);
     let after = this.get('currentTextContent').slice(end);

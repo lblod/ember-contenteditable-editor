@@ -1,6 +1,6 @@
 <h2 id="title">Content editable test</h2>
 <div>
-  <input type="checkbox" {{action 'toggleContent'}} checked="{{showContent}}"> show default content <br>
+  <input type="checkbox" {{action 'toggleContent' preventDefault=false}} checked={{showContent}}> show default content <br>
   selection: {{currentSelection}} <br>
   <button {{action 'insertComponentOnCursor'}}>wormhole here</button>
   <button {{action 'highlightText'}}>highlight on selection</button>

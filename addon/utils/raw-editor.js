@@ -312,6 +312,11 @@ const RawEditor = EmberObject.extend({
       else {
         domNode = get(textNode, 'domNode');
         const relativePosition = position - get(textNode, 'start');
+        if (text !== NON_BREAKING_SPACE && relativePosition > 0 &&
+            domNode.textContent[relativePosition-1] === NON_BREAKING_SPACE) {
+          let content = domNode.textContent;
+          domNode.textContent = content.slice(0, relativePosition -1) + " " + content.slice(relativePosition);
+        }
         sliceTextIntoTextNode(domNode, text, relativePosition);
       }
       this.set('currentNode', domNode);

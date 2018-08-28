@@ -265,7 +265,7 @@ export default EmberObject.extend({
    * @private
    */
   isTextNodeWithContent(node){
-    return node.nodeType === Node.TEXT_NODE && node.textContent.trim().length > 0 && !/\u200B/.test(node.textContent.trim());
+    return node.nodeType === Node.TEXT_NODE && node.textContent.trim().length > 0 && !/^\u200B*$/.test(node.textContent.trim());
   },
 
   /**

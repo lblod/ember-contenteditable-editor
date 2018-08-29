@@ -7,8 +7,8 @@ import HandlerResponse from './handler-response';
 import { invisibleSpace } from './dom-helpers';
 
 
-let OLMARKDOWN = /(1\.\s)(\S.*)/;
-let ULMARKDOWN = /(\*\.\s)(\S.*)/;
+let OLMARKDOWN = /(1\.\s)(.*)/;
+let ULMARKDOWN = /(\*\.\s)(.*)/;
 
 let MARKDOWNS = [
   {pattern: OLMARKDOWN, tag: 'ol'},

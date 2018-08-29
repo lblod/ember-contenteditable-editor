@@ -106,7 +106,7 @@ export default EmberObject.extend({
   },
 
   isVisiblyEmptyString(string_instance){
-    return string_instance.length == 0 || (new RegExp(invisibleSpace)).test(string_instance);
+    return string_instance.length === 0 || (new RegExp( '^' + invisibleSpace + '+$')).test(string_instance);
   }
 
 

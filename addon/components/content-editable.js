@@ -3,6 +3,7 @@ import { computed } from '@ember/object';
 import { alias, union } from '@ember/object/computed';
 import layout from '../templates/components/content-editable';
 import forgivingAction from '../utils/forgiving-action';
+import flatMap from '../utils/flat-map';
 import RawEditor from '../utils/raw-editor';
 import EnterHandler from '../utils/enter-handler';
 import BackspaceHandler from '../utils/backspace-handler';
@@ -198,6 +199,8 @@ export default Component.extend({
       el.focus();
     this.extractAndInsertComponents();
     this.get('rawEditor').updateRichNode();
+    let firstTextNode = flatMap(this.get('rawEditor.richNode'), (node) => node.type ==='text')[0];
+    this.set('rawEditor.currentNode', firstTextNode);
     forgivingAction('rawEditorInit', this)(this.get('rawEditor'));
     forgivingAction('elementUpdate', this)();
     this.get('rawEditor').generateDiffEvents();

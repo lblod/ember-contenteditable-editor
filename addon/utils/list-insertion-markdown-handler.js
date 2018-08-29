@@ -1,7 +1,5 @@
 import EmberObject from '@ember/object';
 import { reads, alias } from '@ember/object/computed';
-import getRichNodeMatchingDomNode from './get-rich-node-matching-dom-node';
-import { get } from '@ember/object';
 import { isBlank } from '@ember/utils';
 import HandlerResponse from './handler-response';
 import { invisibleSpace } from './dom-helpers';
@@ -60,14 +58,11 @@ export default EmberObject.extend({
    * @return {HandlerResponse} response
    */
   handleEvent() {
-    let currentNode = this.get('currentNode');
-    let node = getRichNodeMatchingDomNode(currentNode, this.get('richNode'));
-    let currentPosition = this.get('currentSelection')[0];
-    let newCurrentNode;
-
-    let markdown = this.findMarkdown(currentNode.textContent).pattern;
+    const currentNode = this.get('currentNode');
+    const markdown = this.findMarkdown(currentNode.textContent).pattern;
 
     let insertElement = () => {
+      let newCurrentNode;
       let matchGroups = currentNode.textContent.match(markdown);
       let beforeContent = currentNode.textContent.slice(0, matchGroups.index);
       let beforeContentNode = document.createTextNode(beforeContent);
@@ -92,16 +87,17 @@ export default EmberObject.extend({
       //TODO: is this required?
       if(!isBlank(beforeContent))
         currentNode.parentNode.insertBefore(beforeContentNode, currentNode);
+
       currentNode.parentNode.insertBefore(listNode, currentNode);
-      currentNode.parentNode.insertBefore(document.createTextNode(invisibleSpace), currentNode);
       currentNode.parentNode.removeChild(currentNode);
-      newCurrentNode = liNodeForCursor;
+      newCurrentNode = liNodeForCursor.childNodes[0];
+      this.get('rawEditor').updateRichNode();
+      this.get('rawEditor').set('currentNode', newCurrentNode);
+      const richNode = this.get('rawEditor').getRichNodeFor(newCurrentNode);
+      this.get('rawEditor').setCurrentPosition(richNode.start);
     };
 
     this.get('rawEditor').externalDomUpdate('inserting markdown', insertElement);
-    this.get('rawEditor').updateRichNode();
-    let richNode = getRichNodeMatchingDomNode(newCurrentNode, this.get('richNode'));
-    this.get('rawEditor').setCurrentPosition(get(richNode, 'start'));
     return HandlerResponse.create({allowPropagation: false});
   },
 

@@ -73,7 +73,7 @@ export default EmberObject.extend({
       let beforeContentNode = document.createTextNode(beforeContent);
       let elementContent = matchGroups[2];
 
-      let contentTextNode = document.createTextNode(elementContent);
+      let contentTextNode = document.createTextNode(this.isVisiblyEmptyString(elementContent) ? ' ': elementContent);
       let listNode = document.createElement(this.findMarkdown(currentNode.textContent).tag);
 
       //insert the node with content
@@ -81,10 +81,13 @@ export default EmberObject.extend({
       liNode.append(contentTextNode);
       listNode.append(liNode);
 
-      //add a second li, because it feels as expected behaviour for user
-      let liNodeForCursor = document.createElement('li');
-      liNodeForCursor.append(document.createTextNode(' '));
-      listNode.append(liNodeForCursor);
+      let liNodeForCursor = liNode;
+      if(!this.isVisiblyEmptyString(elementContent)) {
+        //add a second li, because it feels as expected behaviour for user
+        liNodeForCursor = document.createElement('li');
+        liNodeForCursor.append(document.createTextNode(' '));
+        listNode.append(liNodeForCursor);
+      }
 
       //TODO: is this required?
       if(!isBlank(beforeContent))
@@ -98,7 +101,13 @@ export default EmberObject.extend({
     this.get('rawEditor').externalDomUpdate('inserting markdown', insertElement);
     this.get('rawEditor').updateRichNode();
     let richNode = getRichNodeMatchingDomNode(newCurrentNode, this.get('richNode'));
-    this.get('rawEditor').setCurrentPosition(get(richNode, 'end')); //TODO: start does not seem to work?
+    this.get('rawEditor').setCurrentPosition(get(richNode, 'start'));
     return HandlerResponse.create({allowPropagation: false});
+  },
+
+  isVisiblyEmptyString(string_instance){
+    return string_instance.length == 0 || (new RegExp(invisibleSpace)).test(string_instance);
   }
+
+
 });

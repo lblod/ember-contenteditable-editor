@@ -432,7 +432,7 @@ const RawEditor = EmberObject.extend({
       }
       else {
         debug('suitable node: using deepest matching node');
-        let filter = node => get(node, 'start') <= position && get(node, 'end') >= position && ! isVoidElement(get(node, 'domNode')) && ! isIgnorableElement(get(node, 'domNode'));
+        let filter = node => get(node, 'start') <= position && get(node, 'end') >= position && ! isVoidElement(get(node, 'domNode')) && ! isIgnorableElement(get(node, 'domNode') && get(node, 'type') !== 'other');
         let nodesContainingPosition = flatMap(node, filter);
         if (nodesContainingPosition.length > 0) {
           let deepestContainingNode = nodesContainingPosition[nodesContainingPosition.length -1];

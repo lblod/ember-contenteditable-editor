@@ -30,10 +30,8 @@ export default EmberObject.extend({
    */
   handleEvent(){
     let position = this.get('currentSelection')[0];
-    let richNode = this.getMatchingRichNode(position);
-    let textNode = this.getMatchingDomNode(richNode);
-
-    this.set('rawEditor.currentNode', textNode);
+    let textNode = this.get('rawEditor.currentNode');
+    let richNode = this.get('rawEditor').getRichNodeFor(textNode);
 
     //enter relative space
     let relPosition = this.absoluteToRelativePosition(richNode, position);

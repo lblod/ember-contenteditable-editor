@@ -73,7 +73,7 @@ export default EmberObject.extend({
       let beforeContentNode = document.createTextNode(beforeContent);
       let elementContent = matchGroups[2];
 
-      let contentTextNode = document.createTextNode(this.isVisiblyEmptyString(elementContent) ? ' ': elementContent);
+      let contentTextNode = document.createTextNode(this.isVisiblyEmptyString(elementContent) ? invisibleSpace: elementContent);
       let listNode = document.createElement(this.findMarkdown(currentNode.textContent).tag);
 
       //insert the node with content
@@ -85,7 +85,7 @@ export default EmberObject.extend({
       if(!this.isVisiblyEmptyString(elementContent)) {
         //add a second li, because it feels as expected behaviour for user
         liNodeForCursor = document.createElement('li');
-        liNodeForCursor.append(document.createTextNode(' '));
+        liNodeForCursor.append(document.createTextNode(invisibleSpace));
         listNode.append(liNodeForCursor);
       }
 
@@ -93,7 +93,7 @@ export default EmberObject.extend({
       if(!isBlank(beforeContent))
         currentNode.parentNode.insertBefore(beforeContentNode, currentNode);
       currentNode.parentNode.insertBefore(listNode, currentNode);
-      currentNode.parentNode.insertBefore(document.createTextNode(' '), currentNode);
+      currentNode.parentNode.insertBefore(document.createTextNode(invisibleSpace), currentNode);
       currentNode.parentNode.removeChild(currentNode);
       newCurrentNode = liNodeForCursor;
     };

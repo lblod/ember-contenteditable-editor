@@ -33,36 +33,37 @@ export default EmberObject.extend({
     let textNode = this.get('rawEditor.currentNode');
     let richNode = this.get('rawEditor').getRichNodeFor(textNode);
 
-    //enter relative space
-    let relPosition = this.absoluteToRelativePosition(richNode, position);
+    this.get('rawEditor').externalDomUpdate('backspace', () => {
+      //enter relative space
+      let relPosition = this.absoluteToRelativePosition(richNode, position);
 
-    //the string provided by DOM does not match what is rendered on screen. Basically, a bunch of invisible chars should be removed.
-    let preProcessedDomAndPosition = this.textNodeAndCursorPositionToRendered(textNode, relPosition);
+      //the string provided by DOM does not match what is rendered on screen. Basically, a bunch of invisible chars should be removed.
+      let preProcessedDomAndPosition = this.textNodeAndCursorPositionToRendered(textNode, relPosition);
 
-    //effective backspace handling, i.e. what user expects to see when pressing backspace
-    let processedDomAndPosition = this.removeCharToLeftAndUpdatePosition(preProcessedDomAndPosition.textNode, preProcessedDomAndPosition.position);
+      //effective backspace handling, i.e. what user expects to see when pressing backspace
+      let processedDomAndPosition = this.removeCharToLeftAndUpdatePosition(preProcessedDomAndPosition.textNode, preProcessedDomAndPosition.position);
 
-    let postProcessedDomAndPosition = this.postProcessTextNode(processedDomAndPosition.textNode, processedDomAndPosition.position);
+      let postProcessedDomAndPosition = this.postProcessTextNode(processedDomAndPosition.textNode, processedDomAndPosition.position);
 
-    //if empty text node, we start cleaning the DOM tree (with specific RDFA flow in mind)
-    if(this.isEmptyTextNode(postProcessedDomAndPosition.textNode)){
-      let newNode = this.domCleanUp(postProcessedDomAndPosition.textNode);
-      this.get('rawEditor').updateRichNode();
-      let newRichNode = getRichNodeMatchingDomNode(newNode, this.get('richNode'));
-      this.set('rawEditor.currentNode', newRichNode.domNode);
-      this.get('rawEditor').setCurrentPosition(newRichNode.end);
-    }
+      //if empty text node, we start cleaning the DOM tree (with specific RDFA flow in mind)
+      if(this.isEmptyTextNode(postProcessedDomAndPosition.textNode)){
+        let newNode = this.domCleanUp(postProcessedDomAndPosition.textNode);
+        this.get('rawEditor').updateRichNode();
+        let newRichNode = getRichNodeMatchingDomNode(newNode, this.get('richNode'));
+        this.set('rawEditor.currentNode', newRichNode.domNode);
+        this.get('rawEditor').setCurrentPosition(newRichNode.end);
+      }
 
-    else {
-      //else we update position and update current position
-      this.get('rawEditor').updateRichNode();
-      let newAbsolutePosition = this.relativeToAbsolutePosition(richNode, postProcessedDomAndPosition.position);
-      this.set('rawEditor.currentNode', postProcessedDomAndPosition.textNode);
-      this.get('rawEditor').setCurrentPosition(newAbsolutePosition);
+      else {
+        //else we update position and update current position
+        this.get('rawEditor').updateRichNode();
+        let newAbsolutePosition = this.relativeToAbsolutePosition(richNode, postProcessedDomAndPosition.position);
+        this.set('rawEditor.currentNode', postProcessedDomAndPosition.textNode);
+        this.get('rawEditor').setCurrentPosition(newAbsolutePosition);
 
-      //TODO: is it possible that we end up in an empty text node?
-     }
-
+        //TODO: is it possible that we end up in an empty text node?
+      }
+    });
     return HandlerResponse.create({allowPropagation: false});
   },
 

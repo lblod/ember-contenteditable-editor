@@ -14,6 +14,7 @@ import ListInsertionMarkdownHandler from '../utils/list-insertion-markdown-handl
 import { normalizeEvent } from 'ember-jquery-legacy';
 import { warn } from '@ember/debug';
 import { A } from '@ember/array';
+import { isEmpty} from '@ember/utils';
 
 /**
  * Content editable editor component
@@ -269,9 +270,8 @@ export default Component.extend({
   },
 
   handleUncapturedEvent(event) {
-    if (this.capturedEvents.length > 0 &&
-        this.capturedEvents[0].key !== event.key &&
-        this.capturedEvents[0].target !== event.target) {
+    event = normalizeEvent(event);
+    if (isEmpty(this.capturedEvents) || this.capturedEvents[0].key !== event.key || this.capturedEvents[0].target !== event.target) {
       this.get('rawEditor').externalDomUpdate('uncaptured input event', () => {});
     }
     else

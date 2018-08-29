@@ -5,7 +5,6 @@ import {
   tagName,
   isDisplayedAsBlock,
   invisibleSpace,
-  isEmptyList,
   insertNodeBAfterNodeA,
   insertTextNodeWithSpace
 } from './dom-helpers';
@@ -123,7 +122,6 @@ export default EmberObject.extend({
     let ulOrOl = get(nodeForEnter, 'parent');
     let domNode = get(ulOrOl, 'domNode');
     let liDomNode = get(nodeForEnter, 'domNode');
-    let parentOfUl = get(ulOrOl, 'parent.domNode');
     let textNode;
     if (! this.liIsEmpty(nodeForEnter) && (currentPosition === get(nodeForEnter, 'start'))) {
       // insert li before li

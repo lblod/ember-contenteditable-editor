@@ -166,4 +166,7 @@ Some basic styling is provided.
 * em text * (after pressing space)
 
 _ underline _ (after pressing space)
+
+1.[SPACE] (after pressing enter will result in <ol>)
+*.[SPACE] (after pressing enter will result in <ul>)
 ```

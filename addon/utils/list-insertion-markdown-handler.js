@@ -90,6 +90,7 @@ export default EmberObject.extend({
       if(!isBlank(beforeContent))
         currentNode.parentNode.insertBefore(beforeContentNode, currentNode);
       currentNode.parentNode.insertBefore(listNode, currentNode);
+      currentNode.parentNode.insertBefore(document.createTextNode(' '), currentNode);
       currentNode.parentNode.removeChild(currentNode);
       newCurrentNode = liNodeForCursor;
     };

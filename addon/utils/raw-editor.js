@@ -59,9 +59,9 @@ const RawEditor = EmberObject.extend({
 
 
   /**
-   * the richNode containing our caret
+   * the domNode containing our caret
    * @property currentNode
-   * @type RichNode
+   * @type DomNode
    * @public
    */
   currentNode: null,

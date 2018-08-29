@@ -89,6 +89,8 @@ export default EmberObject.extend({
         currentNode.parentNode.insertBefore(beforeContentNode, currentNode);
 
       currentNode.parentNode.insertBefore(listNode, currentNode);
+      // provide a text node after the list
+      currentNode.parentNode.insertBefore(document.createTextNode(invisibleSpace), currentNode);
       currentNode.parentNode.removeChild(currentNode);
       newCurrentNode = liNodeForCursor.childNodes[0];
       this.get('rawEditor').updateRichNode();

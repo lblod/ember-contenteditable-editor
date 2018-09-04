@@ -5,7 +5,7 @@ import { get } from '@ember/object';
 export default function getRichNodeMatchingDomNode(domNode, tree) {
   if (!tree)
     throw new Error('invalid argument');
-  if (!domNode) {
+  if (!domNode || !domNode.nodeType) {
     warn("getRichNodeMatchingDomNode: no domNode provided", { id: "utils.no-matching-node-in-tree" });
     return null;
   }

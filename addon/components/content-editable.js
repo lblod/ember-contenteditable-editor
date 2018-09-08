@@ -159,6 +159,9 @@ export default Component.extend({
     this.rawEditor.set('textInsert',this.textInsert);
     this.rawEditor.set('textRemove',this.textRemove);
     this.rawEditor.set('handleFullContentUpdate',this.handleFullContentUpdate);
+    this.rawEditor.set('selectionUpdate',this.selectionUpdate);
+    this.rawEditor.set('elementUpdate',this.elementUpdate);
+		this.rawEditor.set('handleFullContentUpdate',this.handleFullContentUpdate);
   },
 
   /**

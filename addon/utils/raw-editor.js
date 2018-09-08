@@ -281,7 +281,22 @@ const RawEditor = EmberObject.extend({
   },
 
   /**
-   * insert text at provided position,
+   * Informs the consumer that the text was inserted at the given
+   * position.
+   *
+   * Others can set it on this component, but we are the only ones to
+   * call it.
+   *
+   * @param {number} position Index of the inserted text.
+   * @param {String} text Text content that has been inserted.
+   */
+  textInsert( position, text ) {
+    console.warn("textInsert was called on raw-editor without listeners being set.");
+  },
+
+  /**
+   * Insert text at provided position,
+   *
    * @method insertText
    * @param {String} text to insert
    * @param {Number} position
@@ -673,11 +688,11 @@ const RawEditor = EmberObject.extend({
     let pos = 0;
     let textHasChanges = false;
 
-    differences.forEach(function(part) {
+    differences.forEach((part) => {
       if (part.added) {
         textHasChanges = true;
         this.set('currentTextContent', oldText.slice(0, pos) + part.value + oldText.slice(pos, oldText.length));
-        forgivingAction('textInsert', this)(pos, part.value);
+        this.textInsert(pos, part.value);
         pos = pos + part.value.length;
       }
       else if (part.removed) {

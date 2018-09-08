@@ -6,6 +6,7 @@ import forgivingAction from '../utils/forgiving-action';
 import flatMap from '../utils/flat-map';
 import RawEditor from '../utils/raw-editor';
 import EnterHandler from '../utils/enter-handler';
+import IgnoreModifiersHandler from '../utils/ignore-modifiers-handler';
 import BackspaceHandler from '../utils/backspace-handler';
 import TextInputHandler from '../utils/text-input-handler';
 import TextInputDataFlaggedRemoveHandler from '../utils/text-input-data-flagged-remove-handler';
@@ -138,13 +139,15 @@ export default Component.extend({
     const textInputHandler = TextInputHandler.create(({rawEditor}));
     const textInputDataFlaggedRemoveHandler = TextInputDataFlaggedRemoveHandler.create(({rawEditor}));
     const listListInsertionMarkdownHandler = ListInsertionMarkdownHandler.create(({rawEditor}));
+    const ignoreModifiersHandler = IgnoreModifiersHandler.create();
     const defaultInputHandlers = [headerMarkdownHandler,
                                   emphasisMarkdownHandler,
                                   listListInsertionMarkdownHandler,
                                   enterHandler,
                                   backspaceHandler,
                                   textInputDataFlaggedRemoveHandler,
-                                  textInputHandler];
+                                  textInputHandler,
+                                  ignoreModifiersHandler];
 
     this.set('currentTextContent', '');
     this.set('currentSelection', [0,0]);
@@ -231,7 +234,8 @@ export default Component.extend({
   },
 
   /**
-   * keyDown events are handled for simple input we take over from browser input
+   * keyDown events are handled for simple input we take over from
+   * browser input.
    */
   keyDown(event) {
     event = normalizeEvent(event);

@@ -152,6 +152,12 @@ export default Component.extend({
 //    this.set('externalHandlers', []);
   },
 
+  didUpdateAttrs(){
+    this.rawEditor.set('textInsert',this.textInsert);
+    this.rawEditor.set('textRemove',this.textRemove);
+    this.rawEditor.set('handleFullContentUpdate',this.handleFullContentUpdate);
+  },
+
   /**
    * specify whether the editor should autofocus the contenteditable field
    *

@@ -122,21 +122,22 @@ export default Component.extend({
    */
   init() {
     this._super(...arguments);
-    this.set('rawEditor', RawEditor.create({
+    const rawEditor = RawEditor.create({
       handleFullContentUpdate: this.get('handleFullContentUpdate'),
       textInsert: this.get('textInsert'),
       textRemove: this.get('textRemove'),
       selectionUpdate: this.get('selectionUpdate'),
       elementUpdate: this.get('elementUpdate')
-    }));
+    });
+    this.set('rawEditor', rawEditor);
 
-    const headerMarkdownHandler = HeaderMarkdownHandler.create({rawEditor: this.get('rawEditor')});
-    const enterHandler = EnterHandler.create({rawEditor: this.get('rawEditor')});
-    const backspaceHandler = BackspaceHandler.create({rawEditor: this.get('rawEditor')});
-    const emphasisMarkdownHandler = EmphasisMarkdownHandler.create({rawEditor: this.get('rawEditor')});
-    const textInputHandler = TextInputHandler.create(({rawEditor: this.get('rawEditor')}));
-    const textInputDataFlaggedRemoveHandler = TextInputDataFlaggedRemoveHandler.create(({rawEditor: this.get('rawEditor')}));
-    const listListInsertionMarkdownHandler = ListInsertionMarkdownHandler.create(({rawEditor: this.get('rawEditor')}));
+    const headerMarkdownHandler = HeaderMarkdownHandler.create({rawEditor});
+    const enterHandler = EnterHandler.create({rawEditor});
+    const backspaceHandler = BackspaceHandler.create({rawEditor});
+    const emphasisMarkdownHandler = EmphasisMarkdownHandler.create({rawEditor});
+    const textInputHandler = TextInputHandler.create(({rawEditor}));
+    const textInputDataFlaggedRemoveHandler = TextInputDataFlaggedRemoveHandler.create(({rawEditor}));
+    const listListInsertionMarkdownHandler = ListInsertionMarkdownHandler.create(({rawEditor}));
     const defaultInputHandlers = [headerMarkdownHandler,
                                   emphasisMarkdownHandler,
                                   listListInsertionMarkdownHandler,
@@ -149,7 +150,9 @@ export default Component.extend({
     this.set('currentSelection', [0,0]);
     this.set('defaultHandlers', defaultInputHandlers);
     this.set('capturedEvents', A());
-//    this.set('externalHandlers', []);
+    if( ! this.externalHandlers ) {
+      this.set('externalHandlers', []);
+    }
   },
 
   didUpdateAttrs(){

@@ -2,7 +2,7 @@ import { get } from '@ember/object';
 import { set } from '@ember/object';
 import { computed } from '@ember/object';
 import EmberObject from '@ember/object';
-
+import { isVoidElement, tagName } from './dom-helpers';
 
 
 /**
@@ -83,10 +83,23 @@ const NodeWalker = EmberObject.extend({
     set(richNode, 'end', start + text.length);
     return richNode;
   },
+
   /**
    * Processes a single rich tag
    */
   processTagNode( richNode ) {
+    if( !isVoidElement( get( richNode, "domNode" ) ) ) {
+      // Void elements are elements which cannot contain any contents.
+      // They don't have an internal text, but may have other meaning.
+      return this.processRegularTagNode( richNode );
+    } else {
+      // Regular tags are all common tags.  This is the standard case
+      // where we can consider the item's content.
+      return this.processVoidTagNode( richNode );
+    }
+  },
+
+  processRegularTagNode( richNode ) {
     set(richNode, 'end', get(richNode, 'start')); // end will be updated during run
     const domNode = get(richNode, 'domNode');
     const childDomNodes = domNode.childNodes ? domNode.childNodes : [];
@@ -95,6 +108,30 @@ const NodeWalker = EmberObject.extend({
     this.finishChildSteps( richNode );
     return richNode;
   },
+
+  /**
+   * Processes a void tag node.
+   *
+   * Currently has support for two common types of nodes: IMG and BR.
+   * The BR is replaced by a "\n" symbol.  Other tags are currently
+   * replaced by a space.
+   *
+   * TODO: This code path is experimental.  We know this may cause
+   * various problems and intend to remove it.
+   */
+  processVoidTagNode( richNode ) {
+    const start = get( richNode, 'start' );
+    let text;
+    if( tagName( richNode.domNode ) == "br" ) {
+      text = "\n";
+    } else {
+      text = " ";
+    }
+    set(richNode, 'text', text);
+    set(richNode, 'end', start + text.length);
+    return richNode;
+  },
+
   /**
    * Processes a single comment node
    */

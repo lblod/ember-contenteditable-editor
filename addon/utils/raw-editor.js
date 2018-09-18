@@ -5,9 +5,11 @@ import {
   insertNodeBAfterNodeA,
   sliceTextIntoTextNode,
   removeNodeFromTree,
+  removeNode,
   isVoidElement,
   isIgnorableElement,
-  tagName
+  tagName,
+  createElementsFromHTML
 } from './dom-helpers';
 import getRichNodeMatchingDomNode from './get-rich-node-matching-dom-node';
 import CappedHistory from './capped-history';
@@ -17,6 +19,7 @@ import replaceTextWithHtml from './replace-text-with-html';
 import flatMap from './flat-map';
 import NodeWalker from './node-walker';
 import JsDiff from 'diff';
+import TextNodeWalker from './text-node-walker';
 import { getTextContent } from './text-node-walker';
 import { debug, warn } from '@ember/debug';
 import { get, computed } from '@ember/object';
@@ -127,6 +130,95 @@ const RawEditor = EmberObject.extend({
     this.generateDiffEvents();
     forgivingAction('elementUpdate', this)();
     return newNodes;
+  },
+
+  /**
+   * replaces dom node with html string.
+   * @method replaceNodeWithHTML
+   * @param {Object} DomNode to work on
+   * @param {Object} string containing html
+   * @param {Boolean} instructive to place cursor after inserted HTML
+   *
+   * @return returns inserted domNodes (with possibly an extra trailing textNode).
+   * @public
+   */
+  replaceNodeWithHTML(node, html, placeCursorAfterInsertedHtml = false){
+    //TODO: make sure the elements to insert are non empty when not allowed, e.g. <div></div>
+    //TODO: think: what if htmlstring is "<div>foo</div><div>bar</div>" -> do we need to force a textnode in between?
+
+    let needsCurrentPositionUpdate = this.currentNode.isSameNode(node) || placeCursorAfterInsertedHtml;
+
+    //find rich node matching dom node
+    let richNode = this.getRichNodeFor(node);
+    if(!richNode) return null;
+
+    let richParent = richNode.parent;
+    if (!richParent) return null;
+
+    //insert new nodes first
+    let domNodesToInsert = createElementsFromHTML(html);
+
+    let lastInsertedRichElement = this.insertElementsIntoEditor(richParent, richNode, domNodesToInsert);
+    lastInsertedRichElement = this.insertValidCursorNodeAfterRichNode(richParent, lastInsertedRichElement);
+
+    // proceed with removal
+    removeNode(richNode.domNode);
+    this.updateRichNode();
+    this.generateDiffEvents();
+
+    if(needsCurrentPositionUpdate){
+      this.set('currentNode', lastInsertedRichElement.domNode);
+      this.setCurrentPosition(lastInsertedRichElement.end - (richNode.end - richNode.start));
+    }
+
+    if(!lastInsertedRichElement.domNode.isSameNode(domNodesToInsert.slice(-1)))
+      return [...domNodesToInsert, lastInsertedRichElement];
+    return domNodesToInsert;
+  },
+
+  /**
+   * inserts an emtpy textnode after richnode, if non existant.
+   *
+   * @method insertElementsIntoEditor
+   *
+   * @param {RichNode} parent element where the elements should be added.
+   * @param {RichNode} last sibling where new elements should occur after
+   * @param {Array} array of (DOM) elements to insert
+   *
+   * @return {RichNode} returns last inserted element as RichNode
+   * @private
+   */
+  insertValidCursorNodeAfterRichNode(richParent, richNode){
+    if (richNode.domNode === null || richNode.nodeType !== Node.TEXT_NODE) {
+      let newNode = document.createTextNode(invisibleSpace);
+      return this.insertElementsIntoEditor(richParent, richNode, [newNode]);
+    }
+    return richNode;
+  },
+
+  /**
+   * Inserts an array of elements into the editor.
+   *
+   * @method insertElementsIntoEditor
+   *
+   * @param {RichNode} parent element where the elements should be added.
+   * @param {RichNode} last sibling where new elements should occur after
+   * @param {Array} array of (DOM) elements to insert
+   *
+   * @return {RichNode} returns last inserted element as RichNode
+   * @private
+   */
+  insertElementsIntoEditor(richParent, richNode, remainingElements){
+    if( remainingElements.length == 0 )
+      return richNode;
+
+    let nodeToInsert = remainingElements[0];
+
+    insertNodeBAfterNodeA(richParent.domNode, richNode.domNode, nodeToInsert);
+
+    let richNodeToInsert = TextNodeWalker.create().processDomNode(nodeToInsert, richParent.domNode, richNode.end);
+
+    return this.insertElementsIntoEditor(richParent, richNodeToInsert, remainingElements.slice(1));
   },
 
   /**

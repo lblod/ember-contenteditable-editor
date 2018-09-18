@@ -90,7 +90,7 @@ const RawEditor = EmberObject.extend({
    * @public
    */
   currentSelectionIsACursor: computed('currentSelection', function() {
-    let sel = this.get('currentSelection');
+    let sel = this.currentSelection;
     return sel[0] === sel[1];
   }),
 
@@ -109,7 +109,7 @@ const RawEditor = EmberObject.extend({
    */
   replaceTextWithHTML(start, end, html) {
     this.createSnapshot();
-    let newNodes = replaceTextWithHtml(this.get('richNode'), start, end, html);
+    let newNodes = replaceTextWithHtml(this.richNode, start, end, html);
     let contentLength = newNodes.map( node => node.textContent.length).reduce( (total, i) => total + i);
     let content = newNodes.map( node => node.textContent).reduce((string, partial) => "" + string + partial);
     var nextSibling = newNodes[newNodes.length-1].nextSibling;
@@ -120,10 +120,6 @@ const RawEditor = EmberObject.extend({
     this.updateRichNode();
     this.set('currentNode', nextSibling );
     this.setCurrentPosition(start + contentLength);
-    let before = this.get('currentTextContent').slice(0,start);
-    let after = this.get('currentTextContent').slice(end);
-    this.set('currentTextContent', before + after);
-    forgivingAction('textRemove', this)(start, end);
     this.generateDiffEvents();
     forgivingAction('elementUpdate', this)();
     return newNodes;
@@ -140,17 +136,17 @@ const RawEditor = EmberObject.extend({
    * @public
    */
   highlightRange(start, end, data = {}) {
-    let match = this.findHighlights(node => get(node, 'end') === end && get(node, 'start') === start);
+    let match = this.findHighlights(node => node.end === end && node.start === start);
     if (match.length === 0) {
-      let text = this.get('currentTextContent').slice(start,end);
-      let elements = replaceTextWithHtml(this.get('richNode'), start, end, `<mark>${text}</mark>`);
+      let text = this.currentTextContent.slice(start, end);
+      let elements = replaceTextWithHtml(this.richNode, start, end, `<mark>${text}</mark>`);
       let element = elements[0];
       for (const prop in data) {
         element.setAttribute(prop,data[prop]);
       }
       element.setAttribute(HIGHLIGHT_DATA_ATTRIBUTE, 'true');
       let currentNode = this.getRichNodeFor(this.get('currentNode'));
-      if (currentNode && get(currentNode, 'start') <= start && get(currentNode, 'end') >= end) {
+      if (currentNode && currentNode.start <= start && currentNode.end >= end) {
         let parent = element.parentNode;
         this.set('currentNode', parent);
         if (!element.nextSibling) {
@@ -178,7 +174,7 @@ const RawEditor = EmberObject.extend({
    * @public
    */
   clearHighlightForRange(start,end) {
-    let nodes = this.findHighlights(node => get(node,'start') >= start && get(node, 'end') <= end);
+    let nodes = this.findHighlights(node => node.start >= start && node.end <= end);
     if (nodes.length === 0) warn(`no highlight found contained in range [$start, $end]`, {id: "content-editable.highlight-not-found"});
     nodes.forEach( highlight => { this.removeHighlight(highlight); });
     this.updateRichNode();
@@ -198,7 +194,7 @@ const RawEditor = EmberObject.extend({
 
     let nodeForLocation = node => {
       return locations.find(location => {
-        return get(node,'start') === location[0] && get(node, 'end') === location[1];
+        return node.start === location[0] && node.end === location[1];
       });
     };
 
@@ -258,7 +254,7 @@ const RawEditor = EmberObject.extend({
    * @private
    */
   findHighlights(predicate) {
-    let filter = node => { return predicate(node) && get(node, 'type') == 'tag' && tagName(get(node, 'domNode')) === 'mark'; };
+    let filter = node => { return predicate(node) && node.type == 'tag' && tagName(node.domNode) === 'mark'; };
     return flatMap(this.get('richNode'), filter);
   },
 
@@ -383,7 +379,7 @@ const RawEditor = EmberObject.extend({
   },
 
   isTagWithOnlyABreakAsChild(node) {
-    let type = get(node, 'domNode').nodeType;
+    let type = node.domNode.nodeType;
     let children = get(node, 'children');
     return (type === Node.ELEMENT_NODE &&
             children.length === 1 &&
@@ -413,10 +409,10 @@ const RawEditor = EmberObject.extend({
   findSuitableNodeInRichNode(node, position) {
     if (!node)
       throw new Error('no node provided to findSuitableNodeinRichNode');
-    let type = get(node, 'type');
+    let type = node.type;
     // in some browsers voidElements don't implement the interface of an element
     // for positioning we provide it's own type
-    if (isVoidElement(get(node, 'domNode')))
+    if (isVoidElement(node.domNode))
       type = 'void';
     if (type === 'text') {
       return node;
@@ -426,18 +422,18 @@ const RawEditor = EmberObject.extend({
       let parent = get(node, 'parent');
       let parentDomNode = get(parent,'domNode');
       let children = get(parent, 'children');
-      parentDomNode.replaceChild(textNode, get(node, 'domNode'));
+      parentDomNode.replaceChild(textNode, node.domNode);
       if(children.length > 1 && tagName(get(node,'domNode')) === 'br')
         parentDomNode.insertBefore(document.createElement('br'), textNode); // new br to work around funky br type="moz"
       else if (children.length !== 1 || tagName(get(node,'domNode')) !== 'br')
-        parentDomNode.insertBefore(get(node, 'domNode'), textNode); // restore original void element
+        parentDomNode.insertBefore(node.domNode, textNode); // restore original void element
       this.updateRichNode();
       return this.getRichNodeFor(textNode);
     }
     else if (type === 'tag') {
       if (this.isTagWithOnlyABreakAsChild(node)) {
         debug('suitable node: is tag with only a break as child');
-        let domNode = get(node, 'domNode');
+        let domNode = node.domNode;
         let textNode = document.createTextNode(invisibleSpace);
         domNode.replaceChild(textNode, domNode.firstChild);
         this.updateRichNode();
@@ -445,12 +441,12 @@ const RawEditor = EmberObject.extend({
       }
       else {
         debug('suitable node: using deepest matching node');
-        let filter = node => get(node, 'start') <= position && get(node, 'end') >= position && ! isVoidElement(get(node, 'domNode')) && ! isIgnorableElement(get(node, 'domNode') && get(node, 'type') !== 'other');
+        let filter = node => node.start <= position && node.end >= position && ! isVoidElement(node.domNode) && ! isIgnorableElement(node.domNode && node.type !== 'other');
         let nodesContainingPosition = flatMap(node, filter);
         if (nodesContainingPosition.length > 0) {
           let deepestContainingNode = nodesContainingPosition[nodesContainingPosition.length -1];
           if (deepestContainingNode === node) {
-            debug(`creating new textnode in provided node of type ${get(node,'type')} range ${get(node,'start')} ${get(node, 'end')}`);
+            debug(`creating new textnode in provided node of type ${node.type} range ${node.start} ${node.end}`);
             return this.insertTextNodeWithSpace(node);
           }
           else {
@@ -499,7 +495,7 @@ const RawEditor = EmberObject.extend({
   createSnapshot() {
     let document = {
       content: this.get('rootNode').innerHTML,
-      currentSelection: this.get('currentSelection')
+      currentSelection: this.currentSelection
     };
     this.get('history').push(document);
   },
@@ -623,18 +619,19 @@ const RawEditor = EmberObject.extend({
    * @private
    */
   calculatePosition(richNode, offset) {
-    let type = get(richNode, 'type');
+    let type = richNode.type;
     if (type === 'text')
-      return get(richNode, 'start') + offset;
+      return richNode.start + offset;
     else if (type === 'tag') {
-      let children = get(richNode, 'children');
+      let children = richNode.children;
       if (children && children.length > offset)
-        return get(children[offset], 'start');
+        return children[offset].start;
       else if (children && children.length == offset)
         // this happens and in that case we want to be at the end of that node, but not outside
-        return get(children[offset-1], 'end') -1;
+        return children[children.length -1 ].end;
       else {
         warn(`provided offset (${offset}) is invalid for richNode of type tag with ${children.length} children`, {id: 'contenteditable-editor.invalid-range'});
+        return children[children.length -1 ].end;
       }
     }
     else {
@@ -658,9 +655,9 @@ const RawEditor = EmberObject.extend({
       position = get(richNode, 'end');
     }
     let node = this.findSuitableNodeForPosition(position);
-    debug(`selection in node of type ${get(node, 'type')} [${get(node, 'start')}, ${get(node,'end')}]`);
-    this.moveCaretInTextNode(get(node,'domNode'), position - get(node, 'start'));
-    this.set('currentNode', get(node, 'domNode'));
+    debug(`selection in node of type ${node.type} [${node.start}, ${node.end}]`);
+    this.moveCaretInTextNode(get(node,'domNode'), position - node.start);
+    this.set('currentNode', node.domNode);
     this.set('currentSelection', [ position, position ]);
     if (notify)
       forgivingAction('selectionUpdate', this)(this.currentSelection);

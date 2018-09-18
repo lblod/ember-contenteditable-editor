@@ -5,7 +5,6 @@ import { get } from '@ember/object';
 import getRichNodeMatchingDomNode from '@lblod/ember-contenteditable-editor/utils/get-rich-node-matching-dom-node';
 import { invisibleSpace } from './dom-helpers';
 
-
 export default EmberObject.extend({
   rootNode: reads('rawEditor.rootNode'),
   currentSelection: reads('rawEditor.currentSelection'),

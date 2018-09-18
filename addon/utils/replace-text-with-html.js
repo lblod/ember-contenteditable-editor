@@ -1,6 +1,7 @@
 import flatMap from './flat-map';
 import { get } from '@ember/object';
 import { debug } from '@ember/debug';
+import { createElementsFromHTML} from './dom-helpers';
 /**
  * Replaces text with html, updates DOM
  * finds the node that contains the whole rang
@@ -85,12 +86,6 @@ export default function replaceTextWithHtml(richNode, start, end, html) {
     throw new Error('unsupported range for replaceText');
   }
   return newElements;
-}
-
-function createElementsFromHTML(htmlString) {
-  let div = document.createElement('div');
-  div.innerHTML = htmlString.trim();
-  return Array.from(div.childNodes);
 }
 
 function sliceTextNode(node, start, end) {

@@ -1,4 +1,3 @@
-
 /**
  * @module contenteditable-editor/dom
  */
@@ -49,7 +48,7 @@ const insertTextNodeWithSpace = function(parentDomNode, relativeToSibling = null
 };
 /**
  * dom helper to remove a node from the dom tree
- * this inserts replaces the node with its child nodes 
+ * this inserts replaces the node with its child nodes
  *
  * @method removeNodeFromTree
  * @static
@@ -65,6 +64,20 @@ const removeNodeFromTree = function removeNodeFromTree(node) {
     baseNode = nodeToInsert;
   }
   parent.removeChild(node);
+};
+
+/**
+ * polyfill for ChildNode.remove. Removes node and children from tree.
+ *
+ * @method removeNodeFrom
+ * @static
+ * @param {DOMNode} node
+ * @public
+ */
+const removeNode = function removeNode(node){
+  let parent = node.parentNode;
+  if(parent)
+    parent.removeChild(node);
 };
 
 /**
@@ -91,7 +104,7 @@ const isDisplayedAsBlock = function(domNode) {
 /**
  * agressive splitting specifically for content in an li
  * @method smartSplitTextNode
- * @static 
+ * @static
  * @public
  */
 const smartSplitTextNode = function(textNode, splitAt) {
@@ -132,6 +145,19 @@ const tagName = function(node) {
   return node.nodeType === node.ELEMENT_NODE ? node.tagName.toLowerCase() : '';
 };
 
+/**
+ * given html string, convert it into DomElements
+ * @function createElementsFromHtml
+ * @param {String} string containing html
+ * @static
+ * @public
+ */
+const createElementsFromHTML = function(htmlString){
+  let div = document.createElement('div');
+  div.innerHTML = htmlString.trim();
+  return Array.from(div.childNodes);
+};
+
 export {
   tagName,
   isDisplayedAsBlock,
@@ -142,7 +168,8 @@ export {
   insertNodeBAfterNodeA,
   sliceTextIntoTextNode,
   removeNodeFromTree,
+  removeNode,
   isVoidElement,
-  isIgnorableElement
+  isIgnorableElement,
+  createElementsFromHTML
 };
-

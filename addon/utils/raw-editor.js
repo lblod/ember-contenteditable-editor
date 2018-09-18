@@ -167,9 +167,9 @@ const RawEditor = EmberObject.extend({
       this.setCurrentPosition(lastInsertedRichElement.end - (richNode.end - richNode.start));
     }
 
-    if(!lastInsertedRichElement.domNode.isSameNode(domNodesToInsert.slice(-1)))
-      return [...domNodesToInsert, lastInsertedRichElement];
-    return domNodesToInsert;
+    if(lastInsertedRichElement.domNode.isSameNode(domNodesToInsert.slice(-1)[0]))
+      return domNodesToInsert;
+    return [...domNodesToInsert, lastInsertedRichElement];
   },
 
   /**

@@ -13,6 +13,7 @@ import TextInputDataFlaggedRemoveHandler from '../utils/text-input-data-flagged-
 import HeaderMarkdownHandler from '../utils/header-markdown-handler';
 import EmphasisMarkdownHandler from '../utils/emphasis-markdown-handler';
 import ListInsertionMarkdownHandler from '../utils/list-insertion-markdown-handler';
+import TabHandler from '../utils/tab-handler';
 import { normalizeEvent } from 'ember-jquery-legacy';
 import { warn } from '@ember/debug';
 import { A } from '@ember/array';
@@ -140,6 +141,7 @@ export default Component.extend({
     const textInputDataFlaggedRemoveHandler = TextInputDataFlaggedRemoveHandler.create(({rawEditor}));
     const listListInsertionMarkdownHandler = ListInsertionMarkdownHandler.create(({rawEditor}));
     const ignoreModifiersHandler = IgnoreModifiersHandler.create();
+    const tabHandler = TabHandler.create({rawEditor});
     const defaultInputHandlers = [headerMarkdownHandler,
                                   emphasisMarkdownHandler,
                                   listListInsertionMarkdownHandler,
@@ -147,6 +149,7 @@ export default Component.extend({
                                   backspaceHandler,
                                   textInputDataFlaggedRemoveHandler,
                                   textInputHandler,
+                                  tabHandler,
                                   ignoreModifiersHandler];
 
     this.set('currentTextContent', '');

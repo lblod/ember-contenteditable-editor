@@ -592,31 +592,19 @@ const RawEditor = EmberObject.extend({
       // IE does not support contains for text nodes
       commonAncestor = commonAncestor.nodeType === Node.TEXT_NODE ? commonAncestor.parentNode : commonAncestor;
       if (this.get('rootNode').contains(commonAncestor)) {
-        let startNode = this.getRichNodeFor(range.startContainer);
-        let endNode = this.getRichNodeFor(range.endContainer);
-        let start = this.calculatePosition(startNode, range.startOffset);
-        let end = this.calculatePosition(endNode, range.endOffset);
-        let newSelection  = [start, end];
-        debug(`updating selection after complex input ${newSelection[0]} ${newSelection[1]}`);
-        if (newSelection[0] === newSelection[1]) {
-          if (get(startNode,'type') === 'tag') {
-            /*
-             * https://www.w3.org/TR/dom/#concept-range-bp
-             * The range offset is inclusive, meaning the cursor can be before, between or after the tags children
-             * so we have startNode.children.length positions.
-             * The current handling of this offset is not according to spec, but seems to provide the best user experience
-             */
-            const offset = range.startOffset === 0 ? 0 : range.startOffset-1;
-            this.set('currentNode', range.startContainer.childNodes[offset]);
-          }
-          else
-            this.set('currentNode', range.startContainer);
-          this.setCurrentPosition(newSelection[0]);
-        } else {
-          this.set('currentNode', null);
+        if (range.collapsed) {
+          this.setCarret(range.startContainer, range.startOffset);
         }
-        this.set('currentSelection', newSelection);
-        forgivingAction('selectionUpdate', this)(this.get('currentSelection'));
+        else {
+          let startNode = this.getRichNodeFor(range.startContainer);
+          let endNode = this.getRichNodeFor(range.endContainer);
+          let start = this.calculatePosition(startNode, range.startOffset);
+          let end = this.calculatePosition(endNode, range.endOffset);
+          let newSelection  = [start, end];
+          this.set('currentNode', null);
+          this.set('currentSelection', newSelection);
+          forgivingAction('selectionUpdate', this)(this.get('currentSelection'));
+        }
       }
     }
     else {
@@ -675,9 +663,71 @@ const RawEditor = EmberObject.extend({
     this.set('currentNode', get(node, 'domNode'));
     this.set('currentSelection', [ position, position ]);
     if (notify)
-      forgivingAction('selectionUpdate', this)();
+      forgivingAction('selectionUpdate', this)(this.currentSelection);
   },
 
+
+  /**
+   * set the carret on the desired position. This function ensures a text node is present at the requested position
+   *
+   * @method setCarret
+   * @param {DOMNode} node, a text node or dom element
+   * @param {number} offset, for a text node the relative offset within the text node (i.e. number of characters before the carret).
+   *                         for a dom element the number of children before the carret.
+   * @return {DOMNode} currentNode of the editor after the operation
+   * Examples:
+   *     to set the carret after 'c' in a textnode with text content 'abcd' use setCarret(textNode,3)
+   *     to set the carret after the end of a node with innerHTML `<b>foo</b><span>work</span>` use setCarret(element, 2) (e.g setCarret(element, element.children.length))
+   *     to set the carret after the b in a node with innerHTML `<b>foo</b><span>work</span>` use setCarret(element, 1) (e.g setCarret(element, indexOfChild + 1))
+   *     to set the carret after the start of a node with innerHTML `<b>foo</b><span>work</span>` use setCarret(element, 0)
+   *
+   * @public
+   */
+  setCarret(node, offset) {
+    const richNode = this.getRichNodeFor(node);
+    if (richNode.type === 'tag' && richNode.children) {
+      if (node.children.length < offset) {
+        warn(`invalid offset ${offset} for node ${tagName(node.domNode)} with ${richNode.children } provided to setCarret`, {id: 'contenteditable.invalid-start'});
+        return;
+      }
+      const richNodeAfterCarret = richNode.children[offset];
+      if (richNodeAfterCarret && richNodeAfterCarret.type === 'text') {
+        // the node after the carret is a text node, so we can set the cursor at the start of that node
+        this.set('currentNode', richNodeAfterCarret.domNode);
+        const absolutePosition = richNodeAfterCarret.start;
+        this.set('currentSelection', [absolutePosition, absolutePosition]);
+        this.moveCaretInTextNode(richNodeAfterCarret.domNode, 0);
+      }
+      else if (offset > 0 && richNode.children[offset-1].type === 'text') {
+        // the node before the carret is a text node, so we can set the cursor at the end of that node
+        this.set('currentNode', node);
+        const richNodeBeforeCarret = richNode.children[offset-1];
+        const absolutePosition = richNodeBeforeCarret.end;
+        this.set('currentSelection', [absolutePosition, absolutePosition]);
+        this.moveCaretInTextNode(richNodeAfterCarret.domNode, richNodeAfterCarret.domNode.textContent.length);
+      }
+      else {
+        // no suitable text node is present, so we create a textnode
+        // TODO: handle empty node
+        const textNode = insertTextNodeWithSpace(node, richNodeAfterCarret.domNode);
+        this.updateRichNode();
+        this.set('currentNode', textNode);
+        const absolutePosition = richNodeAfterCarret.start;
+        this.set('currentSelection', [absolutePosition, absolutePosition]);
+        this.moveCaretInTextNode(textNode, 0);
+      }
+    }
+    else if (richNode.type === 'text') {
+      this.set('currentNode', node);
+      const absolutePosition = richNode.start + offset;
+      this.set('currentSelection', [absolutePosition, absolutePosition]);
+      this.moveCaretInTextNode(node, offset);
+    }
+    else {
+      warn(`invalid node ${tagName(node.domNode)} provided to setCarret`, {id: 'contenteditable.invalid-start'});
+    }
+    forgivingAction('selectionUpdate', this)(this.currentSelection);
+  },
 
   /**
    * Called after relevant input. Checks content and calls closureActions when changes detected

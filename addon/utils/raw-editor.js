@@ -602,7 +602,14 @@ const RawEditor = EmberObject.extend({
         debug(`updating selection after complex input ${newSelection[0]} ${newSelection[1]}`);
         if (newSelection[0] === newSelection[1]) {
           if (get(startNode,'type') === 'tag') {
-            this.set('currentNode', range.startContainer.childNodes[range.startOffset-1]);
+            /*
+             * https://www.w3.org/TR/dom/#concept-range-bp
+             * The range offset is inclusive, meaning the cursor can be before, between or after the tags children
+             * so we have startNode.children.length positions.
+             * The current handling of this offset is not according to spec, but seems to provide the best user experience
+             */
+            const offset = range.startOffset === 0 ? 0 : range.startOffset-1;
+            this.set('currentNode', range.startContainer.childNodes[offset]);
           }
           else
             this.set('currentNode', range.startContainer);

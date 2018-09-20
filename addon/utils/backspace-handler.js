@@ -3,7 +3,7 @@ import { reads } from '@ember/object/computed';
 import HandlerResponse from './handler-response';
 import { get } from '@ember/object';
 import getRichNodeMatchingDomNode from '@lblod/ember-contenteditable-editor/utils/get-rich-node-matching-dom-node';
-import { invisibleSpace } from './dom-helpers';
+import { invisibleSpace, isEmptyList } from './dom-helpers';
 
 export default EmberObject.extend({
   rootNode: reads('rawEditor.rootNode'),
@@ -74,9 +74,11 @@ export default EmberObject.extend({
    * @private
    */
   domCleanUp(domNode){
+    let previousBlockSibling = this.getPreviousBlockSiblingForUser(domNode);
     let isEmptyTextNode = node => {
       return this.isParentFlaggedForAlmostRemoval(node) ||
-        this.isTextNodeWithContent(node);
+        this.isTextNodeWithContent(node) ||
+        (previousBlockSibling && node.isSameNode(previousBlockSibling) && !isEmptyList(node) && !this.isOnlyLiAndEmpty(node));
     };
     let matchingDomNode = this.cleanLeavesToLeftUntil(isEmptyTextNode, () => false, domNode);
 
@@ -337,6 +339,72 @@ export default EmberObject.extend({
       return this.stripIrrelevantCharsBeforeCursor(string.slice(0, -1));
     }
     return string;
+  },
+
+  /**
+   * Gets previous block-sibling or li element
+   * @method getPreviousBlockSibling
+   * @param {Object} DomNode
+   * @return {Object} macthed block or li element
+   * @private
+   */
+  getPreviousBlockSibling(node) {
+      var prev;
+      if (node.previousSibling) {
+        prev =  node.previousSibling;
+      }
+      else{
+        prev = node.parentNode;
+      }
+      if (
+        prev.nodeType === Node.ELEMENT_NODE &&
+          ( window.getComputedStyle(prev)['display'] === 'block' ||
+            window.getComputedStyle(prev)['display'] === 'list-item' )
+      ){
+        return prev;
+      }
+      else{
+        return this.getPreviousBlockSibling(prev);
+      }
+  },
+
+  /**
+   * Gets previous block sibling or li element. But previous from user perspective.
+   * From user perspective, a cursor belongs to a block, not a text node.
+   * The previous block, is a different block from 'technical' perspective.
+   * (In this casse it is the second previous block)
+   * Consider:
+   *  <ul>
+   *    <li>[text node 1]</li>
+   *    <li>[text node with cursor]</li>
+   *  </ul>
+   * This wil return <li>[text node 1]</li>
+   * @method getPreviousBlockSibling
+   * @param {Object} DomNode
+   * @return {Object} macthed block or li element
+   * @private
+   */
+  getPreviousBlockSiblingForUser(node){
+    return this.getPreviousBlockSibling(this.getPreviousBlockSibling(node));
+  },
+
+  /**
+   * Checks if LI part of empty list
+   * @method isOnlyLiAndEmpty
+   * @param {Object} DomNode
+   * @return {Boolean}
+   * @private
+   */
+  isOnlyLiAndEmpty(node){
+    if(node.tagName != 'LI')
+      return false;
+    if(!node.children.length == 0)
+      return false;
+    if(node.parentNode &&  node.parentNode.childElementCount != 1)
+      return false;
+    if(node.parentNode && node.parentNode.children[0].isSameNode(node))
+      return true;
+    return false;
   }
 
 });

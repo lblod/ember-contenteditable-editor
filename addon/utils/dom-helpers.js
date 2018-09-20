@@ -142,6 +142,7 @@ const insertNodeBAfterNodeA = function(parent, nodeA, nodeB) {
 };
 
 const tagName = function(node) {
+  if(!node) return '';
   return node.nodeType === node.ELEMENT_NODE ? node.tagName.toLowerCase() : '';
 };
 

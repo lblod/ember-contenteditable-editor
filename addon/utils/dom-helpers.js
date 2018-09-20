@@ -120,17 +120,17 @@ const smartSplitTextNode = function(textNode, splitAt) {
 };
 
 const isEmptyList = function isEmptyList(node) {
-  if (node.nodeType === node.ELEMENT_NODE && ['ul','ol'].includes(node.tagName.toLowerCase()) ) {
-    for(var x = 1; x < node.children.length; x++) {
+  if( !( node.nodeType === node.ELEMENT_NODE && ['ul','ol'].includes(node.tagName.toLowerCase())) ) {
+    return false;
+  }
+  //sometimes lists may contain other stuff then li, if so we ignore this because illegal
+  for(var x = 1; x < node.children.length; x++) {
       if (tagName(node.children[x]) === 'li') {
         return false;
       }
-      return true;
-    }
   }
-  else
-    return false;
-}
+  return true;
+};
 
 const isIgnorableElement = function isIgnorableElement(node) {
   return node.nodeType === Node.TEXT_NODE && node.parentNode && tagName(node.parentNode) === "ul";

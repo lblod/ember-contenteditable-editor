@@ -4,6 +4,7 @@ import HandlerResponse from './handler-response';
 import { get } from '@ember/object';
 import getRichNodeMatchingDomNode from '@lblod/ember-contenteditable-editor/utils/get-rich-node-matching-dom-node';
 import { invisibleSpace, isEmptyList } from './dom-helpers';
+import { warn } from '@ember/debug';
 
 export default EmberObject.extend({
   rootNode: reads('rawEditor.rootNode'),
@@ -153,6 +154,10 @@ export default EmberObject.extend({
    * @private
    */
   removeCharToLeftAndUpdatePosition(textNode, position){
+    if (position < 1) {
+      warn(`provided position ${position}, but position should be gte 1 (can't remove text before start of string)`, {id: 'backspace-handler.incorrect-argument'});
+      return { textNode, position};
+    }
     let text = textNode.textContent;
     let updatedText = text.slice(0, position - 1) + text.slice(position);
     textNode.textContent = updatedText;

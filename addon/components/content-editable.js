@@ -18,6 +18,7 @@ import { normalizeEvent } from 'ember-jquery-legacy';
 import { warn } from '@ember/debug';
 import { A } from '@ember/array';
 import { isEmpty} from '@ember/utils';
+import { next } from '@ember/runloop';
 
 /**
  * Content editable editor component
@@ -215,13 +216,14 @@ export default Component.extend({
     let el = this.get('element');
     if (this.get('focused'))
       el.focus();
-    this.extractAndInsertComponents();
-    this.get('rawEditor').updateRichNode();
-    let firstTextNode = flatMap(this.get('rawEditor.richNode'), (node) => node.type ==='text')[0];
-    this.set('rawEditor.currentNode', firstTextNode);
+    this.set('rawEditor.currentNode', this.rawEditor.rootNode);
     forgivingAction('rawEditorInit', this)(this.get('rawEditor'));
-    forgivingAction('elementUpdate', this)();
-    this.get('rawEditor').generateDiffEvents();
+    next( () => {
+      forgivingAction('elementUpdate', this)();
+      this.get('rawEditor').generateDiffEvents();
+      this.extractAndInsertComponents();
+      this.get('rawEditor').updateRichNode();
+    });
   },
 
   /**

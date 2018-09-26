@@ -169,7 +169,7 @@ const RawEditor = EmberObject.extend({
 
     if(lastInsertedRichElement.domNode.isSameNode(domNodesToInsert.slice(-1)[0]))
       return domNodesToInsert;
-    return [...domNodesToInsert, lastInsertedRichElement];
+    return [...domNodesToInsert, lastInsertedRichElement.domNode];
   },
 
   /**
@@ -185,7 +185,7 @@ const RawEditor = EmberObject.extend({
    * @private
    */
   insertValidCursorNodeAfterRichNode(richParent, richNode){
-    if (richNode.domNode === null || richNode.nodeType !== Node.TEXT_NODE) {
+    if (richNode.domNode.nextSibling === null || richNode.domNode.nextSibling.nodeType !== Node.TEXT_NODE) {
       let newNode = document.createTextNode(invisibleSpace);
       return this.insertElementsIntoEditor(richParent, richNode, [newNode]);
     }

@@ -1,15 +1,15 @@
 import { tagName, isVoidElement, insertTextNodeWithSpace, invisibleSpace } from './dom-helpers';
 
 /**
- * @method findFirstLi
+ * @method findLastLi
  * @param {DomNode} node the ul node to search in
  * @private
  */
-function findFirstLi(ul) {
+function findLastLi(ul) {
   if (tagName(ul) !== 'ul')
     throw `invalid argument, expected an ul`;
   if (ul.children && ul.children.length > 0)
-    return Array.from(ul.children).find((node) => tagName(node) === 'li');
+    return Array.from(ul.children).reverse().find((node) => tagName(node) === 'li');
   return null;
 }
 
@@ -18,15 +18,15 @@ function findFirstLi(ul) {
  * @param {DOMNode} node
  * @private
  */
-function firstTextChild(node) {
+function lastTextChild(node) {
   if (node.nodeType !== Node.ELEMENT_NODE || isVoidElement(node))
     throw "invalid argument, expected a (non void) element";
-  if (node.firstChild) {
-    if (node.firstChild.nodeType === Node.TEXT_NODE) {
-      return node.firstChild;
+  if (node.lastChild) {
+    if (node.lastChild.nodeType === Node.TEXT_NODE) {
+      return node.lastChild;
     }
     else {
-      return insertTextNodeWithSpace(node, node.firstChild);
+      return insertTextNodeWithSpace(node, node.lastChild, true);
     }
   }
   else {
@@ -48,27 +48,27 @@ function findNextApplicableNode(node, rootNode) {
   if (node === rootNode) {
     return rootNode;
   }
-  if (node.nextSibling) {
-    const sibling = node.nextSibling;
-    if (isVoidElement(sibling) && sibling.nextSibling) {
-      return sibling.nextSibling;
+  if (node.previousSibling) {
+    const sibling = node.previousSibling;
+    if (isVoidElement(sibling) && sibling.previousSibling) {
+      return sibling.previousSibling;
     }
     else if (isVoidElement(sibling)) {
       return findNextApplicableNode(node.parentNode, rootNode);
     }
     if (tagName(sibling) === 'ul') {
-      const firstLi = findFirstLi(sibling);
-      if (firstLi) {
-        return firstTextChild(firstLi);
+      const lastLi = findLastLi(sibling);
+      if (lastLi) {
+        return lastTextChild(lastLi);
       }
       else {
         return findNextApplicableNode(sibling, rootNode);
       }
     }
     const startingAtTextNode = node.nodeType === Node.TEXT_NODE;
-    if (startingAtTextNode && sibling.firstChild) {
+    if (startingAtTextNode && sibling.lastChild) {
       // descend into sibling if possible
-      return sibling.firstChild;
+      return sibling.lastChild;
     }
     if (sibling.nodeType !== Node.TEXT_NODE && sibling.nodeType !== Node.ELEMENT_NODE)
       return findNextApplicableNode(sibling, rootNode);
@@ -90,7 +90,7 @@ function findNextApplicableNode(node, rootNode) {
  * @param {DOMElement} root of the dom tree, don't move outside of this root
  * @return {TextNode} nextNode or null if textNode is at the end of the tree
  */
-export default function nextTextNode(textNode, rootNode) {
+export default function previousTextNode(textNode, rootNode) {
   if (textNode.nodeType !== Node.TEXT_NODE) {
     throw `invalid node type ${textNode.nodeType} for argument textNode`;
   }
@@ -100,7 +100,7 @@ export default function nextTextNode(textNode, rootNode) {
     return null;
   }
   if (nextNode.nodeType === Node.ELEMENT_NODE) {
-    return insertTextNodeWithSpace(nextNode.parentNode, nextNode);
+    return insertTextNodeWithSpace(nextNode.parentNode, nextNode, true);
   }
   else {
     // it's a text node

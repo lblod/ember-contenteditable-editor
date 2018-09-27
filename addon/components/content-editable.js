@@ -13,6 +13,7 @@ import TextInputDataFlaggedRemoveHandler from '../utils/text-input-data-flagged-
 import HeaderMarkdownHandler from '../utils/header-markdown-handler';
 import EmphasisMarkdownHandler from '../utils/emphasis-markdown-handler';
 import ListInsertionMarkdownHandler from '../utils/list-insertion-markdown-handler';
+import ArrowHandler from '../utils/arrow-handler';
 import TabHandler from '../utils/tab-handler';
 import { normalizeEvent } from 'ember-jquery-legacy';
 import { warn } from '@ember/debug';

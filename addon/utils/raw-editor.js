@@ -653,6 +653,7 @@ const RawEditor = EmberObject.extend({
   /**
    * execute a DOM transformation on the editor content, ensures a consistent editor state
    * @method externalDomUpdate
+   * @param {String} description
    * @param {function} domUpdate
    * @public
    */

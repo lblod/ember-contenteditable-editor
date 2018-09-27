@@ -6,12 +6,11 @@ export default EmberObject.extend({
   isHandlerFor(event) {
     return (event.type === "keydown" && event.key === "Tab" && this.rawEditor.currentNode);
   },
-  handleEvent(event) {
+  handleEvent() {
     const currentNode = this.rawEditor.currentNode;
     const nextNode = this.nextNode(currentNode);
     this.rawEditor.updateRichNode();
     this.rawEditor.setCarret(nextNode, 0);
-    console.log(nextNode);
     return new HandlerResponse({ allowPropagation: false});
   },
   nextNode(current) {

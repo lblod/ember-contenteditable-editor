@@ -6,7 +6,7 @@ import HandlerResponse from './handler-response';
  * keydown event, but don't have any meaning.
  */
 export default EmberObject.extend( {
-  
+
   /**
    * Yields a truethy value for all events which we can recognise as
    * being an unimportant key-press which is there to change state.

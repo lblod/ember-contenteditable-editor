@@ -114,7 +114,6 @@ const RawEditor = EmberObject.extend({
     this.createSnapshot();
     let newNodes = replaceTextWithHtml(this.richNode, start, end, html);
     let contentLength = newNodes.map( node => node.textContent.length).reduce( (total, i) => total + i);
-    let content = newNodes.map( node => node.textContent).reduce((string, partial) => "" + string + partial);
     var nextSibling = newNodes[newNodes.length-1].nextSibling;
     if (nextSibling === null || nextSibling.nodeType !== Node.TEXT_NODE) {
       nextSibling = document.createTextNode(invisibleSpace);
@@ -377,7 +376,7 @@ const RawEditor = EmberObject.extend({
    * @param {String} text Text content that has been inserted.
    */
   textInsert( position, text ) {
-    console.warn("textInsert was called on raw-editor without listeners being set.");
+    warn("textInsert was called on raw-editor without listeners being set.", { id: 'content-editable.invalid-state'});
   },
 
   /**

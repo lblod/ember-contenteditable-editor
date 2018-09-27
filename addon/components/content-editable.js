@@ -135,24 +135,16 @@ export default Component.extend({
     });
     this.set('rawEditor', rawEditor);
 
-    const headerMarkdownHandler = HeaderMarkdownHandler.create({rawEditor});
-    const enterHandler = EnterHandler.create({rawEditor});
-    const backspaceHandler = BackspaceHandler.create({rawEditor});
-    const emphasisMarkdownHandler = EmphasisMarkdownHandler.create({rawEditor});
-    const textInputHandler = TextInputHandler.create(({rawEditor}));
-    const textInputDataFlaggedRemoveHandler = TextInputDataFlaggedRemoveHandler.create(({rawEditor}));
-    const listListInsertionMarkdownHandler = ListInsertionMarkdownHandler.create(({rawEditor}));
-    const ignoreModifiersHandler = IgnoreModifiersHandler.create();
-    const tabHandler = TabHandler.create({rawEditor});
-    const defaultInputHandlers = [headerMarkdownHandler,
-                                  emphasisMarkdownHandler,
-                                  listListInsertionMarkdownHandler,
-                                  enterHandler,
-                                  backspaceHandler,
-                                  textInputDataFlaggedRemoveHandler,
-                                  textInputHandler,
-                                  tabHandler,
-                                  ignoreModifiersHandler];
+    const defaultInputHandlers = [ ArrowHandler.create({rawEditor}),
+                                   HeaderMarkdownHandler.create({rawEditor}),
+                                   EmphasisMarkdownHandler.create({rawEditor}),
+                                   ListInsertionMarkdownHandler.create({rawEditor}),
+                                   EnterHandler.create({rawEditor}),
+                                   BackspaceHandler.create({rawEditor}),
+                                   TextInputDataFlaggedRemoveHandler.create({rawEditor}),
+                                   TextInputHandler.create({rawEditor}),
+                                   TabHandler.create({rawEditor}),
+                                   IgnoreModifiersHandler.create({rawEditor})];
 
     this.set('currentTextContent', '');
     this.set('currentSelection', [0,0]);

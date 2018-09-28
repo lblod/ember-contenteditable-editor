@@ -754,6 +754,12 @@ const RawEditor = EmberObject.extend({
       forgivingAction('selectionUpdate', this)(this.currentSelection);
   },
 
+  getRelativeCursorPostion(){
+    let currentRichNode = this.getRichNodeFor(this.currentNode);
+    let absolutePos = this.currentSelection[0];
+    return absolutePos -currentRichNode.start;
+  },
+
 
   /**
    * set the carret on the desired position. This function ensures a text node is present at the requested position

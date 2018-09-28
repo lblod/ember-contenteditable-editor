@@ -141,7 +141,15 @@ const RawEditor = EmberObject.extend({
     //TODO: make sure the elements to insert are non empty when not allowed, e.g. <div></div>
     //TODO: think: what if htmlstring is "<div>foo</div><div>bar</div>" -> do we need to force a textnode in between?
 
-    let needsCurrentPositionUpdate = this.currentNode.isSameNode(node) || placeCursorAfterInsertedHtml;
+    //keeps track of current node.
+    let getCurrentCarretPosition = this.getRelativeCursorPostion();
+    let currentNode = this.currentNode;
+
+    let keepCurrentPosition = !placeCursorAfterInsertedHtml && !node.isSameNode(currentNode) && !node.contains(currentNode);
+
+    if(!placeCursorAfterInsertedHtml && (node.isSameNode(currentNode) || node.contains(currentNode)))
+      warn(`Current node is same or contained by node to replace. Current node will change.`,
+           {id: 'contenteditable.replaceNodeWithHTML.currentNodeReplace'});
 
     //find rich node matching dom node
     let richNode = this.getRichNodeFor(node);
@@ -164,6 +172,9 @@ const RawEditor = EmberObject.extend({
     //update editor state
     this.set('currentNode', lastInsertedRichElement.domNode);
     this.setCurrentPosition(lastInsertedRichElement.end - (richNode.end - richNode.start));
+
+    if(keepCurrentPosition)
+      this.setCarret(currentNode, getCurrentCarretPosition);
 
     if(lastInsertedRichElement.domNode.isSameNode(domNodesToInsert.slice(-1)[0]))
       return domNodesToInsert;

@@ -161,10 +161,9 @@ const RawEditor = EmberObject.extend({
     this.updateRichNode();
     this.generateDiffEvents();
 
-    if(needsCurrentPositionUpdate){
-      this.set('currentNode', lastInsertedRichElement.domNode);
-      this.setCurrentPosition(lastInsertedRichElement.end - (richNode.end - richNode.start));
-    }
+    //update editor state
+    this.set('currentNode', lastInsertedRichElement.domNode);
+    this.setCurrentPosition(lastInsertedRichElement.end - (richNode.end - richNode.start));
 
     if(lastInsertedRichElement.domNode.isSameNode(domNodesToInsert.slice(-1)[0]))
       return domNodesToInsert;

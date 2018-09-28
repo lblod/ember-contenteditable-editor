@@ -108,9 +108,10 @@ const RawEditor = EmberObject.extend({
    * @param {Number} start index absolute
    * @param {Number} end index absolute
    * @param {String} html string
+   * @param {Array} Optional extra info, which will be passed around when triggering update events.
    * @public
    */
-  replaceTextWithHTML(start, end, html) {
+  replaceTextWithHTML(start, end, html, extraInfo = []) {
     this.createSnapshot();
     let newNodes = replaceTextWithHtml(this.richNode, start, end, html);
     let contentLength = newNodes.map( node => getTextContent(node).length).reduce( (total, i) => total + i);
@@ -122,7 +123,7 @@ const RawEditor = EmberObject.extend({
     this.updateRichNode();
     this.set('currentNode', nextSibling );
     this.setCurrentPosition(start + contentLength);
-    this.generateDiffEvents();
+    this.generateDiffEvents(extraInfo);
     forgivingAction('elementUpdate', this)();
     return newNodes;
   },
@@ -132,12 +133,13 @@ const RawEditor = EmberObject.extend({
    * @method replaceNodeWithHTML
    * @param {Object} DomNode to work on
    * @param {Object} string containing html
-   * @param {Boolean} instructive to place cursor after inserted HTML
+   * @param {Boolean} instructive to place cursor after inserted HTML,
+   * @param {Array} Optional extra info, which will be passed around when triggering update events.
    *
    * @return returns inserted domNodes (with possibly an extra trailing textNode).
    * @public
    */
-  replaceNodeWithHTML(node, html, placeCursorAfterInsertedHtml = false){
+  replaceNodeWithHTML(node, html, placeCursorAfterInsertedHtml = false, extraInfo = []){
     //TODO: make sure the elements to insert are non empty when not allowed, e.g. <div></div>
     //TODO: think: what if htmlstring is "<div>foo</div><div>bar</div>" -> do we need to force a textnode in between?
 
@@ -167,7 +169,7 @@ const RawEditor = EmberObject.extend({
     // proceed with removal
     removeNode(richNode.domNode);
     this.updateRichNode();
-    this.generateDiffEvents();
+    this.generateDiffEvents(extraInfo);
 
     //update editor state
     this.set('currentNode', lastInsertedRichElement.domNode);
@@ -563,7 +565,7 @@ const RawEditor = EmberObject.extend({
     throw new Error(`unsupported node type ${type} for richNode`);
   },
 
-  /*
+  /**
    * select a node based on the provided caret position, taking into account the current active node
    * if no suitable node exists, create one (within reason)
    * @method findSuitableNodeForPosition
@@ -839,9 +841,10 @@ const RawEditor = EmberObject.extend({
    * handleTextInsert, handleTextRemove, handleFullContentUpdate
    * @method generateDiffEvents
    *
+   * @param {Array} Optional argument pass info to event consumers.
    * @private
    */
-  generateDiffEvents(){
+  generateDiffEvents(extraInfo = []){
     let newText = getTextContent(this.get('rootNode'));
     let oldText = this.get('currentTextContent');
     let differences = JsDiff.diffChars(oldText, newText);
@@ -852,13 +855,13 @@ const RawEditor = EmberObject.extend({
       if (part.added) {
         textHasChanges = true;
         this.set('currentTextContent', oldText.slice(0, pos) + part.value + oldText.slice(pos, oldText.length));
-        this.textInsert(pos, part.value);
+        this.textInsert(pos, part.value, extraInfo);
         pos = pos + part.value.length;
       }
       else if (part.removed) {
         textHasChanges = true;
         this.set('currentTextContent', oldText.slice(0,pos) + oldText.slice(pos + part.value.length, oldText.length));
-        forgivingAction('textRemove', this)(pos, pos + part.value.length);
+        forgivingAction('textRemove', this)(pos, pos + part.value.length, extraInfo);
       }
       else {
         pos = pos + part.value.length;
@@ -867,7 +870,7 @@ const RawEditor = EmberObject.extend({
     }, this);
 
     if(textHasChanges){
-      forgivingAction('handleFullContentUpdate', this)();
+      forgivingAction('handleFullContentUpdate', this)(extraInfo);
     }
 
   }

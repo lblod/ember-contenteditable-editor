@@ -186,19 +186,19 @@ const RawEditor = EmberObject.extend({
   /**
    * inserts an emtpy textnode after richnode, if non existant.
    *
-   * @method insertElementsIntoEditor
+   * @method insertElementsAfterRichNode
    *
    * @param {RichNode} parent element where the elements should be added.
    * @param {RichNode} last sibling where new elements should occur after
    * @param {Array} array of (DOM) elements to insert
    *
-   * @return {RichNode} returns last inserted element as RichNode
+   * @return {RichNode} returns last inserted element as RichNode. That is a rich textNode
    * @private
    */
   insertValidCursorNodeAfterRichNode(richParent, richNode){
     if (richNode.domNode.nextSibling === null || richNode.domNode.nextSibling.nodeType !== Node.TEXT_NODE) {
       let newNode = document.createTextNode(invisibleSpace);
-      return this.insertElementsIntoEditor(richParent, richNode, [newNode]);
+      return this.insertElementsAfterRichNode(richParent, richNode, [newNode]);
     }
     return richNode;
   },
@@ -206,7 +206,7 @@ const RawEditor = EmberObject.extend({
   /**
    * Inserts an array of elements into the editor.
    *
-   * @method insertElementsIntoEditor
+   * @method insertElementsAfterRichNode
    *
    * @param {RichNode} parent element where the elements should be added.
    * @param {RichNode} last sibling where new elements should occur after
@@ -215,7 +215,7 @@ const RawEditor = EmberObject.extend({
    * @return {RichNode} returns last inserted element as RichNode
    * @private
    */
-  insertElementsIntoEditor(richParent, richNode, remainingElements){
+  insertElementsAfterRichNode(richParent, richNode, remainingElements){
     if( remainingElements.length == 0 )
       return richNode;
 
@@ -225,7 +225,7 @@ const RawEditor = EmberObject.extend({
 
     let richNodeToInsert = TextNodeWalker.create().processDomNode(nodeToInsert, richParent.domNode, richNode.end);
 
-    return this.insertElementsIntoEditor(richParent, richNodeToInsert, remainingElements.slice(1));
+    return this.insertElementsAfterRichNode(richParent, richNodeToInsert, remainingElements.slice(1));
   },
 
   /**

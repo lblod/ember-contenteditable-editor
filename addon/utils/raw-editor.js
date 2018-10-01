@@ -163,7 +163,7 @@ const RawEditor = EmberObject.extend({
     //insert new nodes first
     let domNodesToInsert = createElementsFromHTML(html);
 
-    let lastInsertedRichElement = this.insertElementsIntoEditor(richParent, richNode, domNodesToInsert);
+    let lastInsertedRichElement = this.insertElementsAfterRichNode(richParent, richNode, domNodesToInsert);
     lastInsertedRichElement = this.insertValidCursorNodeAfterRichNode(richParent, lastInsertedRichElement);
 
     // proceed with removal

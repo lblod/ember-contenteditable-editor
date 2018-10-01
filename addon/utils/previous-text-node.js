@@ -1,4 +1,9 @@
-import { tagName, isVoidElement, insertTextNodeWithSpace, invisibleSpace } from './dom-helpers';
+import {
+  tagName,
+  isVoidElement,
+  insertTextNodeWithSpace,
+  invisibleSpace
+} from './dom-helpers';
 
 /**
  * @method findLastLi

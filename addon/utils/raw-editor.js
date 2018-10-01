@@ -183,6 +183,41 @@ const RawEditor = EmberObject.extend({
     return [...domNodesToInsert, lastInsertedRichElement.domNode];
   },
 
+  prependChildrenHTML(node, html, placeCursorAfterInsertedHtml = false, extraInfo = []){
+    //TODO: check if node allowed children?
+    let getCurrentCarretPosition = this.getRelativeCursorPostion();
+    let currentNode = this.currentNode;
+
+    let keepCurrentPosition = !placeCursorAfterInsertedHtml;
+
+    //find rich node matching dom node
+    let richParent = this.getRichNodeFor(node);
+    if(!richParent) return null;
+
+    //insert new nodes first
+    let domNodesToInsert = createElementsFromHTML(html);
+
+    if (domNodesToInsert.length == 0)
+      return [ node ];
+
+    let lastInsertedRichElement = this.prependElementsRichNode(richParent, domNodesToInsert);
+    lastInsertedRichElement = this.insertValidCursorNodeAfterRichNode(richParent, lastInsertedRichElement);
+
+    this.updateRichNode();
+    this.generateDiffEvents(extraInfo);
+
+    //update editor state
+    this.set('currentNode', lastInsertedRichElement.domNode);
+    this.setCurrentPosition(lastInsertedRichElement.end);
+
+    if(keepCurrentPosition)
+      this.setCarret(currentNode, getCurrentCarretPosition);
+
+    if(lastInsertedRichElement.domNode.isSameNode(domNodesToInsert.slice(-1)[0]))
+      return domNodesToInsert;
+    return [...domNodesToInsert, lastInsertedRichElement.domNode];
+  },
+
   /**
    * inserts an emtpy textnode after richnode, if non existant.
    *
@@ -201,6 +236,26 @@ const RawEditor = EmberObject.extend({
       return this.insertElementsAfterRichNode(richParent, richNode, [newNode]);
     }
     return richNode;
+  /**
+   * Prepends a list of elements to children
+   *
+   * @method prependElementsRichNode
+   *
+   * @param {RichNode} parent element where the elements should be added.
+   * @param {Array} array of (DOM) elements to insert
+   *
+   * @return {RichNode} returns last inserted element as RichNode
+   * @private
+   */
+  prependElementsRichNode(richParent, elements){
+    let newFirstChild = elements[0];
+    if(richParent.domNode.firstChild)
+      richParent.domNode.insertBefore(newFirstChild, richParent.domNode.firstChild);
+    else
+      richParent.domNode.appendChild(newFirstChild);
+
+    let newFirstRichChild = TextNodeWalker.create().processDomNode(newFirstChild, richParent.domNode, richParent.start);
+    return this.insertElementsAfterRichNode(richParent, newFirstRichChild, elements.slice(1));
   },
 
   /**

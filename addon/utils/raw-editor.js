@@ -235,7 +235,9 @@ const RawEditor = EmberObject.extend({
       let newNode = document.createTextNode(invisibleSpace);
       return this.insertElementsAfterRichNode(richParent, richNode, [newNode]);
     }
-    return richNode;
+    return TextNodeWalker.create().processDomNode(richNode.domNode.nextSibling, richParent.domNode, richNode.end);
+  },
+
   /**
    * Prepends a list of elements to children
    *

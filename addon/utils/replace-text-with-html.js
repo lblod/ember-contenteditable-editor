@@ -1,7 +1,7 @@
 import flatMap from './flat-map';
 import { get } from '@ember/object';
 import { debug } from '@ember/debug';
-import { createElementsFromHTML} from './dom-helpers';
+import { createElementsFromHTML } from './dom-helpers';
 /**
  * Replaces text with html, updates DOM
  * finds the node that contains the whole rang

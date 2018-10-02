@@ -492,7 +492,7 @@ const RawEditor = EmberObject.extend({
    * @param {number} position Index of the inserted text.
    * @param {String} text Text content that has been inserted.
    */
-  textInsert( position, text ) {
+  textInsert( /*position, text*/ ) {
     warn("textInsert was called on raw-editor without listeners being set.", { id: 'content-editable.invalid-state'});
   },
 

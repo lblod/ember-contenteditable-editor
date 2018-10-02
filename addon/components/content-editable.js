@@ -17,7 +17,7 @@ import TabHandler from '../utils/tab-handler';
 import { normalizeEvent } from 'ember-jquery-legacy';
 import { warn } from '@ember/debug';
 import { A } from '@ember/array';
-import { isEmpty} from '@ember/utils';
+import { isEmpty } from '@ember/utils';
 import { next } from '@ember/runloop';
 
 /**

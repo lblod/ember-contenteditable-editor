@@ -8,8 +8,8 @@
   <button {{action 'clearAll'}}>clear highlights</button>
 </div>
 {{#content-editable editable=true focused=true yieldHTML=true
-   textInsert=(action 'handleTextInsert') 
-   textRemove=(action 'handleTextRemove') 
+   textInsert=(action 'handleTextInsert')
+   textRemove=(action 'handleTextRemove')
    selectionUpdate=(action 'selectionUpdate')
    elementUpdate=(action 'elementUpdate')
    rawEditorInit=(action 'rawEditorInit')}}
@@ -31,21 +31,21 @@
       <div> no rdfa here </div>
       <div> another no rdfa here </div>
       <div property="behandelt" resource="#Agendapunt5" typeof="Agendapunt">
-        <meta property="aangebrachtNa" resource="#Agendapunt1" /> <!-- We hebben de andere agendapunten niet -->
+        <meta property="aangebrachtNa" resource="#Agendapunt1"> <!-- We hebben de andere agendapunten niet -->
         <span property="geplandOpenbaar" datatype="xsd:boolean" content="true">Gepland openbaar:</span>
         <span property="dc:title">
           <span property="Agendapunt.type" resource="Kennisname">Mededeling</span> benoeming en eedaflegging burgemeester
         </span>
       </div>
     </div>
-    <hr />
+    <hr>
     <div typeof="BehandelingVanAgendapunt" resource="#Behandeling1">
-      <meta property="dc:subject" resource="#Agendapunt1" typeof="Agendapunt" />
+      <meta property="dc:subject" resource="#Agendapunt1" typeof="Agendapunt">
       <span property="openbaar" datatype="xsd:boolean" content="true">De gemeenteraad in openbare vergadering,</span>
       <div property="prov:generated" resource="#Besluit1" typeof="Besluit">
-        <meta property="eli:realizes" resource="#Rechtsgrond1" typeof="eli:LegalResource" />
+        <meta property="eli:realizes" resource="#Rechtsgrond1" typeof="eli:LegalResource">
         <span property="eli:title">Kennisname ontslag burgemeester</span>, <!-- Should be higher up? -->
-        <meta property="eli:language" resource="http://publications.europa.eu/resource/authority/language/NLD" />
+        <meta property="eli:language" resource="http://publications.europa.eu/resource/authority/language/NLD">
         <div property="motivering" xml:lang="nl">
           <div>
             <ul about="#Rechtsgrond1">
@@ -62,7 +62,7 @@
           Enig artikel.
           <span resource="#Besluit1_Artikel1" typeof="Artikel">
             <div property="eli:realizes" resource="#Rechtsgrond1_Artikel1" typeof="eli:LegalResourceSubdivision mandaat:RechtsgrondBeeindiging">
-              <meta property="eli:is_part_of" resource="#Rechtsgrond1" />
+              <meta property="eli:is_part_of" resource="#Rechtsgrond1">
             </div>
             <div property="prov:value">
               De gemeenteraad neemt kennis van het ontslag van <span about="http://data.vlaanderen.be/id/mandataris_Roger%20Gabriëls"><span property="mandaat:isOntslagenDoor" resource="#Rechtsgrond1">de heer Alfons Gabriëls als burgemeester en gemeenteraadslid van de gemeente Herenthout</span></span> met ingang van <span about="http://data.vlaanderen.be/id/mandataris_Roger%20Gabriëls"><span property="mandaat:einde"  datatype="xsd:date" content="2017-04-01">1 april 2017</span></span>.
@@ -82,7 +82,7 @@
     </div>
     </div>
     <div typeof="BehandelingVanAgendapunt" resource="#Behandeling5">
-      <meta property="dc:subject" resource="#Agendapunt5" />
+      <meta property="dc:subject" resource="#Agendapunt5">
       <div property="prov:generated" resource="#Besluit5" typeof="Besluit">
         <h1 property="eli:title">Mededeling benoeming en eedaflegging burgemeester</h1>
         <div about="#Behandeling5">
@@ -92,8 +92,8 @@
           <p>Hij spreekt zijn hoop uit dat in een constructieve geest en met respect voor elkaar kan samengewerkt worden binnen de raad.</p>
           <span property="openbaar" datatype="xsd:boolean" content="true">De gemeenteraad in openbare vergadering,</span>
         </div>
-        <meta property="eli:realizes" resource="#Rechtsgrond5" typeof="eli:LegalResource" />
-        <meta property="eli:language" resource="http://publications.europa.eu/resource/authority/language/NLD" /> <!-- redundant voor Vlaanderen -->
+        <meta property="eli:realizes" resource="#Rechtsgrond5" typeof="eli:LegalResource">
+        <meta property="eli:language" resource="http://publications.europa.eu/resource/authority/language/NLD"> <!-- redundant voor Vlaanderen -->
         <div property="motivering" xml:lang="nl">
           <ul about="#Rechtsgrond5">
             <!-- Binnen de motivering is veel inhoud niet semantisch geannoteerd :/ -->
@@ -111,7 +111,7 @@
           Enig artikel.
           <span resource="#Besluit5_Artikel1" typeof="Artikel">
             <div property="eli:realizes" resource="#Rechtsgrond5_Artikel1" typeof="eli:LegalResourceSubdivision mandaat:RechtsgrondAanstelling">
-              <meta property="eli:is_part_of" resource="#Rechtsgrond5" />
+              <meta property="eli:is_part_of" resource="#Rechtsgrond5">
             </div>
             De gemeenteraad neemt kennis van de eedaflegging door en benoeming van <span about="#Rechtsgrond5_Artikel1"><span property="mandaat:bekrachtigtAanstellingVan" resource="http://data.vlaanderen.be/id/mandataris_Patrick%20Heremans">de heer Patrick Heremans als burgemeester van de gemeente Herenthout</span></span> met ingang van <span about="http://data.vlaanderen.be/id/mandataris_Patrick%20Heremans"><span property="mandaat:start" datatype="xsd:dateTime" content="2017-04-01T00:00:00+01:00">1 april 2017</span></span>.
           </span>

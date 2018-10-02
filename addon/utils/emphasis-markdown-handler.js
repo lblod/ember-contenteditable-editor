@@ -8,7 +8,7 @@ import { invisibleSpace } from './dom-helpers';
 
 
 let BOLDMARKDOWN = /(\*\*)(.*?)\1/;
-let EMPHASISMARKDOWN = /(\*)([^\*].+?)\1/;
+let EMPHASISMARKDOWN = /(\*)([^*].+?)\1/;
 let UNDERLINEMARKDOWN = /(_)(.*?)\1/;
 
 let MARKDOWNS = [

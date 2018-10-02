@@ -20,6 +20,7 @@ import flatMap from './flat-map';
 import NodeWalker from './node-walker';
 import JsDiff from 'diff';
 import TextNodeWalker from './text-node-walker';
+import previousTextNode from './previous-text-node';
 import { getTextContent } from './text-node-walker';
 import { debug, warn } from '@ember/debug';
 import { get, computed } from '@ember/object';
@@ -181,6 +182,32 @@ const RawEditor = EmberObject.extend({
     if(lastInsertedRichElement.domNode.isSameNode(domNodesToInsert.slice(-1)[0]))
       return domNodesToInsert;
     return [...domNodesToInsert, lastInsertedRichElement.domNode];
+  },
+
+  removeNode(node, extraInfo = []){
+    //keeps track of current node.
+    let carretPositionToEndIn = this.getRelativeCursorPostion();
+    let nodeToEndIn = this.currentNode;
+    let keepCurrentPosition = !node.isSameNode(nodeToEndIn) && !node.contains(nodeToEndIn);
+
+    if(!keepCurrentPosition){
+      nodeToEndIn = previousTextNode(node, this.rootNode);
+      carretPositionToEndIn = nodeToEndIn.length;
+    }
+
+    //find rich node matching dom node
+    let richNode = this.getRichNodeFor(node);
+    if(!richNode) return null;
+
+    // proceed with removal
+    removeNode(richNode.domNode);
+
+    this.updateRichNode();
+    this.generateDiffEvents(extraInfo);
+
+    this.setCarret(nodeToEndIn, carretPositionToEndIn);
+
+    return nodeToEndIn;
   },
 
   prependChildrenHTML(node, html, placeCursorAfterInsertedHtml = false, extraInfo = []){

@@ -184,6 +184,16 @@ const RawEditor = EmberObject.extend({
     return [...domNodesToInsert, lastInsertedRichElement.domNode];
   },
 
+  /**
+   * removes a node. If node to be removed is contains current cursor position. The cursor
+   * position will be update to a previous sensible node too.
+   * @method removeNode
+   * @param {Object} DomNode to work on
+   * @param {Array} Optional extra info, which will be passed around when triggering update events.
+   *
+   * @return returns node we ended up in.
+   * @public
+   */
   removeNode(node, extraInfo = []){
     //keeps track of current node.
     let carretPositionToEndIn = this.getRelativeCursorPostion();
@@ -210,6 +220,17 @@ const RawEditor = EmberObject.extend({
     return nodeToEndIn;
   },
 
+  /**
+   * Prepends the children of a node with an html block
+   * @method prependChildrenHTML
+   * @param {Object} DomNode to work on
+   * @param {Object} string containing html
+   * @param {Boolean} instructive to place cursor after inserted HTML,
+   * @param {Array} Optional extra info, which will be passed around when triggering update events.
+   *
+   * @return returns inserted domNodes (with possibly an extra trailing textNode).
+   * @public
+   */
   prependChildrenHTML(node, html, placeCursorAfterInsertedHtml = false, extraInfo = []){
     //TODO: check if node allowed children?
     let getCurrentCarretPosition = this.getRelativeCursorPostion();

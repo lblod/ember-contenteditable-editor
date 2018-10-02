@@ -89,12 +89,10 @@ function findPreviousApplicableNode(node, rootNode) {
  * @param {TextNode} textNode
  * @param {DOMElement} root of the dom tree, don't move outside of this root
  * @return {TextNode} nextNode or null if textNode is at the end of the tree
+ * @public
  */
-export default function previousTextNode(textNode, rootNode) {
-  if (textNode.nodeType !== Node.TEXT_NODE) {
-    throw `invalid node type ${textNode.nodeType} for argument textNode`;
-  }
-  const nextNode = findNextApplicableNode(textNode, rootNode);
+export default function previousTextNode(baseNode, rootNode) {
+  const nextNode = findPreviousApplicableNode(baseNode, rootNode);
   if (nextNode === rootNode) {
     // next node is rootNode, so I'm at the end of the tree
     return null;

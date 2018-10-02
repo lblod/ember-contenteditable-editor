@@ -39,12 +39,12 @@ function lastTextChild(node) {
 
 /**
  * returns the node we want to place the marker before (or in if it's a text node)
- * @method findNextApplicableNode
+ * @method findPreviousApplicableNode
  * @param {DOMNode} node
  * @param {DOMElement} rootNode
  * @private
  */
-function findNextApplicableNode(node, rootNode) {
+function findPreviousApplicableNode(node, rootNode) {
   if (node === rootNode) {
     return rootNode;
   }
@@ -54,7 +54,7 @@ function findNextApplicableNode(node, rootNode) {
       return sibling.previousSibling;
     }
     else if (isVoidElement(sibling)) {
-      return findNextApplicableNode(node.parentNode, rootNode);
+      return findPreviousApplicableNode(node.parentNode, rootNode);
     }
     if (tagName(sibling) === 'ul') {
       const lastLi = findLastLi(sibling);
@@ -62,7 +62,7 @@ function findNextApplicableNode(node, rootNode) {
         return lastTextChild(lastLi);
       }
       else {
-        return findNextApplicableNode(sibling, rootNode);
+        return findPreviousApplicableNode(sibling, rootNode);
       }
     }
     const startingAtTextNode = node.nodeType === Node.TEXT_NODE;
@@ -71,11 +71,11 @@ function findNextApplicableNode(node, rootNode) {
       return sibling.lastChild;
     }
     if (sibling.nodeType !== Node.TEXT_NODE && sibling.nodeType !== Node.ELEMENT_NODE)
-      return findNextApplicableNode(sibling, rootNode);
+      return findPreviousApplicableNode(sibling, rootNode);
     return sibling;
   }
   else if (node.parentNode) {
-    return findNextApplicableNode(node.parentNode, rootNode);
+    return findPreviousApplicableNode(node.parentNode, rootNode);
   }
   else
     throw `received a node without a parentNode`;

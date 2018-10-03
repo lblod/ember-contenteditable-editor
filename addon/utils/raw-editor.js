@@ -354,13 +354,13 @@ const RawEditor = EmberObject.extend({
       }
       element.setAttribute(HIGHLIGHT_DATA_ATTRIBUTE, 'true');
       let currentNode = this.getRichNodeFor(this.get('currentNode'));
+
+      //if current node is expected to be in new highlighted range
       if (currentNode && currentNode.start <= start && currentNode.end >= end) {
-        let parent = element.parentNode;
-        this.set('currentNode', parent);
+        let textNode = element.childNodes[0]; //for highlight we always expect a textnode as first child
+        this.set('currentNode', textNode);
         if (!element.nextSibling) {
-          let node = document.createTextNode('');
-          insertNodeBAfterNodeA(parent, element, node);
-          this.set('currentNode', node);
+          insertTextNodeWithSpace(element.parentElement);
         }
       }
       this.updateRichNode();

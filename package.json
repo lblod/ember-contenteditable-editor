@@ -24,12 +24,13 @@
     "test:all": "ember try:each"
   },
   "dependencies": {
-    "diff": "^3.4.0",
+    "diff-match-patch": "^1.0.4",
     "ember-cli-babel": "^6.16.0",
     "ember-cli-htmlbars": "^3.0.0",
     "ember-cli-htmlbars-inline-precompile": "^1.0.0",
     "ember-jquery-legacy": "^1.0.0",
-    "ember-wormhole": "^0.5.4"
+    "ember-wormhole": "^0.5.4",
+    "ember-auto-import": "^1.2.13"
   },
   "devDependencies": {
     "@ember/optional-features": "^0.6.3",

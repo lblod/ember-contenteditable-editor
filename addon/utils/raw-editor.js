@@ -18,12 +18,12 @@ import EmberObject from '@ember/object';
 import replaceTextWithHtml from './replace-text-with-html';
 import flatMap from './flat-map';
 import NodeWalker from './node-walker';
-import JsDiff from 'diff';
 import TextNodeWalker from './text-node-walker';
 import { getTextContent } from './text-node-walker';
 import { debug, warn } from '@ember/debug';
 import { get, computed } from '@ember/object';
 import { A } from '@ember/array';
+import DiffMatchPatch from 'diff-match-patch';
 const HIGHLIGHT_DATA_ATTRIBUTE = 'data-editor-highlight';
 const NON_BREAKING_SPACE = '\u00A0';
 
@@ -847,24 +847,25 @@ const RawEditor = EmberObject.extend({
   generateDiffEvents(extraInfo = []){
     let newText = getTextContent(this.get('rootNode'));
     let oldText = this.get('currentTextContent');
-    let differences = JsDiff.diffChars(oldText, newText);
+    const dmp = new DiffMatchPatch();
+    let differences = dmp.diff_main(oldText, newText);
     let pos = 0;
     let textHasChanges = false;
 
-    differences.forEach((part) => {
-      if (part.added) {
+    differences.forEach( ([mode, text]) => {
+      if (mode === 1) {
         textHasChanges = true;
-        this.set('currentTextContent', oldText.slice(0, pos) + part.value + oldText.slice(pos, oldText.length));
-        this.textInsert(pos, part.value, extraInfo);
-        pos = pos + part.value.length;
+        this.set('currentTextContent', oldText.slice(0, pos) + text + oldText.slice(pos, oldText.length));
+        this.textInsert(pos, text, extraInfo);
+        pos = pos + text.length;
       }
-      else if (part.removed) {
+      else if (mode === -1) {
         textHasChanges = true;
-        this.set('currentTextContent', oldText.slice(0,pos) + oldText.slice(pos + part.value.length, oldText.length));
-        forgivingAction('textRemove', this)(pos, pos + part.value.length, extraInfo);
+        this.set('currentTextContent', oldText.slice(0,pos) + oldText.slice(pos + text.length, oldText.length));
+        forgivingAction('textRemove', this)(pos, pos + text.length, extraInfo);
       }
       else {
-        pos = pos + part.value.length;
+        pos = pos + text.length;
       }
       oldText = this.get('currentTextContent');
     }, this);

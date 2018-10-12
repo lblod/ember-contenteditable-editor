@@ -10,6 +10,7 @@ export default EmberObject.extend({
   rootNode: reads('rawEditor.rootNode'),
   currentSelection: reads('rawEditor.currentSelection'),
   richNode: reads('rawEditor.richNode'),
+  currentNode: reads('rawEditor.currentNode'),
 
   /**
    * tests this handler can handle the specified event
@@ -19,7 +20,14 @@ export default EmberObject.extend({
    * @public
    */
   isHandlerFor(event){
-    return event.type === "keydown" && event.key === 'Backspace' && this.get('rawEditor.currentSelectionIsACursor');
+    return event.type === "keydown"
+      && event.key === 'Backspace'
+      && this.get('rawEditor.currentSelectionIsACursor')
+      && this.doesCurrentNodeBelongsToContentEditable();
+  },
+
+  doesCurrentNodeBelongsToContentEditable(){
+    return this.currentNode.parentNode && this.currentNode.parentNode.isContentEditable;
   },
 
   /**
@@ -30,7 +38,7 @@ export default EmberObject.extend({
    */
   handleEvent(){
     let position = this.get('currentSelection')[0];
-    let textNode = this.get('rawEditor.currentNode');
+    let textNode = this.currentNode.parentNode;
     let richNode = this.get('rawEditor').getRichNodeFor(textNode);
 
     this.get('rawEditor').externalDomUpdate('backspace', () => {

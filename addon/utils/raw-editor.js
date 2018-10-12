@@ -19,6 +19,7 @@ import replaceTextWithHtml from './replace-text-with-html';
 import flatMap from './flat-map';
 import NodeWalker from './node-walker';
 import TextNodeWalker from './text-node-walker';
+import previousTextNode from './previous-text-node';
 import { getTextContent } from './text-node-walker';
 import { debug, warn } from '@ember/debug';
 import { get, computed } from '@ember/object';
@@ -163,7 +164,7 @@ const RawEditor = EmberObject.extend({
     //insert new nodes first
     let domNodesToInsert = createElementsFromHTML(html);
 
-    let lastInsertedRichElement = this.insertElementsIntoEditor(richParent, richNode, domNodesToInsert);
+    let lastInsertedRichElement = this.insertElementsAfterRichNode(richParent, richNode, domNodesToInsert);
     lastInsertedRichElement = this.insertValidCursorNodeAfterRichNode(richParent, lastInsertedRichElement);
 
     // proceed with removal
@@ -184,29 +185,133 @@ const RawEditor = EmberObject.extend({
   },
 
   /**
+   * removes a node. If node to be removed is contains current cursor position. The cursor
+   * position will be update to a previous sensible node too.
+   * @method removeNode
+   * @param {Object} DomNode to work on
+   * @param {Array} Optional extra info, which will be passed around when triggering update events.
+   *
+   * @return returns node we ended up in.
+   * @public
+   */
+  removeNode(node, extraInfo = []){
+    //keeps track of current node.
+    let carretPositionToEndIn = this.getRelativeCursorPostion();
+    let nodeToEndIn = this.currentNode;
+    let keepCurrentPosition = !node.isSameNode(nodeToEndIn) && !node.contains(nodeToEndIn);
+
+    if(!keepCurrentPosition){
+      nodeToEndIn = previousTextNode(node, this.rootNode);
+      carretPositionToEndIn = nodeToEndIn.length;
+    }
+
+    //find rich node matching dom node
+    let richNode = this.getRichNodeFor(node);
+    if(!richNode) return null;
+
+    // proceed with removal
+    removeNode(richNode.domNode);
+
+    this.updateRichNode();
+    this.generateDiffEvents(extraInfo);
+
+    this.setCarret(nodeToEndIn, carretPositionToEndIn);
+
+    return nodeToEndIn;
+  },
+
+  /**
+   * Prepends the children of a node with an html block
+   * @method prependChildrenHTML
+   * @param {Object} DomNode to work on
+   * @param {Object} string containing html
+   * @param {Boolean} instructive to place cursor after inserted HTML,
+   * @param {Array} Optional extra info, which will be passed around when triggering update events.
+   *
+   * @return returns inserted domNodes (with possibly an extra trailing textNode).
+   * @public
+   */
+  prependChildrenHTML(node, html, placeCursorAfterInsertedHtml = false, extraInfo = []){
+    //TODO: check if node allowed children?
+    let getCurrentCarretPosition = this.getRelativeCursorPostion();
+    let currentNode = this.currentNode;
+
+    let keepCurrentPosition = !placeCursorAfterInsertedHtml;
+
+    //find rich node matching dom node
+    let richParent = this.getRichNodeFor(node);
+    if(!richParent) return null;
+
+    //insert new nodes first
+    let domNodesToInsert = createElementsFromHTML(html);
+
+    if (domNodesToInsert.length == 0)
+      return [ node ];
+
+    let lastInsertedRichElement = this.prependElementsRichNode(richParent, domNodesToInsert);
+    lastInsertedRichElement = this.insertValidCursorNodeAfterRichNode(richParent, lastInsertedRichElement);
+
+    this.updateRichNode();
+    this.generateDiffEvents(extraInfo);
+
+    //update editor state
+    this.set('currentNode', lastInsertedRichElement.domNode);
+    this.setCurrentPosition(lastInsertedRichElement.end);
+
+    if(keepCurrentPosition)
+      this.setCarret(currentNode, getCurrentCarretPosition);
+
+    if(lastInsertedRichElement.domNode.isSameNode(domNodesToInsert.slice(-1)[0]))
+      return domNodesToInsert;
+    return [...domNodesToInsert, lastInsertedRichElement.domNode];
+  },
+
+  /**
    * inserts an emtpy textnode after richnode, if non existant.
    *
-   * @method insertElementsIntoEditor
+   * @method insertElementsAfterRichNode
    *
    * @param {RichNode} parent element where the elements should be added.
    * @param {RichNode} last sibling where new elements should occur after
    * @param {Array} array of (DOM) elements to insert
    *
-   * @return {RichNode} returns last inserted element as RichNode
+   * @return {RichNode} returns last inserted element as RichNode. That is a rich textNode
    * @private
    */
   insertValidCursorNodeAfterRichNode(richParent, richNode){
     if (richNode.domNode.nextSibling === null || richNode.domNode.nextSibling.nodeType !== Node.TEXT_NODE) {
       let newNode = document.createTextNode(invisibleSpace);
-      return this.insertElementsIntoEditor(richParent, richNode, [newNode]);
+      return this.insertElementsAfterRichNode(richParent, richNode, [newNode]);
     }
-    return richNode;
+    return TextNodeWalker.create().processDomNode(richNode.domNode.nextSibling, richParent.domNode, richNode.end);
+  },
+
+  /**
+   * Prepends a list of elements to children
+   *
+   * @method prependElementsRichNode
+   *
+   * @param {RichNode} parent element where the elements should be added.
+   * @param {Array} array of (DOM) elements to insert
+   *
+   * @return {RichNode} returns last inserted element as RichNode
+   * @private
+   */
+  prependElementsRichNode(richParent, elements){
+    let newFirstChild = elements[0];
+    if(richParent.domNode.firstChild)
+      richParent.domNode.insertBefore(newFirstChild, richParent.domNode.firstChild);
+    else
+      richParent.domNode.appendChild(newFirstChild);
+
+    let newFirstRichChild = TextNodeWalker.create().processDomNode(newFirstChild, richParent.domNode, richParent.start);
+    return this.insertElementsAfterRichNode(richParent, newFirstRichChild, elements.slice(1));
   },
 
   /**
    * Inserts an array of elements into the editor.
    *
-   * @method insertElementsIntoEditor
+   * @method insertElementsAfterRichNode
    *
    * @param {RichNode} parent element where the elements should be added.
    * @param {RichNode} last sibling where new elements should occur after
@@ -215,7 +320,7 @@ const RawEditor = EmberObject.extend({
    * @return {RichNode} returns last inserted element as RichNode
    * @private
    */
-  insertElementsIntoEditor(richParent, richNode, remainingElements){
+  insertElementsAfterRichNode(richParent, richNode, remainingElements){
     if( remainingElements.length == 0 )
       return richNode;
 
@@ -225,7 +330,7 @@ const RawEditor = EmberObject.extend({
 
     let richNodeToInsert = TextNodeWalker.create().processDomNode(nodeToInsert, richParent.domNode, richNode.end);
 
-    return this.insertElementsIntoEditor(richParent, richNodeToInsert, remainingElements.slice(1));
+    return this.insertElementsAfterRichNode(richParent, richNodeToInsert, remainingElements.slice(1));
   },
 
   /**
@@ -249,13 +354,13 @@ const RawEditor = EmberObject.extend({
       }
       element.setAttribute(HIGHLIGHT_DATA_ATTRIBUTE, 'true');
       let currentNode = this.getRichNodeFor(this.get('currentNode'));
+
+      //if current node is expected to be in new highlighted range
       if (currentNode && currentNode.start <= start && currentNode.end >= end) {
-        let parent = element.parentNode;
-        this.set('currentNode', parent);
+        let textNode = element.childNodes[0]; //for highlight we always expect a textnode as first child
+        this.set('currentNode', textNode);
         if (!element.nextSibling) {
-          let node = document.createTextNode('');
-          insertNodeBAfterNodeA(parent, element, node);
-          this.set('currentNode', node);
+          insertTextNodeWithSpace(element.parentElement);
         }
       }
       this.updateRichNode();

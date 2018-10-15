@@ -1,3 +1,4 @@
+import { get } from '@ember/object';
 /**
  * takes a tree and returns a list of nodes that match the given predicate
  *
@@ -13,7 +14,7 @@ export default function flatMap(node, predicate) {
   let list = [];
   if (predicate(node))
     list.push(node);
-  if (node.get('children'))
-    node.get('children').forEach((child) => list = list.concat(flatMap(child, predicate)));
+  if (get(node,'children'))
+    get(node, 'children').forEach((child) => list = list.concat(flatMap(child, predicate)));
   return list;
 }

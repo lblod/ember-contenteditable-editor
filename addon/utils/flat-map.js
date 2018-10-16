@@ -14,7 +14,7 @@ export default function flatMap(node, predicate) {
   let list = [];
   if (predicate(node))
     list.push(node);
-  if (get(node,'children'))
-    get(node, 'children').forEach((child) => list = list.concat(flatMap(child, predicate)));
+  if (node.children)
+    node.children.forEach((child) => list = list.concat(flatMap(child, predicate)));
   return list;
 }

@@ -18,7 +18,7 @@ const NodeWalker = EmberObject.extend({
    * Processes a single dom node.
    */
   processDomNode( domNode, parentNode, start = 0 ) {
-    const myStart = (parentNode && get(parentNode, 'end')) || start;
+    const myStart = (parentNode && parentNode.end) || start;
     const richNode = this.createRichNode({
       domNode: domNode,
       parent: parentNode,
@@ -28,15 +28,15 @@ const NodeWalker = EmberObject.extend({
     });
 
     // For tags, recursively analyse the children
-    if (get(richNode, 'type') === 'tag') {
+    if (richNode.type === 'tag') {
       return this.processTagNode( richNode );
     }
     // For text nodes, add the content and update the index
-    else if (get(richNode, 'type') === 'text') {
+    else if (richNode.type === 'text') {
       return this.processTextNode( richNode );
     }
     // For comment nodes, set update the index
-    else { // if (get(richNode, 'type') == 'other')
+    else { // if (get( 'type') == 'other')
       return this.processOtherNode( richNode );
     }
   },
@@ -55,7 +55,7 @@ const NodeWalker = EmberObject.extend({
     const [ firstChild, ...nextChildren ] = nextDomChildren;
     if (firstChild) {
       const richChildNode = this.stepInDomNode( richNode, firstChild );
-      set( richNode, 'end', get(richChildNode, 'end') );
+      this.set( richNode, 'end', richChildNode.end );
       if ( nextChildren.length )
         return [ richChildNode, ...this.stepNextDomNode( richNode, nextChildren ) ];
       else
@@ -76,11 +76,11 @@ const NodeWalker = EmberObject.extend({
    * Processes a single rich text node
    */
   processTextNode( richNode ) {
-    const domNode = get(richNode, 'domNode');
-    const start = get(richNode, 'start');
+    const domNode = richNode.domNode;
+    const start = richNode.start;
     let text = domNode.textContent;
-    set(richNode, 'text', text);
-    set(richNode, 'end', start + text.length);
+    this.set(richNode, 'text', text);
+    this.set(richNode, 'end', start + text.length);
     return richNode;
   },
 
@@ -88,7 +88,7 @@ const NodeWalker = EmberObject.extend({
    * Processes a single rich tag
    */
   processTagNode( richNode ) {
-    if( !isVoidElement( get( richNode, "domNode" ) ) ) {
+    if( !isVoidElement( richNode.domNode ) ) {
       // Void elements are elements which cannot contain any contents.
       // They don't have an internal text, but may have other meaning.
       return this.processRegularTagNode( richNode );
@@ -100,10 +100,10 @@ const NodeWalker = EmberObject.extend({
   },
 
   processRegularTagNode( richNode ) {
-    set(richNode, 'end', get(richNode, 'start')); // end will be updated during run
-    const domNode = get(richNode, 'domNode');
+    this.set(richNode, 'end', richNode.start); // end will be updated during run
+    const domNode = richNode.domNode;
     const childDomNodes = domNode.childNodes ? domNode.childNodes : [];
-    set(richNode, 'children',
+    this.set(richNode, 'children',
         this.stepNextDomNode( richNode, childDomNodes ));
     this.finishChildSteps( richNode );
     return richNode;
@@ -120,15 +120,15 @@ const NodeWalker = EmberObject.extend({
    * various problems and intend to remove it.
    */
   processVoidTagNode( richNode ) {
-    const start = get( richNode, 'start' );
+    const start = richNode.start;
     let text;
     if( tagName( richNode.domNode ) == "br" ) {
       text = "\n";
     } else {
       text = " ";
     }
-    set(richNode, 'text', text);
-    set(richNode, 'end', start + text.length);
+    this.set(richNode, 'text', text);
+    this.set(richNode, 'end', start + text.length);
     return richNode;
   },
 
@@ -136,8 +136,8 @@ const NodeWalker = EmberObject.extend({
    * Processes a single comment node
    */
   processOtherNode( richNode ) {
-    const start = get(richNode, 'start');
-    set(richNode, 'end', start);
+    const start = richNode.start;
+    this.set(richNode, 'end', start);
     return richNode;
   },
 
@@ -161,6 +161,15 @@ const NodeWalker = EmberObject.extend({
    */
   createRichNode( content ) {
     return RichNode.create(content);
+
+    // const newObject = Object.assign( {}, content );
+    // newObject.get = ( name ) => newObject[name];
+    // return newObject;
+  },
+
+  set( object, key, value ) {
+    set( object, key, value );
+    // object[key] = value;
   }
 });
 
@@ -184,23 +193,23 @@ const RichNode = EmberObject.extend({
   type: undefined,
   text: undefined,
   region: computed('start', 'end', function(){
-    const start = get(this, 'start');
-    const end = get(this, 'end');
+    const start = this.start;
+    const end = this.end;
 
     return [ start, end || start ];
   }),
   length: computed('start', 'end', function(){
-    const end = get(this, 'end') || 0;
-    const start = get(this, 'start') || 0;
+    const end = this.end || 0;
+    const start = this.start || 0;
     const diff = Math.max( 0, end - start );
     return diff;
   }),
   isInRegion(start, end) {
-    return get(this, 'start') >= start && get(this, 'end') <= end;
+    return this.start >= start && this.end <= end;
   },
   isPartiallyInRegion(start, end) {
-    return ( get(this, 'start') >= start && get(this, 'start') < end )
-      || ( get(this, 'end') > start && get(this, 'end') <= end );
+    return ( this.start >= start && this.start < end )
+      || ( this.end > start && this.end <= end );
   }
 });
 

@@ -18,6 +18,15 @@ const TextNodeWalker = NodeWalker.extend( {
         myText += get(child, 'text');
     } );
     set( richNode, 'text', myText );
+  },
+  // Use simple nodes
+  createRichNode( content ) {
+    const newObject = Object.assign( {}, content );
+    newObject.get = ( name ) => newObject[name];
+    return newObject;
+  },
+  set( object, key, value ) {
+    object[key] = value;
   }
 } );
 

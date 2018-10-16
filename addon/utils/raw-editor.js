@@ -714,7 +714,18 @@ const RawEditor = EmberObject.extend({
    * @private
    */
   updateRichNode() {
-    let richNode = NodeWalker.create().processDomNode(this.get('rootNode'));
+    let richNode = NodeWalker
+        .create({
+          createRichNode( content ) {
+            const newObject = Object.assign( {}, content );
+            newObject.get = ( name ) => newObject[name];
+            return newObject;
+          },
+          set( object, key, value ) {
+            object[key] = value;
+          }
+        })
+        .processDomNode(this.get('rootNode'));
     this.set('richNode', richNode);
   },
 

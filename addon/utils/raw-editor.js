@@ -25,6 +25,7 @@ import { debug, warn } from '@ember/debug';
 import { get, computed } from '@ember/object';
 import { A } from '@ember/array';
 import DiffMatchPatch from 'diff-match-patch';
+import { task, timeout } from 'ember-concurrency';
 const HIGHLIGHT_DATA_ATTRIBUTE = 'data-editor-highlight';
 const NON_BREAKING_SPACE = '\u00A0';
 
@@ -949,7 +950,11 @@ const RawEditor = EmberObject.extend({
    * @param {Array} Optional argument pass info to event consumers.
    * @private
    */
-  generateDiffEvents(extraInfo = []){
+  async generateDiffEvents(extraInfo = []){
+    this._generateDiffEvents.perform(extraInfo);
+  },
+  _generateDiffEvents: task( function * (extraInfo) {
+    yield timeout(100);
     let newText = getTextContent(this.get('rootNode'));
     let oldText = this.get('currentTextContent');
     const dmp = new DiffMatchPatch();
@@ -978,8 +983,7 @@ const RawEditor = EmberObject.extend({
     if(textHasChanges){
       forgivingAction('handleFullContentUpdate', this)(extraInfo);
     }
-
-  }
+  }).keepLatest()
 });
 
 function uuidv4() {

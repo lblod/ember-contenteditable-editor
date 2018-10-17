@@ -125,7 +125,7 @@ const RawEditor = EmberObject.extend({
     this.updateRichNode();
     this.set('currentNode', nextSibling );
     this.setCurrentPosition(start + contentLength);
-    this.generateDiffEvents(extraInfo);
+    this.generateDiffEvents.perform(extraInfo);
     forgivingAction('elementUpdate', this)();
     return newNodes;
   },
@@ -171,7 +171,7 @@ const RawEditor = EmberObject.extend({
     // proceed with removal
     removeNode(richNode.domNode);
     this.updateRichNode();
-    this.generateDiffEvents(extraInfo);
+    this.generateDiffEvents.perform(extraInfo);
 
     //update editor state
     this.set('currentNode', lastInsertedRichElement.domNode);
@@ -214,7 +214,7 @@ const RawEditor = EmberObject.extend({
     removeNode(richNode.domNode);
 
     this.updateRichNode();
-    this.generateDiffEvents(extraInfo);
+    this.generateDiffEvents.perform(extraInfo);
 
     this.setCarret(nodeToEndIn, carretPositionToEndIn);
 
@@ -253,7 +253,7 @@ const RawEditor = EmberObject.extend({
     lastInsertedRichElement = this.insertValidCursorNodeAfterRichNode(richParent, lastInsertedRichElement);
 
     this.updateRichNode();
-    this.generateDiffEvents(extraInfo);
+    this.generateDiffEvents.perform(extraInfo);
 
     //update editor state
     this.set('currentNode', lastInsertedRichElement.domNode);
@@ -601,7 +601,7 @@ const RawEditor = EmberObject.extend({
     let parentDomNode = get(parent, 'domNode');
     let textNode = insertTextNodeWithSpace(parentDomNode, relativeToSibling, after);
     this.updateRichNode();
-    this.generateDiffEvents();
+    this.generateDiffEvents.perform();
     return this.getRichNodeFor(textNode);
   },
 
@@ -791,7 +791,7 @@ const RawEditor = EmberObject.extend({
     this.updateRichNode();
     this.updateSelectionAfterComplexInput();
     forgivingAction('elementUpdate', this)();
-    this.generateDiffEvents();
+    this.generateDiffEvents.perform();
   },
 
   /**
@@ -959,12 +959,9 @@ const RawEditor = EmberObject.extend({
    * @method generateDiffEvents
    *
    * @param {Array} Optional argument pass info to event consumers.
-   * @private
+   * @public !!
    */
-  async generateDiffEvents(extraInfo = []){
-    this._generateDiffEvents.perform(extraInfo);
-  },
-  _generateDiffEvents: task( function * (extraInfo) {
+  generateDiffEvents: task(function* (extraInfo = []){
     yield timeout(100);
     let newText = getTextContent(this.get('rootNode'));
     let oldText = this.get('currentTextContent');

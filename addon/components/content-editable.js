@@ -212,7 +212,7 @@ export default Component.extend({
     forgivingAction('rawEditorInit', this)(this.get('rawEditor'));
     next( () => {
       forgivingAction('elementUpdate', this)();
-      this.get('rawEditor').generateDiffEvents();
+      this.get('rawEditor').generateDiffEvents.perform();
       this.extractAndInsertComponents();
       this.get('rawEditor').updateRichNode();
     });
@@ -254,7 +254,7 @@ export default Component.extend({
         });
       }
       this.get('rawEditor').updateRichNode();
-      this.get('rawEditor').generateDiffEvents();
+      this.get('rawEditor').generateDiffEvents.perform();
       this.capturedEvents.pushObject(event);
     }
     else {
@@ -282,7 +282,7 @@ export default Component.extend({
   mouseUp(event) {
     this.get('rawEditor').updateRichNode();
     this.get('rawEditor').updateSelectionAfterComplexInput(event);
-    this.get('rawEditor').generateDiffEvents();
+    this.get('rawEditor').generateDiffEvents.perform();
   },
 
   handleUncapturedEvent(event) {

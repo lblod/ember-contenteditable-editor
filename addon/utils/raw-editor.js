@@ -910,8 +910,8 @@ const RawEditor = EmberObject.extend({
   setCarret(node, offset) {
     const richNode = this.getRichNodeFor(node);
     if (richNode.type === 'tag' && richNode.children) {
-      if (node.children.length < offset) {
-        warn(`invalid offset ${offset} for node ${tagName(node.domNode)} with ${richNode.children } provided to setCarret`, {id: 'contenteditable.invalid-start'});
+      if (richNode.children.length < offset) {
+        warn(`invalid offset ${offset} for node ${tagName(richNode.domNode)} with ${richNode.children } provided to setCarret`, {id: 'contenteditable.invalid-start'});
         return;
       }
       const richNodeAfterCarret = richNode.children[offset];
@@ -928,12 +928,16 @@ const RawEditor = EmberObject.extend({
         const richNodeBeforeCarret = richNode.children[offset-1];
         const absolutePosition = richNodeBeforeCarret.end;
         this.set('currentSelection', [absolutePosition, absolutePosition]);
-        this.moveCaretInTextNode(richNodeAfterCarret.domNode, richNodeAfterCarret.domNode.textContent.length);
+        this.moveCaretInTextNode(richNodeBeforeCarret.domNode, richNodeBeforeCarret.domNode.textContent.length);
       }
       else {
         // no suitable text node is present, so we create a textnode
         // TODO: handle empty node
-        const textNode = insertTextNodeWithSpace(node, richNodeAfterCarret.domNode);
+        var textNode;
+        if (richNodeAfterCarret)
+          textNode = insertTextNodeWithSpace(node, richNodeAfterCarret.domNode);
+        else
+          textNode = insertTextNodeWithSpace(node, richNode.children[offset-1], true);
         this.updateRichNode();
         this.set('currentNode', textNode);
         const absolutePosition = richNodeAfterCarret.start;

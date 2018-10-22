@@ -170,16 +170,17 @@ const RawEditor = EmberObject.extend({
 
     // proceed with removal
     removeNode(richNode.domNode);
-    this.updateRichNode();
-    this.generateDiffEvents.perform(extraInfo);
 
-    //update editor state
-    this.set('currentNode', lastInsertedRichElement.domNode);
-    this.setCurrentPosition(lastInsertedRichElement.end - (richNode.end - richNode.start));
+    this.updateRichNode();
 
     if(keepCurrentPosition)
       this.setCarret(currentNode, getCurrentCarretPosition);
+    else {
+      //update editor state
+      this.setCarret(lastInsertedRichElement.domNode, lastInsertedRichElement.end);
+    }
 
+    this.generateDiffEvents.perform(extraInfo);
     if(lastInsertedRichElement.domNode.isSameNode(domNodesToInsert.slice(-1)[0]))
       return domNodesToInsert;
     return [...domNodesToInsert, lastInsertedRichElement.domNode];

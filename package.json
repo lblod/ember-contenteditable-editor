@@ -1,6 +1,6 @@
 {
   "name": "@lblod/ember-contenteditable-editor",
-  "version": "0.13.6",
+  "version": "0.13.7",
   "description": "An ember addon that provides an editor based on contenteditable.",
   "keywords": [
     "ember-addon"

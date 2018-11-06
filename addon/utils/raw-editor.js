@@ -355,17 +355,16 @@ const RawEditor = EmberObject.extend({
         element.setAttribute(prop,data[prop]);
       }
       element.setAttribute(HIGHLIGHT_DATA_ATTRIBUTE, 'true');
-      let currentNode = this.getRichNodeFor(this.get('currentNode'));
 
-      //if current node is expected to be in new highlighted range
-      if (currentNode && currentNode.start <= start && currentNode.end >= end) {
-        let textNode = element.childNodes[0]; //for highlight we always expect a textnode as first child
-        this.set('currentNode', textNode);
-        if (!element.nextSibling) {
-          insertTextNodeWithSpace(element.parentElement);
-        }
-      }
       this.updateRichNode();
+      let textNode = element.childNodes[0];
+      let currentPosition = this.currentSelection[0];
+      let richNode = this.getRichNodeFor(textNode);
+
+      if(currentPosition >= richNode.start && currentPosition <= richNode.end){
+        this.set('currentNode', textNode);
+      }
+
       this.setCurrentPosition(this.get('currentSelection')[0], false); //ensure caret is still correct
     }
     else {

@@ -1,3 +1,4 @@
+import { A } from '@ember/array';
 /**
  * @module contenteditable-editor/dom
  */
@@ -119,8 +120,24 @@ const smartSplitTextNode = function(textNode, splitAt) {
   return [parent, extraParent];
 };
 
-const isEmptyList = function isEmptyList(node) {
-  if( !( node.nodeType === node.ELEMENT_NODE && ['ul','ol'].includes(node.tagName.toLowerCase())) ) {
+/** list helpers **/
+function isList(node) {
+  return node.nodeType === node.ELEMENT_NODE && ['ul','ol'].includes(node.tagName.toLowerCase());
+}
+
+function siblingLis(node) {
+  const lis = A();
+  if (node.parentNode) {
+    node.parentNode.childNodes.forEach( (el) => {
+      if (tagName(el) === 'li')
+        lis.pushObject(el);
+    });
+  }
+  return lis;
+}
+
+function isEmptyList(node) {
+  if( ! isList ) {
     return false;
   }
   //sometimes lists may contain other stuff then li, if so we ignore this because illegal
@@ -130,7 +147,7 @@ const isEmptyList = function isEmptyList(node) {
       }
   }
   return true;
-};
+}
 
 const isIgnorableElement = function isIgnorableElement(node) {
   return node.nodeType === Node.TEXT_NODE && node.parentNode && tagName(node.parentNode) === "ul";
@@ -165,6 +182,7 @@ export {
   smartSplitTextNode,
   invisibleSpace,
   insertTextNodeWithSpace,
+  isList,
   isEmptyList,
   insertNodeBAfterNodeA,
   sliceTextIntoTextNode,
@@ -172,5 +190,6 @@ export {
   removeNode,
   isVoidElement,
   isIgnorableElement,
-  createElementsFromHTML
+  createElementsFromHTML,
+  siblingLis
 };

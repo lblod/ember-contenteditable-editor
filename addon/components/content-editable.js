@@ -8,7 +8,6 @@ import EnterHandler from '../utils/enter-handler';
 import IgnoreModifiersHandler from '../utils/ignore-modifiers-handler';
 import BackspaceHandler from '../utils/backspace-handler';
 import TextInputHandler from '../utils/text-input-handler';
-import TextInputDataFlaggedRemoveHandler from '../utils/text-input-data-flagged-remove-handler';
 import HeaderMarkdownHandler from '../utils/header-markdown-handler';
 import EmphasisMarkdownHandler from '../utils/emphasis-markdown-handler';
 import ListInsertionMarkdownHandler from '../utils/list-insertion-markdown-handler';
@@ -140,7 +139,6 @@ export default Component.extend({
                                    ListInsertionMarkdownHandler.create({rawEditor}),
                                    EnterHandler.create({rawEditor}),
                                    BackspaceHandler.create({rawEditor}),
-                                   TextInputDataFlaggedRemoveHandler.create({rawEditor}),
                                    TextInputHandler.create({rawEditor}),
                                    TabHandler.create({rawEditor}),
                                    IgnoreModifiersHandler.create({rawEditor})];

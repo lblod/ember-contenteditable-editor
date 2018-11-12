@@ -1,4 +1,3 @@
-import { get } from '@ember/object';
 /**
  * takes a tree and returns a list of nodes that match the given predicate
  *

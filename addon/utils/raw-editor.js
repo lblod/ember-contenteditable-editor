@@ -940,7 +940,7 @@ const RawEditor = EmberObject.extend({
           textNode = insertTextNodeWithSpace(node, richNode.children[offset-1], true);
         this.updateRichNode();
         this.set('currentNode', textNode);
-        const absolutePosition = richNodeAfterCarret.start;
+        const absolutePosition = this.getRichNodeFor(textNode).start;
         this.set('currentSelection', [absolutePosition, absolutePosition]);
         this.moveCaretInTextNode(textNode, 0);
       }

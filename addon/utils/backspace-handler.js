@@ -49,55 +49,57 @@ export default EmberObject.extend({
    * @public
    */
   handleEvent() {
+    this.rawEditor.externalDomUpdate('backspace', () => this.backSpace());
+    return HandlerResponse.create({ allowPropagation: false });
+  },
+  visibleText(node) {
+    return node.textContent.replace(invisibleSpace,'').replace(/\s+/,' ');
+  },
+  backSpace() {
     const position = this.currentSelection[0];
     const textNode = this.currentNode;
     const richNode = this.rawEditor.getRichNodeFor(textNode);
-    this.rawEditor.externalDomUpdate('backspace', () => {
-      try {
-        //enter relative space
-        const relPosition = this.absoluteToRelativePosition(richNode, position);
-        const visibleText = this.currentNode.textContent.replace(invisibleSpace,'').replace(/\s+/,' ');
-        const visibleLength = visibleText.length;
-        if (visibleLength > 0) {
-          // non empty node
-          if (relPosition === 0) {
-            // start of node, move to previous node an start backspacing there
-            const previousNode = previousTextNode(textNode, this.rawEditor.rootNode);
-            if (previousNode) {
-              this.rawEditor.setCarret(previousNode, previousNode.length, false);
-              this.handleEvent();
-            }
-            else {
-              warn('empty previousnode, not doing anything', { id: 'rdfaeditor.invalidState'});
-            }
+    try {
+      //enter relative space
+      const relPosition = this.absoluteToRelativePosition(richNode, position);
+      const visibleLength = this.visibleText(textNode).length;
+      if (visibleLength > 0) {
+        // non empty node
+        if (relPosition === 0) {
+          // start of node, move to previous node an start backspacing there
+          const previousNode = previousTextNode(textNode, this.rawEditor.rootNode);
+          if (previousNode) {
+            this.rawEditor.setCarret(previousNode, previousNode.length, false);
+            this.backSpace();
           }
           else {
-            // not empty and we're not at the start, delete character before the carret
-            const text = textNode.textContent;
-            const slicedText = text.slice(relPosition - 1 , relPosition);
-            textNode.textContent = text.slice(0, relPosition - 1) + text.slice(relPosition);
-            this.rawEditor.setCarret(textNode, relPosition - 1 , false);
-            if (slicedText === invisibleSpace) {
-              this.handleEvent();
-            }
+            warn('empty previousnode, not doing anything', { id: 'rdfaeditor.invalidState'});
           }
         }
         else {
-          // empty node, move to previous text node and remove nodes in between
-          const previousNode = previousTextNode(textNode, this.rawEditor.rootNode);
-          if (previousNode) {
-            // if previousNode is null we should be at the start of the editor
-            this.rawEditor.setCarret(previousNode, previousNode.length, false);
-            this.removeNodesFromTo(textNode, previousNode);
+          // not empty and we're not at the start, delete character before the carret
+          const text = textNode.textContent;
+          const slicedText = text.slice(relPosition - 1 , relPosition);
+          textNode.textContent = text.slice(0, relPosition - 1) + text.slice(relPosition);
+          this.rawEditor.setCarret(textNode, relPosition - 1 , false);
+          if (slicedText === invisibleSpace) {
+            this.handleEvent();
           }
         }
       }
-      catch(e) {
-        warn(e, { id: 'rdfaeditor.invalidState'});
-
+      else {
+        // empty node, move to previous text node and remove nodes in between
+        const previousNode = previousTextNode(textNode, this.rawEditor.rootNode);
+        if (previousNode) {
+          // if previousNode is null we should be at the start of the editor
+          this.rawEditor.setCarret(previousNode, previousNode.length, false);
+          this.removeNodesFromTo(textNode, previousNode);
+        }
       }
-    });
-    return HandlerResponse.create({ allowPropagation: false });
+    }
+    catch(e) {
+      warn(e, { id: 'rdfaeditor.invalidState'});
+    }
   },
   previousNode(node) {
     /* backwards walk of dom tree */

@@ -68,7 +68,7 @@ export default EmberObject.extend({
               this.handleEvent();
             }
             else {
-              console.warn('empty previousNode');
+              warn('empty previousnode, not doing anything', { id: 'rdfaeditor.invalidState'});
             }
           }
           else {
@@ -93,7 +93,8 @@ export default EmberObject.extend({
         }
       }
       catch(e) {
-        console.warn(e);
+        warn(e, { id: 'rdfaeditor.invalidState'});
+
       }
     });
     return HandlerResponse.create({ allowPropagation: false });

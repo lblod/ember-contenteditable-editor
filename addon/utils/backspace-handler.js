@@ -52,7 +52,7 @@ export default EmberObject.extend({
     const position = this.currentSelection[0];
     const textNode = this.currentNode;
     const richNode = this.rawEditor.getRichNodeFor(textNode);
-    this.rawEditor.externalDomUpdate('rdfa backspace', () => {
+    this.rawEditor.externalDomUpdate('backspace', () => {
       try {
         //enter relative space
         const relPosition = this.absoluteToRelativePosition(richNode, position);

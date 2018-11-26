@@ -240,7 +240,6 @@ export default Component.extend({
         this.get('rawEditor').undo();
       }
       else {
-        this.get('rawEditor').createSnapshot();
         let handlers = this.get('inputHandlers').filter(h => h.isHandlerFor(event));
         handlers.some( handler => {
           let response = handler.handleEvent(event);
@@ -257,7 +256,6 @@ export default Component.extend({
     }
     else {
       warn('unhandled keydown', {id: 'contenteditable.event-handling'});
-      this.get('rawEditor').createSnapshot();
     }
   },
 

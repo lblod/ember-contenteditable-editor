@@ -601,7 +601,7 @@ const RawEditor = EmberObject.extend({
     let parentDomNode = get(parent, 'domNode');
     let textNode = insertTextNodeWithSpace(parentDomNode, relativeToSibling, after);
     this.updateRichNode();
-    this.generateDiffEvents.perform();
+    this.generateDiffEvents.perform([{noSnapshot: true}]);
     return this.getRichNodeFor(textNode);
   },
 
@@ -741,6 +741,7 @@ const RawEditor = EmberObject.extend({
       this.updateRichNode();
       this.set('currentNode', null);
       this.setCurrentPosition(previousSnapshot.currentSelection[0]);
+      this.generateDiffEvents.perform([{noSnapshot: true}]);
     }
     else {
       warn('no more history to undo', {id: 'contenteditable-editor:history-empty'});
@@ -994,6 +995,9 @@ const RawEditor = EmberObject.extend({
     }, this);
 
     if(textHasChanges){
+      if ( ! extraInfo.any( (x) => x.noSnapshot)) {
+        this.createSnapshot();
+      }
       forgivingAction('handleFullContentUpdate', this)(extraInfo);
     }
   }).keepLatest()

@@ -924,8 +924,8 @@ const RawEditor = EmberObject.extend({
       }
       else if (offset > 0 && richNode.children[offset-1].type === 'text') {
         // the node before the carret is a text node, so we can set the cursor at the end of that node
-        this.set('currentNode', node);
         const richNodeBeforeCarret = richNode.children[offset-1];
+        this.set('currentNode', richNodeBeforeCarret.domNode);
         const absolutePosition = richNodeBeforeCarret.end;
         this.set('currentSelection', [absolutePosition, absolutePosition]);
         this.moveCaretInTextNode(richNodeBeforeCarret.domNode, richNodeBeforeCarret.domNode.textContent.length);

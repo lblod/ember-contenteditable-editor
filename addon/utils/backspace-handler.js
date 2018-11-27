@@ -127,6 +127,7 @@ export default EmberObject.extend({
   removeNodesFromTo(nodeAfter, nodeBefore, nodes = A()) {
     var previousNode = this.previousNode(nodeAfter);
     if (previousNode === nodeBefore) {
+      nodes.pushObject(nodeAfter);
       for (const node of nodes) {
         if ( ! isList(node) || isEmptyList(node))
           removeNode(node);

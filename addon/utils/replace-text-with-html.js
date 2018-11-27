@@ -30,7 +30,6 @@ export default function replaceTextWithHtml(richNode, start, end, html) {
   let nodeContainingText = nodes[nodes.length-1];
   let newElements = createElementsFromHTML(html);
   if (get(nodeContainingText, 'type') === 'text') {
-    debug('replaceTextWithHtml: text contained in text node');
     let textNodeParent = get(nodeContainingText, 'parent.domNode');
     let textNode = get(nodeContainingText,'domNode');
     let startOfNode = get(nodeContainingText,'start');

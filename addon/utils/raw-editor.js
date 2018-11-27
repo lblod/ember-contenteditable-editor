@@ -512,7 +512,6 @@ const RawEditor = EmberObject.extend({
       warn(`richNode wasn't set before inserting text onposition ${position}`,{id: 'content-editable.rich-node-not-set'});
       this.updateRichNode();
     }
-    debug(`inserting ${text} at ${position}`);
     const textNode = this.findSuitableNodeForPosition(position);
     const type = get(textNode, 'type');
     let domNode;
@@ -543,7 +542,6 @@ const RawEditor = EmberObject.extend({
       // we should always have a suitable node... last attempt to safe things somewhat
       warn(`no text node found at position ${position}`, {id: 'content-editable.no-text-node-found'});
       warn('inconsistent state in editor!', {id: 'content-editable.no-text-node-found'});
-      debug(get(textNode,'domNode'));
       domNode = document.createTextNode(text);
       get(textNode, 'domNode').appendChild(domNode);
       this.set('currentNode', domNode);
@@ -870,14 +868,12 @@ const RawEditor = EmberObject.extend({
    * @public
    */
   setCurrentPosition(position, notify = true) {
-    debug(`trying to set current selection to ${position} ${position}`);
     let richNode = this.get('richNode');
     if (get(richNode, 'end') < position || get(richNode, 'start') > position) {
       warn(`received invalid position, resetting to ${get(richNode,'end')} end of document`, {id: 'contenteditable-editor.invalid-position'});
       position = get(richNode, 'end');
     }
     let node = this.findSuitableNodeForPosition(position);
-    debug(`selection in node of type ${node.type} [${node.start}, ${node.end}]`);
     this.moveCaretInTextNode(get(node,'domNode'), position - node.start);
     this.set('currentNode', node.domNode);
     this.set('currentSelection', [ position, position ]);

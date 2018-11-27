@@ -39,7 +39,7 @@ export default EmberObject.extend({
    * @private
    */
   absoluteToRelativePosition(richNode, position){
-    return position -  get(richNode, 'start');
+    return Math.max(position -  get(richNode, 'start'), 0);
   },
 
   /**

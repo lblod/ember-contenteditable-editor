@@ -73,7 +73,7 @@ export default EmberObject.extend({
           const previousNode = previousTextNode(textNode, this.rawEditor.rootNode);
           if (previousNode) {
             this.rawEditor.updateRichNode();
-            this.rawEditor.setCarret(previousNode, previousNode.length, false);
+            this.rawEditor.setCarret(previousNode, previousNode.length);
             this.backSpace();
           }
           else {
@@ -86,7 +86,7 @@ export default EmberObject.extend({
           const slicedText = text.slice(relPosition - 1 , relPosition);
           textNode.textContent = text.slice(0, relPosition - slicedText.length) + text.slice(relPosition);
           this.rawEditor.updateRichNode();
-          this.rawEditor.setCarret(textNode, relPosition - slicedText.length , false);
+          this.rawEditor.setCarret(textNode, relPosition - slicedText.length);
         }
       }
       else {
@@ -96,7 +96,7 @@ export default EmberObject.extend({
           // if previousNode is null we should be at the start of the editor and do nothing
           this.removeNodesFromTo(textNode, previousNode);
           this.rawEditor.updateRichNode();
-          this.rawEditor.setCarret(previousNode, previousNode.length, false);
+          this.rawEditor.setCarret(previousNode, previousNode.length);
         }
         else {
           debug('empty previousnode, not doing anything');

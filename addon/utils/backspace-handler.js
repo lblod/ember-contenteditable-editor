@@ -2,9 +2,9 @@ import EmberObject from '@ember/object';
 import { reads } from '@ember/object/computed';
 import HandlerResponse from './handler-response';
 import { get } from '@ember/object';
-import { invisibleSpace, isEmptyList, isList, removeNode } from './dom-helpers';
+import { invisibleSpace, isEmptyList, isList, removeNode, isAllWhitespace } from './dom-helpers';
 import previousTextNode from './previous-text-node';
-import { warn } from '@ember/debug';
+import { warn, debug } from '@ember/debug';
 import { A } from '@ember/array';
 
 export default EmberObject.extend({
@@ -61,40 +61,47 @@ export default EmberObject.extend({
     const richNode = this.rawEditor.getRichNodeFor(textNode);
     try {
       //enter relative space
-      const relPosition = this.absoluteToRelativePosition(richNode, position);
-      const visibleLength = this.visibleText(textNode).length;
-      if (visibleLength > 0) {
+      const originalText = textNode.textContent;
+      const visibleText = this.visibleText(textNode);
+      textNode.textContent = visibleText;
+      const visibleLength = visibleText.length;
+      const relPosition = this.absoluteToRelativePosition(richNode, position - (originalText.length - visibleLength));
+      if (visibleLength > 0 && ! isAllWhitespace(textNode)) {
         // non empty node
         if (relPosition === 0) {
           // start of node, move to previous node an start backspacing there
           const previousNode = previousTextNode(textNode, this.rawEditor.rootNode);
           if (previousNode) {
+            this.rawEditor.updateRichNode();
             this.rawEditor.setCarret(previousNode, previousNode.length, false);
             this.backSpace();
           }
           else {
-            warn('empty previousnode, not doing anything', { id: 'rdfaeditor.invalidState'});
+            debug('empty previousnode, not doing anything');
           }
         }
         else {
           // not empty and we're not at the start, delete character before the carret
           const text = textNode.textContent;
           const slicedText = text.slice(relPosition - 1 , relPosition);
-          textNode.textContent = text.slice(0, relPosition - 1) + text.slice(relPosition);
-          this.rawEditor.setCarret(textNode, relPosition - 1 , false);
-          if (slicedText === invisibleSpace) {
-            this.handleEvent();
-          }
+          textNode.textContent = text.slice(0, relPosition - slicedText.length) + text.slice(relPosition);
+          this.rawEditor.updateRichNode();
+          this.rawEditor.setCarret(textNode, relPosition - slicedText.length , false);
         }
       }
       else {
         // empty node, move to previous text node and remove nodes in between
         const previousNode = previousTextNode(textNode, this.rawEditor.rootNode);
         if (previousNode) {
-          // if previousNode is null we should be at the start of the editor
-          this.rawEditor.setCarret(previousNode, previousNode.length, false);
+          // if previousNode is null we should be at the start of the editor and do nothing
           this.removeNodesFromTo(textNode, previousNode);
+          this.rawEditor.updateRichNode();
+          this.rawEditor.setCarret(previousNode, previousNode.length, false);
         }
+        else {
+          debug('empty previousnode, not doing anything');
+        }
+
       }
     }
     catch(e) {

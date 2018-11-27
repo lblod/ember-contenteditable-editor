@@ -92,8 +92,22 @@ const removeNode = function removeNode(node){
  * @public
  */
 const isVoidElement = function isVoidElement(node) {
-  return node.nodeType === Node.ELEMENT_NODE && /^(AREA|BASE|BR|COL|COMMAND|EMBED|HR|IMG|INPUT|KEYGEN|LINK|META|PARAM|SOURCE|TRACK|WBR)$/i.test(node.tagName);
+  return node.nodeType === Node.ELEMENT_NODE && /^(AREA|BASE|BR|COL|COMMAND|EMBED|HR|IMG|INPUT|KEYGEN|LINK|META|PARAM|SOURCE|TRACK|WBR|I)$/i.test(node.tagName);
 };
+
+/**
+ * Determine whether a node's text content is entirely whitespace.
+ * from https://developer.mozilla.org/en-US/docs/Web/API/Document_Object_Model/Whitespace_in_the_DOM
+ * @method isAllWhitespace
+ * @param {DOMNode}  A node implementing the |CharacterData| interface (i.e.,
+ *             a |Text|, |Comment|, or |CDATASection| node
+ * @return {boolean}    True if all of the text content of |nod| is whitespace,
+ *             otherwise false.
+ */
+function isAllWhitespace( nod ) {
+  // Use ECMA-262 Edition 3 String and RegExp features
+  return !(/[^\t\n\r ]/.test(nod.textContent));
+}
 
 const isDisplayedAsBlock = function(domNode) {
   if (domNode.nodeType !== Node.ELEMENT_NODE)
@@ -191,5 +205,6 @@ export {
   isVoidElement,
   isIgnorableElement,
   createElementsFromHTML,
-  siblingLis
+  siblingLis,
+  isAllWhitespace
 };

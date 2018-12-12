@@ -204,6 +204,8 @@ export default Component.extend({
     this._super(...arguments);
     this.set('rawEditor.rootNode', this.get('element'));
     let el = this.get('element');
+    // TODO: mapping using customEvents currently doesn't work, remove when it does
+    el.onpaste = (event) => this.paste(event);
     if (this.get('focused'))
       el.focus();
     this.set('rawEditor.currentNode', this.rawEditor.rootNode);
@@ -259,6 +261,16 @@ export default Component.extend({
     }
   },
 
+  /**
+   * currently we disable paste
+   */
+  paste(event) {
+    // TODO support clipboardData, we want to filter on type text/plain and use that
+    // see https://www.w3.org/TR/clipboard-apis/#paste-action
+    alert('Plakken wordt nog niet ondersteund.');
+    event.preventDefault();
+    return false;
+  },
   /**
    * keyUp events are parsed for complex input, for uncaptured events we update
    * the internal state to be inline with reality

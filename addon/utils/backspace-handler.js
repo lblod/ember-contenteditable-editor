@@ -52,23 +52,51 @@ export default EmberObject.extend({
     this.rawEditor.externalDomUpdate('backspace', () => this.backSpace());
     return HandlerResponse.create({ allowPropagation: false });
   },
+  /**
+   * return to visible text of a node,
+   * e.g. removes invisibleSpaces and compacts consecutive spaces to 1 space
+   * @method visibleText
+   * @param {Node} node
+   * @return {String}
+   * @public
+   */
   visibleText(node) {
-    return node.textContent.replace(invisibleSpace,'').replace(/\s+/,' ');
+    return this.stringToVisibleText(node.textContent);
   },
+  /**
+   * removes invisibleSpaces and compacts consecutive spaces to 1 space
+   * @method visibleText
+   * @param {String} text
+   * @return {String}
+   * @public
+   */
+  stringToVisibleText(string) {
+    return string.replace(invisibleSpace,'').replace(/\s+/,' ');
+  },
+  /**
+   * executes a backspace
+   * @method backspace
+   * @public
+   */
   backSpace() {
     const position = this.currentSelection[0];
     const textNode = this.currentNode;
     const richNode = this.rawEditor.getRichNodeFor(textNode);
     try {
-      //enter relative space
       const originalText = textNode.textContent;
       const visibleText = this.visibleText(textNode);
-      textNode.textContent = visibleText;
       const visibleLength = visibleText.length;
-      const relPosition = this.absoluteToRelativePosition(richNode, position - (originalText.length - visibleLength));
+      textNode.textContent = visibleText;
       if (visibleLength > 0 && ! isAllWhitespace(textNode)) {
         // non empty node
-        if (relPosition === 0) {
+        const relPosition = this.absoluteToRelativePosition(richNode, position);
+        const textBeforeCursor = originalText.slice(0, relPosition);
+        /* we need to correct the position, as we've just modified the text content
+         * this calculates the delta by comparing the length of the original text before the cursor and the new length
+         */
+        const posCorrection = textBeforeCursor.length - this.stringToVisibleText(textBeforeCursor).length;
+        const trueRelativePosition = relPosition - posCorrection;
+        if (trueRelativePosition === 0) {
           // start of node, move to previous node an start backspacing there
           const previousNode = previousTextNode(textNode, this.rawEditor.rootNode);
           if (previousNode) {
@@ -83,10 +111,10 @@ export default EmberObject.extend({
         else {
           // not empty and we're not at the start, delete character before the carret
           const text = textNode.textContent;
-          const slicedText = text.slice(relPosition - 1 , relPosition);
-          textNode.textContent = text.slice(0, relPosition - slicedText.length) + text.slice(relPosition);
+          const slicedText = text.slice(trueRelativePosition - 1 , trueRelativePosition);
+          textNode.textContent = text.slice(0, trueRelativePosition - slicedText.length) + text.slice(trueRelativePosition);
           this.rawEditor.updateRichNode();
-          this.rawEditor.setCarret(textNode, relPosition - slicedText.length);
+          this.rawEditor.setCarret(textNode, trueRelativePosition - slicedText.length);
         }
       }
       else {

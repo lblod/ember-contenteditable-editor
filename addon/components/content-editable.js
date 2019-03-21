@@ -296,10 +296,11 @@ export default Component.extend({
   handleUncapturedEvent(event) {
     event = normalizeEvent(event);
     if (isEmpty(this.capturedEvents) || this.capturedEvents[0].key !== event.key || this.capturedEvents[0].target !== event.target) {
+      this.set('capturedEvents', A()); // TODO: added this because tracking of captured events is broken, fix it
       this.get('rawEditor').externalDomUpdate('uncaptured input event', () => {});
     }
     else
-      this.capturedEvents.shift();
+      this.capturedEvents.shiftObject();
   },
 
   /**

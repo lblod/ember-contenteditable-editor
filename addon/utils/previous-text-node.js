@@ -2,7 +2,9 @@ import {
   tagName,
   isVoidElement,
   insertTextNodeWithSpace,
-  invisibleSpace
+  invisibleSpace,
+  isList,
+  siblingLis
 } from './dom-helpers';
 
 /**
@@ -53,6 +55,16 @@ function findPreviousApplicableNode(node, rootNode) {
   if (node === rootNode) {
     return rootNode;
   }
+
+  if (tagName(node) === 'li') {
+    const siblings = siblingLis(node);
+    const index = siblings.indexOf(node);
+    if (index > 0)
+      return lastTextChild(siblings[index-1]);
+    else
+      return findPreviousApplicableNode(node.parentNode);
+  }
+
   if (node.previousSibling) {
     const sibling = node.previousSibling;
     if (isVoidElement(sibling) && sibling.previousSibling) {
@@ -61,7 +73,7 @@ function findPreviousApplicableNode(node, rootNode) {
     else if (isVoidElement(sibling)) {
       return findPreviousApplicableNode(node.parentNode, rootNode);
     }
-    if (tagName(sibling) === 'ul') {
+    if (isList(sibling)) {
       const lastLi = findLastLi(sibling);
       if (lastLi) {
         return lastTextChild(lastLi);
@@ -99,7 +111,7 @@ function findPreviousApplicableNode(node, rootNode) {
 export default function previousTextNode(baseNode, rootNode) {
   const nextNode = findPreviousApplicableNode(baseNode, rootNode);
   if (nextNode === rootNode) {
-    // next node is rootNode, so I'm at the end of the tree
+    // next node is rootNode, so I'm at the start of the tree
     return null;
   }
   if (nextNode.nodeType === Node.ELEMENT_NODE) {
@@ -107,6 +119,8 @@ export default function previousTextNode(baseNode, rootNode) {
   }
   else {
     // it's a text node
+    if (nextNode === null)
+      throw "previous text node failed";
     return nextNode;
   }
 }

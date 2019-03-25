@@ -125,7 +125,7 @@ const RawEditor = EmberObject.extend({
     this.updateRichNode();
     this.set('currentNode', nextSibling );
     this.setCurrentPosition(start + contentLength);
-    this.generateDiffEvents(extraInfo);
+    this.generateDiffEvents.perform(extraInfo);
     forgivingAction('elementUpdate', this)();
     return newNodes;
   },
@@ -170,8 +170,9 @@ const RawEditor = EmberObject.extend({
 
     // proceed with removal
     removeNode(richNode.domNode);
+
     this.updateRichNode();
-    this.generateDiffEvents(extraInfo);
+    this.generateDiffEvents.perform(extraInfo);
 
     //update editor state
     this.set('currentNode', lastInsertedRichElement.domNode);
@@ -214,7 +215,7 @@ const RawEditor = EmberObject.extend({
     removeNode(richNode.domNode);
 
     this.updateRichNode();
-    this.generateDiffEvents(extraInfo);
+    this.generateDiffEvents.perform(extraInfo);
 
     this.setCarret(nodeToEndIn, carretPositionToEndIn);
 
@@ -253,7 +254,7 @@ const RawEditor = EmberObject.extend({
     lastInsertedRichElement = this.insertValidCursorNodeAfterRichNode(richParent, lastInsertedRichElement);
 
     this.updateRichNode();
-    this.generateDiffEvents(extraInfo);
+    this.generateDiffEvents.perform(extraInfo);
 
     //update editor state
     this.set('currentNode', lastInsertedRichElement.domNode);
@@ -354,17 +355,16 @@ const RawEditor = EmberObject.extend({
         element.setAttribute(prop,data[prop]);
       }
       element.setAttribute(HIGHLIGHT_DATA_ATTRIBUTE, 'true');
-      let currentNode = this.getRichNodeFor(this.get('currentNode'));
 
-      //if current node is expected to be in new highlighted range
-      if (currentNode && currentNode.start <= start && currentNode.end >= end) {
-        let textNode = element.childNodes[0]; //for highlight we always expect a textnode as first child
-        this.set('currentNode', textNode);
-        if (!element.nextSibling) {
-          insertTextNodeWithSpace(element.parentElement);
-        }
-      }
       this.updateRichNode();
+      let textNode = element.childNodes[0];
+      let currentPosition = this.currentSelection[0];
+      let richNode = this.getRichNodeFor(textNode);
+
+      if(currentPosition >= richNode.start && currentPosition <= richNode.end){
+        this.set('currentNode', textNode);
+      }
+
       this.setCurrentPosition(this.get('currentSelection')[0], false); //ensure caret is still correct
     }
     else {
@@ -512,7 +512,6 @@ const RawEditor = EmberObject.extend({
       warn(`richNode wasn't set before inserting text onposition ${position}`,{id: 'content-editable.rich-node-not-set'});
       this.updateRichNode();
     }
-    debug(`inserting ${text} at ${position}`);
     const textNode = this.findSuitableNodeForPosition(position);
     const type = get(textNode, 'type');
     let domNode;
@@ -543,7 +542,6 @@ const RawEditor = EmberObject.extend({
       // we should always have a suitable node... last attempt to safe things somewhat
       warn(`no text node found at position ${position}`, {id: 'content-editable.no-text-node-found'});
       warn('inconsistent state in editor!', {id: 'content-editable.no-text-node-found'});
-      debug(get(textNode,'domNode'));
       domNode = document.createTextNode(text);
       get(textNode, 'domNode').appendChild(domNode);
       this.set('currentNode', domNode);
@@ -601,7 +599,7 @@ const RawEditor = EmberObject.extend({
     let parentDomNode = get(parent, 'domNode');
     let textNode = insertTextNodeWithSpace(parentDomNode, relativeToSibling, after);
     this.updateRichNode();
-    this.generateDiffEvents();
+    this.generateDiffEvents.perform([{noSnapshot: true}]);
     return this.getRichNodeFor(textNode);
   },
 
@@ -745,6 +743,7 @@ const RawEditor = EmberObject.extend({
       this.updateRichNode();
       this.set('currentNode', null);
       this.setCurrentPosition(previousSnapshot.currentSelection[0]);
+      this.generateDiffEvents.perform([{noSnapshot: true}]);
     }
     else {
       warn('no more history to undo', {id: 'contenteditable-editor:history-empty'});
@@ -795,7 +794,7 @@ const RawEditor = EmberObject.extend({
     this.updateRichNode();
     this.updateSelectionAfterComplexInput();
     forgivingAction('elementUpdate', this)();
-    this.generateDiffEvents();
+    this.generateDiffEvents.perform();
   },
 
   /**
@@ -873,14 +872,12 @@ const RawEditor = EmberObject.extend({
    * @public
    */
   setCurrentPosition(position, notify = true) {
-    debug(`trying to set current selection to ${position} ${position}`);
     let richNode = this.get('richNode');
     if (get(richNode, 'end') < position || get(richNode, 'start') > position) {
       warn(`received invalid position, resetting to ${get(richNode,'end')} end of document`, {id: 'contenteditable-editor.invalid-position'});
       position = get(richNode, 'end');
     }
     let node = this.findSuitableNodeForPosition(position);
-    debug(`selection in node of type ${node.type} [${node.start}, ${node.end}]`);
     this.moveCaretInTextNode(get(node,'domNode'), position - node.start);
     this.set('currentNode', node.domNode);
     this.set('currentSelection', [ position, position ]);
@@ -911,11 +908,11 @@ const RawEditor = EmberObject.extend({
    *
    * @public
    */
-  setCarret(node, offset) {
+  setCarret(node, offset, notify = true) {
     const richNode = this.getRichNodeFor(node);
     if (richNode.type === 'tag' && richNode.children) {
-      if (node.children.length < offset) {
-        warn(`invalid offset ${offset} for node ${tagName(node.domNode)} with ${richNode.children } provided to setCarret`, {id: 'contenteditable.invalid-start'});
+      if (richNode.children.length < offset) {
+        warn(`invalid offset ${offset} for node ${tagName(richNode.domNode)} with ${richNode.children } provided to setCarret`, {id: 'contenteditable.invalid-start'});
         return;
       }
       const richNodeAfterCarret = richNode.children[offset];
@@ -928,19 +925,23 @@ const RawEditor = EmberObject.extend({
       }
       else if (offset > 0 && richNode.children[offset-1].type === 'text') {
         // the node before the carret is a text node, so we can set the cursor at the end of that node
-        this.set('currentNode', node);
         const richNodeBeforeCarret = richNode.children[offset-1];
+        this.set('currentNode', richNodeBeforeCarret.domNode);
         const absolutePosition = richNodeBeforeCarret.end;
         this.set('currentSelection', [absolutePosition, absolutePosition]);
-        this.moveCaretInTextNode(richNodeAfterCarret.domNode, richNodeAfterCarret.domNode.textContent.length);
+        this.moveCaretInTextNode(richNodeBeforeCarret.domNode, richNodeBeforeCarret.domNode.textContent.length);
       }
       else {
         // no suitable text node is present, so we create a textnode
         // TODO: handle empty node
-        const textNode = insertTextNodeWithSpace(node, richNodeAfterCarret.domNode);
+        var textNode;
+        if (richNodeAfterCarret)
+          textNode = insertTextNodeWithSpace(node, richNodeAfterCarret.domNode);
+        else
+          textNode = insertTextNodeWithSpace(node, richNode.children[offset-1], true);
         this.updateRichNode();
         this.set('currentNode', textNode);
-        const absolutePosition = richNodeAfterCarret.start;
+        const absolutePosition = this.getRichNodeFor(textNode).start;
         this.set('currentSelection', [absolutePosition, absolutePosition]);
         this.moveCaretInTextNode(textNode, 0);
       }
@@ -954,7 +955,8 @@ const RawEditor = EmberObject.extend({
     else {
       warn(`invalid node ${tagName(node.domNode)} provided to setCarret`, {id: 'contenteditable.invalid-start'});
     }
-    forgivingAction('selectionUpdate', this)(this.currentSelection);
+    if (notify)
+      forgivingAction('selectionUpdate', this)(this.currentSelection);
   },
 
   /**
@@ -963,12 +965,9 @@ const RawEditor = EmberObject.extend({
    * @method generateDiffEvents
    *
    * @param {Array} Optional argument pass info to event consumers.
-   * @private
+   * @public !!
    */
-  async generateDiffEvents(extraInfo = []){
-    this._generateDiffEvents.perform(extraInfo);
-  },
-  _generateDiffEvents: task( function * (extraInfo) {
+  generateDiffEvents: task(function* (extraInfo = []){
     yield timeout(100);
     let newText = getTextContent(this.get('rootNode'));
     let oldText = this.get('currentTextContent');
@@ -996,6 +995,9 @@ const RawEditor = EmberObject.extend({
     }, this);
 
     if(textHasChanges){
+      if ( ! extraInfo.any( (x) => x.noSnapshot)) {
+        this.createSnapshot();
+      }
       forgivingAction('handleFullContentUpdate', this)(extraInfo);
     }
   }).keepLatest()

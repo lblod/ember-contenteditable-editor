@@ -16,13 +16,15 @@ const CappedHistory = EmberObject.extend({
     this.set('history', A());
   },
   push(document) {
-    let hist = this.get('history');
-    if (hist.length ===  this.get('maxItems'))
-      this.get('history').shift();
+    let hist = this.history;
+    if (hist.firstObject === document)
+      return;
+    if (hist.length ===  this.maxItems)
+      hist.shift();
     hist.pushObject(document);
   },
   pop() {
-    return this.get('history').popObject();
+    return this.history.popObject();
   }
 });
 export default CappedHistory;

@@ -8,7 +8,6 @@ import EnterHandler from '../utils/enter-handler';
 import IgnoreModifiersHandler from '../utils/ignore-modifiers-handler';
 import BackspaceHandler from '../utils/backspace-handler';
 import TextInputHandler from '../utils/text-input-handler';
-import TextInputDataFlaggedRemoveHandler from '../utils/text-input-data-flagged-remove-handler';
 import HeaderMarkdownHandler from '../utils/header-markdown-handler';
 import EmphasisMarkdownHandler from '../utils/emphasis-markdown-handler';
 import ListInsertionMarkdownHandler from '../utils/list-insertion-markdown-handler';
@@ -140,7 +139,6 @@ export default Component.extend({
                                    ListInsertionMarkdownHandler.create({rawEditor}),
                                    EnterHandler.create({rawEditor}),
                                    BackspaceHandler.create({rawEditor}),
-                                   TextInputDataFlaggedRemoveHandler.create({rawEditor}),
                                    TextInputHandler.create({rawEditor}),
                                    TabHandler.create({rawEditor}),
                                    IgnoreModifiersHandler.create({rawEditor})];
@@ -206,13 +204,15 @@ export default Component.extend({
     this._super(...arguments);
     this.set('rawEditor.rootNode', this.get('element'));
     let el = this.get('element');
+    // TODO: mapping using customEvents currently doesn't work, remove when it does
+    el.onpaste = (event) => this.paste(event);
     if (this.get('focused'))
       el.focus();
     this.set('rawEditor.currentNode', this.rawEditor.rootNode);
     forgivingAction('rawEditorInit', this)(this.get('rawEditor'));
     next( () => {
       forgivingAction('elementUpdate', this)();
-      this.get('rawEditor').generateDiffEvents();
+      this.get('rawEditor').generateDiffEvents.perform();
       this.extractAndInsertComponents();
       this.get('rawEditor').updateRichNode();
     });
@@ -242,7 +242,6 @@ export default Component.extend({
         this.get('rawEditor').undo();
       }
       else {
-        this.get('rawEditor').createSnapshot();
         let handlers = this.get('inputHandlers').filter(h => h.isHandlerFor(event));
         handlers.some( handler => {
           let response = handler.handleEvent(event);
@@ -254,15 +253,24 @@ export default Component.extend({
         });
       }
       this.get('rawEditor').updateRichNode();
-      this.get('rawEditor').generateDiffEvents();
+      this.get('rawEditor').generateDiffEvents.perform();
       this.capturedEvents.pushObject(event);
     }
     else {
       warn('unhandled keydown', {id: 'contenteditable.event-handling'});
-      this.get('rawEditor').createSnapshot();
     }
   },
 
+  /**
+   * currently we disable paste
+   */
+  paste(event) {
+    // TODO support clipboardData, we want to filter on type text/plain and use that
+    // see https://www.w3.org/TR/clipboard-apis/#paste-action
+    alert('Plakken wordt nog niet ondersteund.');
+    event.preventDefault();
+    return false;
+  },
   /**
    * keyUp events are parsed for complex input, for uncaptured events we update
    * the internal state to be inline with reality
@@ -282,16 +290,17 @@ export default Component.extend({
   mouseUp(event) {
     this.get('rawEditor').updateRichNode();
     this.get('rawEditor').updateSelectionAfterComplexInput(event);
-    this.get('rawEditor').generateDiffEvents();
+    this.get('rawEditor').generateDiffEvents.perform();
   },
 
   handleUncapturedEvent(event) {
     event = normalizeEvent(event);
     if (isEmpty(this.capturedEvents) || this.capturedEvents[0].key !== event.key || this.capturedEvents[0].target !== event.target) {
+      this.set('capturedEvents', A()); // TODO: added this because tracking of captured events is broken, fix it
       this.get('rawEditor').externalDomUpdate('uncaptured input event', () => {});
     }
     else
-      this.capturedEvents.shift();
+      this.capturedEvents.shiftObject();
   },
 
   /**

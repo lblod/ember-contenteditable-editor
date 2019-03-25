@@ -2,7 +2,9 @@ import {
   tagName,
   isVoidElement,
   insertTextNodeWithSpace,
-  invisibleSpace
+  invisibleSpace,
+  isList,
+  siblingLis
 } from './dom-helpers';
 
 /**
@@ -53,6 +55,16 @@ function findNextApplicableNode(node, rootNode) {
   if (node === rootNode) {
     return rootNode;
   }
+
+  if (tagName(node) === 'li') {
+    const siblings = siblingLis(node);
+    const index = siblings.indexOf(node);
+    if (index < siblings.length)
+      return firstTextChild(siblings[index+1]);
+    else
+      return findNextApplicableNode(node.parentNode);
+  }
+
   if (node.nextSibling) {
     const sibling = node.nextSibling;
     if (isVoidElement(sibling) && sibling.nextSibling) {
@@ -61,7 +73,7 @@ function findNextApplicableNode(node, rootNode) {
     else if (isVoidElement(sibling)) {
       return findNextApplicableNode(node.parentNode, rootNode);
     }
-    if (tagName(sibling) === 'ul') {
+    if (isList(sibling)) {
       const firstLi = findFirstLi(sibling);
       if (firstLi) {
         return firstTextChild(firstLi);

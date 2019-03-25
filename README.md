@@ -7,6 +7,15 @@ Addon providing a content editable component
 ember install @lblod/ember-contenteditable-editor
 ```
 
+## Compatibility
+
+
+* Ember.js v2.18 or above
+* Ember CLI v2.13 or above
+
+## Contributing
+See the [Contributing](CONTRIBUTING.md) guide for details.
+
 ## Usage
 This addon provides a component `content-editable` and a object `raw-editor` that are best used together. By binding the `currentSelectionUpdated` and `rootNodeUpdated` actions to the `updateCurrentSelection` and `updateRootNode` methods on an instance of raw-editor you can use the raw-editor interface to interact with the content of the content-editable.
 

@@ -34,7 +34,7 @@ function getTextContent( node ) {
   return get(
     TextNodeWalker.create({}).processDomNode( node ),
     'text'
-  );
+  ) || '';
 }
 
 export { getTextContent };

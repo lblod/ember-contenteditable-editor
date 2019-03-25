@@ -1,3 +1,4 @@
+import { A } from '@ember/array';
 /**
  * @module contenteditable-editor/dom
  */
@@ -91,8 +92,22 @@ const removeNode = function removeNode(node){
  * @public
  */
 const isVoidElement = function isVoidElement(node) {
-  return node.nodeType === Node.ELEMENT_NODE && /^(AREA|BASE|BR|COL|COMMAND|EMBED|HR|IMG|INPUT|KEYGEN|LINK|META|PARAM|SOURCE|TRACK|WBR)$/i.test(node.tagName);
+  return node.nodeType === Node.ELEMENT_NODE && /^(AREA|BASE|BR|COL|COMMAND|EMBED|HR|IMG|INPUT|KEYGEN|LINK|META|PARAM|SOURCE|TRACK|WBR|I)$/i.test(node.tagName);
 };
+
+/**
+ * Determine whether a node's text content is entirely whitespace.
+ * from https://developer.mozilla.org/en-US/docs/Web/API/Document_Object_Model/Whitespace_in_the_DOM
+ * @method isAllWhitespace
+ * @param {DOMNode}  A node implementing the |CharacterData| interface (i.e.,
+ *             a |Text|, |Comment|, or |CDATASection| node
+ * @return {boolean}    True if all of the text content of |nod| is whitespace,
+ *             otherwise false.
+ */
+function isAllWhitespace( nod ) {
+  // Use ECMA-262 Edition 3 String and RegExp features
+  return !(/[^\t\n\r ]/.test(nod.textContent));
+}
 
 const isDisplayedAsBlock = function(domNode) {
   if (domNode.nodeType !== Node.ELEMENT_NODE)
@@ -119,8 +134,24 @@ const smartSplitTextNode = function(textNode, splitAt) {
   return [parent, extraParent];
 };
 
-const isEmptyList = function isEmptyList(node) {
-  if( !( node.nodeType === node.ELEMENT_NODE && ['ul','ol'].includes(node.tagName.toLowerCase())) ) {
+/** list helpers **/
+function isList(node) {
+  return node.nodeType === node.ELEMENT_NODE && ['ul','ol'].includes(node.tagName.toLowerCase());
+}
+
+function siblingLis(node) {
+  const lis = A();
+  if (node.parentNode) {
+    node.parentNode.childNodes.forEach( (el) => {
+      if (tagName(el) === 'li')
+        lis.pushObject(el);
+    });
+  }
+  return lis;
+}
+
+function isEmptyList(node) {
+  if( ! isList ) {
     return false;
   }
   //sometimes lists may contain other stuff then li, if so we ignore this because illegal
@@ -130,7 +161,7 @@ const isEmptyList = function isEmptyList(node) {
       }
   }
   return true;
-};
+}
 
 const isIgnorableElement = function isIgnorableElement(node) {
   return node.nodeType === Node.TEXT_NODE && node.parentNode && tagName(node.parentNode) === "ul";
@@ -165,6 +196,7 @@ export {
   smartSplitTextNode,
   invisibleSpace,
   insertTextNodeWithSpace,
+  isList,
   isEmptyList,
   insertNodeBAfterNodeA,
   sliceTextIntoTextNode,
@@ -172,5 +204,7 @@ export {
   removeNode,
   isVoidElement,
   isIgnorableElement,
-  createElementsFromHTML
+  createElementsFromHTML,
+  siblingLis,
+  isAllWhitespace
 };

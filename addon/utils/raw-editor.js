@@ -26,7 +26,7 @@ import { get, computed } from '@ember/object';
 import { A } from '@ember/array';
 import DiffMatchPatch from 'diff-match-patch';
 import { task, timeout } from 'ember-concurrency';
-
+import nextTextNode from './next-text-node';
 const HIGHLIGHT_DATA_ATTRIBUTE = 'data-editor-highlight';
 const NON_BREAKING_SPACE = '\u00A0';
 
@@ -172,16 +172,16 @@ const RawEditor = EmberObject.extend({
     // proceed with removal
     removeNode(richNode.domNode);
 
+    //update editor state
+    const textNodeAfterInsert = !keepCurrentPosition ? nextTextNode(lastInsertedRichElement.domNode) : null;
     this.updateRichNode();
     this.generateDiffEvents.perform(extraInfo);
-
-    //update editor state
-    this.set('currentNode', lastInsertedRichElement.domNode);
-    this.setCurrentPosition(lastInsertedRichElement.end - (richNode.end - richNode.start));
-
-    if(keepCurrentPosition)
+    if(keepCurrentPosition) {
       this.setCarret(currentNode, getCurrentCarretPosition);
-
+    }
+    else {
+      this.setCarret(textNodeAfterInsert,0);
+    }
     if(lastInsertedRichElement.domNode.isSameNode(domNodesToInsert.slice(-1)[0]))
       return domNodesToInsert;
     return [...domNodesToInsert, lastInsertedRichElement.domNode];
@@ -254,15 +254,16 @@ const RawEditor = EmberObject.extend({
     let lastInsertedRichElement = this.prependElementsRichNode(richParent, domNodesToInsert);
     lastInsertedRichElement = this.insertValidCursorNodeAfterRichNode(richParent, lastInsertedRichElement);
 
+    //update editor state
+    const textNodeAfterInsert = !keepCurrentPosition ? nextTextNode(lastInsertedRichElement.domNode) : null;
     this.updateRichNode();
     this.generateDiffEvents.perform(extraInfo);
-
-    //update editor state
-    this.set('currentNode', lastInsertedRichElement.domNode);
-    this.setCurrentPosition(lastInsertedRichElement.end);
-
-    if(keepCurrentPosition)
+    if(keepCurrentPosition) {
       this.setCarret(currentNode, getCurrentCarretPosition);
+    }
+    else {
+      this.setCarret(textNodeAfterInsert,0);
+    }
 
     if(lastInsertedRichElement.domNode.isSameNode(domNodesToInsert.slice(-1)[0]))
       return domNodesToInsert;

@@ -958,7 +958,8 @@ const RawEditor = EmberObject.extend({
    * @public !!
    */
   generateDiffEvents: task(function* (extraInfo = []){
-    yield timeout(100);
+    yield timeout(320);
+
     let newText = getTextContent(this.get('rootNode'));
     let oldText = this.get('currentTextContent');
     const dmp = new DiffMatchPatch();

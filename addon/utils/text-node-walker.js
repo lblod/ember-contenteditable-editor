@@ -1,42 +1,29 @@
-import { get, set } from '@ember/object';
-import NodeWalker from './node-walker';
 import { typeOf } from '@ember/utils';
 
-/**
- * Node walker producing the text content of the nodes
- *
- * @module contenteditable-editor
- * @class TextNodeWalker
- * @constructor
- * @extends NodeWalker
- */
-const TextNodeWalker = NodeWalker.extend( {
+import NodeWalker from '@lblod/marawa/node-walker';
+
+class TextNodeWalker extends NodeWalker {
   finishChildSteps( richNode ) {
     let myText = "";
     richNode.children.map( (child) => {
-      if (typeOf(get(child, 'text')) === "string")
-        myText += get(child, 'text');
+      if (typeOf(child.text) === "string")
+        myText += child.text;
     } );
-    set( richNode, 'text', myText );
-  },
-  // Use simple nodes
-  createRichNode( content ) {
-    const newObject = Object.assign( {}, content );
-    newObject.get = ( name ) => newObject[name];
-    return newObject;
-  },
-  set( object, key, value ) {
-    object[key] = value;
+    richNode.text = myText;
   }
-} );
-
-function getTextContent( node ) {
-  return get(
-    TextNodeWalker.create({}).processDomNode( node ),
-    'text'
-  ) || '';
 }
 
-export { getTextContent };
+function getTextContent( node ) {
+  const walker = new TextNodeWalker();
+  const processedNode = walker.processDomNode( node );
+  return processedNode.text || "";
+}
+
+function processDomNode( node ) {
+  const walker = new TextNodeWalker();
+  return walker.processDomNode( node );
+}
+
+export { getTextContent, processDomNode };
 
 export default TextNodeWalker;

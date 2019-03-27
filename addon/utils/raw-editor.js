@@ -349,8 +349,8 @@ const RawEditor = EmberObject.extend({
   highlightRange(start, end, data = {}) {
     let match = this.findHighlights(node => node.end === end && node.start === start);
     if (match.length === 0) {
-      let filter = node => { return node.get('start') <= start && node.get('end') >= end; };
-      let nodes = flatMap(richNode, filter);
+      let filter = node => { return node.start <= start && node.end >= end; };
+      let nodes = flatMap(this.richNode, filter);
       if(nodes.length === 0) {
         warn('no node found matching supplied highlight range', {id: 'content-editable.highlight-it'});
         return;

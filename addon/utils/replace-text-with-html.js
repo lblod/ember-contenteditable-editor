@@ -22,7 +22,7 @@ import { createElementsFromHTML } from './dom-helpers';
 export default function replaceTextWithHtml(richNode, start, end, html) {
   if(start > end) throw new Error(`start index: ${start} > end index ${end}`);
 
-  let filter = node => { return node.get('start') <= start && node.get('end') >= end; };
+  let filter = node => { return node.start <= start && node.end >= end; };
 
   let nodes = flatMap(richNode, filter);
   if(nodes.length === 0) throw new Error('No matching nodes found');

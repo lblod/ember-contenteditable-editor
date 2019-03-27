@@ -349,6 +349,17 @@ const RawEditor = EmberObject.extend({
   highlightRange(start, end, data = {}) {
     let match = this.findHighlights(node => node.end === end && node.start === start);
     if (match.length === 0) {
+      let filter = node => { return node.get('start') <= start && node.get('end') >= end; };
+      let nodes = flatMap(richNode, filter);
+      if(nodes.length === 0) {
+        warn('no node found matching supplied highlight range', {id: 'content-editable.highlight-it'});
+        return;
+      }
+      let nodeContainingText = nodes[nodes.length-1];
+      if (nodeContainingText.type !== "text") {
+        warn('trying to highlight a non text node, this is not supported', {id: 'content-editable.highlight-it'});
+        return;
+      }
       let text = this.currentTextContent.slice(start, end);
       let elements = replaceTextWithHtml(this.richNode, start, end, `<mark>${text}</mark>`);
       let element = elements[0];

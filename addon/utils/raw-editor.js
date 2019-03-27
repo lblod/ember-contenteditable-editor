@@ -17,8 +17,8 @@ import forgivingAction from './forgiving-action';
 import EmberObject from '@ember/object';
 import replaceTextWithHtml from './replace-text-with-html';
 import flatMap from './flat-map';
-import NodeWalker from './node-walker';
-import TextNodeWalker from './text-node-walker';
+import { walk as walkDomNode } from '@lblod/marawa/node-walker';
+import { processDomNode as walkDomNodeAsText } from './text-node-walker';
 import previousTextNode from './previous-text-node';
 import { getTextContent } from './text-node-walker';
 import { debug, warn } from '@ember/debug';
@@ -26,6 +26,7 @@ import { get, computed } from '@ember/object';
 import { A } from '@ember/array';
 import DiffMatchPatch from 'diff-match-patch';
 import { task, timeout } from 'ember-concurrency';
+
 const HIGHLIGHT_DATA_ATTRIBUTE = 'data-editor-highlight';
 const NON_BREAKING_SPACE = '\u00A0';
 
@@ -285,7 +286,7 @@ const RawEditor = EmberObject.extend({
       let newNode = document.createTextNode(invisibleSpace);
       return this.insertElementsAfterRichNode(richParent, richNode, [newNode]);
     }
-    return TextNodeWalker.create().processDomNode(richNode.domNode.nextSibling, richParent.domNode, richNode.end);
+    return walkDomNodeAsText(richNode.domNode.nextSibling, richParent.domNode, richNode.end);
   },
 
   /**
@@ -306,7 +307,7 @@ const RawEditor = EmberObject.extend({
     else
       richParent.domNode.appendChild(newFirstChild);
 
-    let newFirstRichChild = TextNodeWalker.create().processDomNode(newFirstChild, richParent.domNode, richParent.start);
+    let newFirstRichChild = walkDomNodeAsText(newFirstChild, richParent.domNode, richParent.start);
     return this.insertElementsAfterRichNode(richParent, newFirstRichChild, elements.slice(1));
   },
 
@@ -330,7 +331,7 @@ const RawEditor = EmberObject.extend({
 
     insertNodeBAfterNodeA(richParent.domNode, richNode.domNode, nodeToInsert);
 
-    let richNodeToInsert = TextNodeWalker.create().processDomNode(nodeToInsert, richParent.domNode, richNode.end);
+    let richNodeToInsert = walkDomNodeAsText(nodeToInsert, richParent.domNode, richNode.end);
 
     return this.insertElementsAfterRichNode(richParent, richNodeToInsert, remainingElements.slice(1));
   },
@@ -716,18 +717,7 @@ const RawEditor = EmberObject.extend({
    * @private
    */
   updateRichNode() {
-    let richNode = NodeWalker
-        .create({
-          createRichNode( content ) {
-            const newObject = Object.assign( {}, content );
-            newObject.get = ( name ) => newObject[name];
-            return newObject;
-          },
-          set( object, key, value ) {
-            object[key] = value;
-          }
-        })
-        .processDomNode(this.get('rootNode'));
+    const richNode = walkDomNode( this.rootNode );
     this.set('richNode', richNode);
   },
 

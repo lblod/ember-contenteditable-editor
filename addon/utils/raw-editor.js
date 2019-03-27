@@ -990,7 +990,7 @@ const RawEditor = EmberObject.extend({
       }
       forgivingAction('handleFullContentUpdate', this)(extraInfo);
     }
-  }).keepLatest()
+  }).restartable()
 });
 
 function uuidv4() {

@@ -10,10 +10,23 @@
  * @return [Array] list of nodes matching the predicate function
  */
 export default function flatMap(node, predicate) {
-  let list = [];
-  if (predicate(node))
-    list.push(node);
-  if (node.children)
-    node.children.forEach((child) => list = list.concat(flatMap(child, predicate)));
-  return list;
+  let matches = [];
+
+  let currentScan;
+  let nextScan = [node];
+
+  while( nextScan.length ){
+    currentScan = nextScan;
+    nextScan = [];
+
+    currentScan.forEach( (node) => {
+      if (predicate(node))
+        matches.push(node);
+
+      if (node.children)
+        nextScan.push( ...node.children );
+    } );
+  }
+
+  return matches;
 }

@@ -516,13 +516,14 @@ const RawEditor = EmberObject.extend({
     let match = this.findHighlights(node => node.end === end && node.start === start);
     if (match.length === 0) {
       const currentPosition = this.currentPosition;
+      const needsPositionUpdate = start >= currentPosition && end <= currentPosition;
 
       const nodesToHighlight = findNodesToHighlight( this.richNode, start, end );
       nodesToHighlight.forEach( (node) => rawHighlightRegionInNode( node, start, end ) );
 
       // this.updateRichNode(); // DONE by updating the tree manually
-      // let currentPosition = this.currentSelection[0];
-      this.setCurrentPosition( currentPosition );
+      if( needsPositionUpdate )
+        this.setCurrentPosition( currentPosition );
     }
     else {
       // note: this warning may not appear sufficiently often due to partial highlights

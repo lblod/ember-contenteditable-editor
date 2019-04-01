@@ -1169,9 +1169,14 @@ const RawEditor = EmberObject.extend({
     }
   }).restartable(),
 
-  getContexts() {
-    return scanContexts( this.rootNode );
+  getContexts(options) {
+    const {region} = options || {};
+    if( region )
+      return scanContexts( this.rootNode, region );
+    else
+      return scanContexts( this.rootNode );
   }
+
 });
 
 function uuidv4() {

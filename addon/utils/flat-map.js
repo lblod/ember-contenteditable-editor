@@ -9,11 +9,28 @@
  *
  * @return [Array] list of nodes matching the predicate function
  */
-export default function flatMap(node, predicate) {
-  let list = [];
-  if (predicate(node))
-    list.push(node);
-  if (node.children)
-    node.children.forEach((child) => list = list.concat(flatMap(child, predicate)));
-  return list;
+export default function flatMap(startNode, predicate, stopOnFirstMatch) {
+  let matches = [];
+
+  let currentScan;
+  let nextScan = [startNode];
+
+  while( nextScan.length ){
+    currentScan = nextScan;
+    nextScan = [];
+
+    for( let node of currentScan ) {
+      if (predicate(node)){
+        if( stopOnFirstMatch )
+          return [node];
+        else
+          matches.push(node);
+      }
+
+      if (node.children)
+        nextScan.push( ...node.children );
+    }
+  }
+
+  return matches;
 }

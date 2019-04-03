@@ -18,6 +18,8 @@ import EmberObject from '@ember/object';
 import replaceTextWithHtml from './replace-text-with-html';
 import flatMap from './flat-map';
 import { walk as walkDomNode } from '@lblod/marawa/node-walker';
+import { analyse as scanContexts } from '@lblod/marawa/rdfa-context-scanner';
+import RichNode from '@lblod/marawa/rich-node';
 import { processDomNode as walkDomNodeAsText } from './text-node-walker';
 import previousTextNode from './previous-text-node';
 import { getTextContent } from './text-node-walker';
@@ -29,6 +31,153 @@ import { task, timeout } from 'ember-concurrency';
 import nextTextNode from './next-text-node';
 const HIGHLIGHT_DATA_ATTRIBUTE = 'data-editor-highlight';
 const NON_BREAKING_SPACE = '\u00A0';
+
+
+/* IE11 and safari polyfill from MDN */
+function ReplaceWithPolyfill() {
+  'use-strict'; // For safari, and IE > 10
+  var parent = this.parentNode, i = arguments.length, currentNode;
+  if (!parent) return;
+  if (!i) // if there are no arguments
+    parent.removeChild(this);
+  while (i--) { // i-- decrements i and returns the value of i before the decrement
+    currentNode = arguments[i];
+    if (typeof currentNode !== 'object'){
+      currentNode = this.ownerDocument.createTextNode(currentNode);
+    } else if (currentNode.parentNode){
+      currentNode.parentNode.removeChild(currentNode);
+    }
+    // the value of "i" below is after the decrement
+    if (!i) // if currentNode is the first argument (currentNode === arguments[0])
+      parent.replaceChild(currentNode, this);
+    else // if currentNode isn't the first
+      parent.insertBefore(this.previousSibling, currentNode);
+  }
+}
+if (!Element.prototype.replaceWith)
+    Element.prototype.replaceWith = ReplaceWithPolyfill;
+if (!CharacterData.prototype.replaceWith)
+    CharacterData.prototype.replaceWith = ReplaceWithPolyfill;
+if (!DocumentType.prototype.replaceWith)
+  DocumentType.prototype.replaceWith = ReplaceWithPolyfill;
+/* IE11 and safari polyfill */
+
+
+
+function findNodesToHighlight( node, start, end ){
+  // We need to highlight all portions of text based on the output
+  // contained in them.  We can split the important nodes in three
+  // pieces:
+  //
+  // - start: text nodes which contain partial content to highlight
+  // - middle: rich nodes which need to be fully highlighted
+  // - end: trailing text nodes which contain partial content to
+  //     highlight
+  //
+  // Detecting this range is tricky
+
+  if( node.start > end || node.end < start )
+    // out of range
+    return [];
+  else if( node.start === start && node.end === end )
+    // exact range
+    return [node];
+  else {
+    // partial range
+    if( node.type === "tag" ){
+      // partial tag walks children
+      return node.children // accept br tags etc
+        && node.children.flatMap( (child) => findNodesToHighlight( child, start, end ) );
+    } else if( node.type === "text" ){
+      // partial text returns itself
+      return [node];
+    } else {
+      // other nodes are ignored
+      return [];
+    }
+  }
+}
+
+function rawHighlightRegionInNode( node, start, end ) {
+  // Next we need to ensure all the highlights are placed in the
+  // right spot.  This means finding all the "Phrasing content"
+  // https://developer.mozilla.org/en-US/docs/Web/Guide/HTML/Content_categories#Phrasing_content
+  // and adding marks around that if the content is not already
+  // inside of a mark.
+
+  if( node.type === "tag" ){
+    // make sure the data attribute is set
+    if( node.start < start || node.end > end ){
+      warn( "rawHighlightRegionInNode does not support partial highlighting of nodes" );
+    } else {
+      node.domNode.setAttribute(HIGHLIGHT_DATA_ATTRIBUTE, 'true');
+    }
+  } else if( node.type === "text" ) {
+    // split into marks and add data attribute
+    // we know the text length will not change in this case so we can replace in place.
+    const relativeStart = Math.max(start - node.start, 0);
+    const relativeEnd = Math.min(end - node.start, node.text.length);
+    const [preText, infixText, postText] =
+          [ node.text.slice( 0, relativeStart ),
+            node.text.slice( relativeStart, relativeEnd ),
+            node.text.slice( relativeEnd ) ];
+
+    const prefixNode = preText == "" ? null : document.createTextNode( preText );
+    const infixNode = document.createElement('mark');
+    const infixTextNode = document.createTextNode( infixText );
+    infixNode.appendChild( infixTextNode );
+    infixNode.setAttribute(HIGHLIGHT_DATA_ATTRIBUTE, 'true');
+    const postfixNode = postText == "" ? null : document.createTextNode( postText );
+    const newDomNodes = [prefixNode,infixNode,postfixNode].filter( (x) => x );
+
+    // TODO: we shouldn't be creating these manually, we should trigger some
+    // NodeWalker version.
+    const preRichNode = ! prefixNode ? null : new RichNode({
+      domNode: prefixNode,
+      parent: node.parent,
+      start: node.start,
+      end: start,
+      text: preText,
+      type: "text"
+    });
+    const infixRichNode = ! infixNode ? null : new RichNode({
+      domNode: infixNode,
+      parent: node.parent,
+      start: start,
+      end: end,
+      text: infixText,
+      type: "tag"
+    });
+    infixRichNode.children = [ new RichNode({
+      domNode: infixTextNode,
+      parent: infixRichNode,
+      start: start,
+      end: end,
+      text: infixText, // TODO: remove if consuming code doesn't use the TextNodeWalker
+      type: "text"
+    }) ];
+    const postfixRichNode = ! postfixNode ? null : new RichNode({
+      domNode: postfixNode,
+      parent: node.parent,
+      start: end,
+      end: end + postText.length,
+      text: postText,
+      type: "text"
+    });
+    const newRichNodes = [];
+    if( preRichNode ) { newRichNodes.push( preRichNode ); }
+    newRichNodes.push( infixRichNode );
+    if( postfixRichNode ) { newRichNodes.push( postfixRichNode ); }
+
+    // update the DOM tree
+    node.domNode.replaceWith( ...newDomNodes );
+    // update the richNode tree
+    const parent = node.parent;
+    parent.children.splice( parent.children.indexOf( node ), 1, ...newRichNodes );
+  } else {
+    warn( "raw highlighting can only occur on text nodes or on tag nodes" );
+  }
+}
 
 /**
  * raw contenteditable editor, a utility class that shields editor internals from consuming applications.
@@ -60,9 +209,20 @@ const RawEditor = EmberObject.extend({
    * @property currentSelection
    * @type Array
    * @public
+   *
+   * NOTE: don't change this in place
    */
   currentSelection: null,
 
+  /**
+   * the start of the current range
+   *
+   * NOTE: this is correctly bound because currentSelection is never
+   * changed in place
+   */
+  currentPosition: computed( 'currentSelection', function() {
+    return this.currentSelection[0];
+  }),
 
   /**
    * the domNode containing our caret
@@ -147,7 +307,7 @@ const RawEditor = EmberObject.extend({
     //TODO: think: what if htmlstring is "<div>foo</div><div>bar</div>" -> do we need to force a textnode in between?
 
     //keeps track of current node.
-    let getCurrentCarretPosition = this.getRelativeCursorPostion();
+    let getCurrentCarretPosition = this.getRelativeCursorPosition();
     let currentNode = this.currentNode;
 
     let keepCurrentPosition = !placeCursorAfterInsertedHtml && !node.isSameNode(currentNode) && !node.contains(currentNode);
@@ -199,7 +359,7 @@ const RawEditor = EmberObject.extend({
    */
   removeNode(node, extraInfo = []){
     //keeps track of current node.
-    let carretPositionToEndIn = this.getRelativeCursorPostion();
+    let carretPositionToEndIn = this.getRelativeCursorPosition();
     let nodeToEndIn = this.currentNode;
     let keepCurrentPosition = !node.isSameNode(nodeToEndIn) && !node.contains(nodeToEndIn);
 
@@ -236,7 +396,7 @@ const RawEditor = EmberObject.extend({
    */
   prependChildrenHTML(node, html, placeCursorAfterInsertedHtml = false, extraInfo = []){
     //TODO: check if node allowed children?
-    let getCurrentCarretPosition = this.getRelativeCursorPostion();
+    let getCurrentCarretPosition = this.getRelativeCursorPosition();
     let currentNode = this.currentNode;
 
     let keepCurrentPosition = !placeCursorAfterInsertedHtml;
@@ -348,39 +508,25 @@ const RawEditor = EmberObject.extend({
    * @public
    */
   highlightRange(start, end, data = {}) {
+    if( data && Object.entries(data).length != 0 ) {
+      warn( "Data attributes were supplied to highlightRange but this is not supported at the moment" );
+      warn( data );
+    }
+
     let match = this.findHighlights(node => node.end === end && node.start === start);
     if (match.length === 0) {
-      let filter = node => { return node.start <= start && node.end >= end; };
-      let nodes = flatMap(this.richNode, filter);
-      if(nodes.length === 0) {
-        warn('no node found matching supplied highlight range', {id: 'content-editable.highlight-it'});
-        return;
-      }
-      let nodeContainingText = nodes[nodes.length-1];
-      if (nodeContainingText.type !== "text") {
-        warn('trying to highlight a non text node, this is not supported', {id: 'content-editable.highlight-it'});
-        return;
-      }
-      let text = this.currentTextContent.slice(start, end);
-      let elements = replaceTextWithHtml(this.richNode, start, end, `<mark>${text}</mark>`);
-      let element = elements[0];
-      for (const prop in data) {
-        element.setAttribute(prop,data[prop]);
-      }
-      element.setAttribute(HIGHLIGHT_DATA_ATTRIBUTE, 'true');
+      const currentPosition = this.currentPosition;
+      const needsPositionUpdate = start >= currentPosition && end <= currentPosition;
 
-      this.updateRichNode();
-      let textNode = element.childNodes[0];
-      let currentPosition = this.currentSelection[0];
-      let richNode = this.getRichNodeFor(textNode);
+      const nodesToHighlight = findNodesToHighlight( this.richNode, start, end );
+      nodesToHighlight.forEach( (node) => rawHighlightRegionInNode( node, start, end ) );
 
-      if(currentPosition >= richNode.start && currentPosition <= richNode.end){
-        this.set('currentNode', textNode);
-      }
-
-      this.setCurrentPosition(this.get('currentSelection')[0], false); //ensure caret is still correct
+      // this.updateRichNode(); // DONE by updating the tree manually
+      if( needsPositionUpdate )
+        this.setCurrentPosition( currentPosition );
     }
     else {
+      // note: this warning may not appear sufficiently often due to partial highlights
       warn('highlighting already highlighted region', {id: 'content-editable.highlight-it'});
     }
   },
@@ -420,11 +566,12 @@ const RawEditor = EmberObject.extend({
       });
     };
 
-    let highlights = this.findHighlights(nodeForLocation);
+    let highlights = this.findHighlights( (node) => {
+      return locations.find( location => {
+        return node.start >= location[0] && node.end <= location[1];
+      } ); } );
 
-    if(get(highlights, 'length') > 0){
-      this.clearHighlights(highlights);
-    }
+    this.clearHighlights( highlights );
   },
 
   /**
@@ -434,8 +581,13 @@ const RawEditor = EmberObject.extend({
    * @private
    */
   removeHighlight(highlight) {
-    let node = get(highlight, 'domNode');
-    removeNodeFromTree(node);
+    if( highlight.domNode.nodeName === "MARK" ){
+      // TODO: remove the mark
+      highlight.domNode.removeAttribute(HIGHLIGHT_DATA_ATTRIBUTE);
+    } else {
+      highlight.domNode.removeAttribute(HIGHLIGHT_DATA_ATTRIBUTE);
+    }
+    // removeNodeFromTree(node);
     this.updateRichNode();
   },
 
@@ -447,7 +599,7 @@ const RawEditor = EmberObject.extend({
    * @public
    */
   clearAllHighlights() {
-    let highlights = this.findHighlights(() =>true);
+    let highlights = this.findHighlights();
     if (highlights.length === 0) warn("no highlights found", {id: "content-editable.highlight-not-found"});
     this.clearHighlights(highlights);
   },
@@ -460,6 +612,9 @@ const RawEditor = EmberObject.extend({
    * @private
    */
   clearHighlights(highlights){
+    if( highlights.length === 0 )
+      return;
+
     highlights.forEach(
       highlight => {
         this.removeHighlight(highlight);
@@ -470,14 +625,19 @@ const RawEditor = EmberObject.extend({
   },
 
   /**
-   * retun all elements with tag name 'mark' that match provided predicate
+   * retun all elements which are a highlight, matching the supplied
+   * predicate
+   *
    * @method findHighlights
-   * @param {Function} predicate
+   * @param {Function} predicate If no predicate is supplied all matches are returned
    * @private
    */
-  findHighlights(predicate) {
-    let filter = node => { return predicate(node) && node.type == 'tag' && tagName(node.domNode) === 'mark'; };
-    return flatMap(this.get('richNode'), filter);
+  findHighlights(predicate = () => true) {
+    return flatMap(this.get('richNode'), (node) => {
+      return predicate( node )
+        && node.type === "tag"
+        && node.domNode.getAttribute(HIGHLIGHT_DATA_ATTRIBUTE) === "true";
+    } );
   },
 
 
@@ -887,10 +1047,14 @@ const RawEditor = EmberObject.extend({
       forgivingAction('selectionUpdate', this)(this.currentSelection);
   },
 
-  getRelativeCursorPostion(){
+  getRelativeCursorPosition(){
     let currentRichNode = this.getRichNodeFor(this.currentNode);
     let absolutePos = this.currentSelection[0];
-    return absolutePos -currentRichNode.start;
+    return absolutePos - currentRichNode.start;
+  },
+
+  getRelativeCursorPostion() {
+    return this.getRelativeCursorPosition();
   },
 
 
@@ -1003,7 +1167,16 @@ const RawEditor = EmberObject.extend({
       }
       forgivingAction('handleFullContentUpdate', this)(extraInfo);
     }
-  }).restartable()
+  }).restartable(),
+
+  getContexts(options) {
+    const {region} = options || {};
+    if( region )
+      return scanContexts( this.rootNode, region );
+    else
+      return scanContexts( this.rootNode );
+  }
+
 });
 
 function uuidv4() {

@@ -14,7 +14,7 @@ import ListInsertionMarkdownHandler from '../utils/list-insertion-markdown-handl
 import ArrowHandler from '../utils/arrow-handler';
 import TabHandler from '../utils/tab-handler';
 import { normalizeEvent } from 'ember-jquery-legacy';
-import { warn } from '@ember/debug';
+import { warn, runInDebug } from '@ember/debug';
 import { A } from '@ember/array';
 import { isEmpty } from '@ember/utils';
 import { next } from '@ember/runloop';
@@ -257,7 +257,10 @@ export default Component.extend({
       this.capturedEvents.pushObject(event);
     }
     else {
-      warn('unhandled keydown', {id: 'contenteditable.event-handling'});
+      runInDebug( () => {
+        console.warn(event);
+        warn('unhandled keydown', {id: 'contenteditable.event-handling'});
+      });
     }
   },
 

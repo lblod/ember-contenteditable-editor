@@ -9,7 +9,7 @@ export default function getRichNodeMatchingDomNode(domNode, tree) {
     warn("getRichNodeMatchingDomNode: no domNode provided", { id: "utils.no-matching-node-in-tree" });
     return null;
   }
-  let nodeList = flatMap(tree, function(richNode) { return get(richNode, 'domNode').isSameNode(domNode);});
+  let nodeList = flatMap(tree, function(richNode) { return richNode.domNode.isSameNode(domNode);}, true );
   if (nodeList.length == 1) {
     return nodeList[0];
   }

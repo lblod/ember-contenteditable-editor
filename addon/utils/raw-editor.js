@@ -1162,7 +1162,7 @@ const RawEditor = EmberObject.extend({
     }, this);
 
     if(textHasChanges){
-      if ( ! extraInfo.any( (x) => x.noSnapshot)) {
+      if ( ! extraInfo.some( (x) => x.noSnapshot)) {
         this.createSnapshot();
       }
       forgivingAction('handleFullContentUpdate', this)(extraInfo);

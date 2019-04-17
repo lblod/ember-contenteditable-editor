@@ -1,0 +1,66 @@
+<h2 id="title">Testing lists</h2>
+<div>
+  <button {{action 'insertUL'}}> insert ul </button>
+</div>
+{{#content-editable editable=true focused=true yieldHTML=true
+   textInsert=(action 'handleTextInsert')
+   textRemove=(action 'handleTextRemove')
+   selectionUpdate=(action 'selectionUpdate')
+   elementUpdate=(action 'elementUpdate')
+   rawEditorInit=(action 'rawEditorInit')
+}}
+  {{#if showContent}}
+    <h3>UNORDERED LIST CASES</h3>
+    <p> The symbol "-|" means place cursor right before "-|" </p>
+    <p> The symbol "|-" means place cursor right after "|-" </p>
+
+    <div style="margin-left:10px">
+    <h4>case 1 </h4>
+    <p>
+      -| some text
+    </p>
+    <h4>case 2 </h4>
+    <p>
+      -| some text <a href="#">a link</a>
+    </p>
+    <h4>case 3 </h4>
+    <p>
+      some text <a href="#">an <i> italic |- </i> link</a>
+    </p>
+    <h4>case 4 </h4>
+    <p>
+      some text <div style="background-color:green"><a href="#">an <i> italic |- </i> link</a></div>
+    </p>
+    <h4>case 5 </h4>
+    <p>
+      <ul>
+        <li> some text
+          <div style="background-color:green">
+            <a href="#">an <i> italic |- </i> link</a>
+          </div>
+        </li>
+      </ul>
+    </p>
+    <h4>case 6 </h4>
+    <p>
+      <ul>
+        <li> some text
+          <div style="background-color:green">
+            |- some text
+          </div>
+        </li>
+      </ul>
+    </p>
+    <h4>case 7 </h4>
+    <p>
+      <ul>
+        <li> some text |-
+          <div style="background-color:green">
+            some other  text
+          </div>
+        </li>
+      </ul>
+    </p>
+</div>
+  {{/if}}
+{{/content-editable}}

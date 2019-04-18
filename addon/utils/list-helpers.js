@@ -326,6 +326,7 @@ const unwrapListFromSingleLI = ( rawEditor, currentNode ) => {
 const unwrapLIAndSplitList = ( rawEditor, currentNode ) => {
   let currLI = getParentLI(currentNode);
   let listE = currLI.parentNode;
+  let listType = getListTagName(listE);
   let parentE = listE.parentNode;
   let allLIs = [...listE.children];
 
@@ -348,7 +349,7 @@ const unwrapLIAndSplitList = ( rawEditor, currentNode ) => {
   let ulBefore = null;
 
   if(LIsBefore.length > 0){
-    ulBefore =  document.createElement('ul');
+    ulBefore =  document.createElement(listType);
     LIsBefore.forEach(li => ulBefore.append(li));
   }
 
@@ -357,7 +358,7 @@ const unwrapLIAndSplitList = ( rawEditor, currentNode ) => {
 
   let ulAfter = null;
   if(LIsAfter.length > 0){
-    ulAfter = document.createElement('ul');
+    ulAfter = document.createElement(listType);
     LIsAfter.forEach(li => ulAfter.append(li));
   }
 
@@ -418,6 +419,10 @@ const isLI = ( node ) => {
 
 const isTextNode = ( node ) => {
   return node.nodeType === Node.TEXT_NODE;
+};
+
+const getListTagName = ( listElement ) => {
+  return ['ul'].includes(listElement.tagName.toLowerCase()) ? 'ul' : 'ol';
 };
 
 

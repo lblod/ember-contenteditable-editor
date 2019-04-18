@@ -54,12 +54,54 @@
     <h4>case 7 </h4>
     <p>
       <ul>
+        <li> some |- text </li>
+      </ul>
+    </p>
+    <h4>case 8 </h4>
+    <p>
+      <ul>
         <li> some text |-
           <div style="background-color:green">
-            some other  text
+            For now the whole LI should be unwrapped. This is the best behaviour I could come up with.
           </div>
         </li>
       </ul>
+    </p>
+    <h4>case 9 </h4>
+    <p>
+      <ul>
+        <li> some text </li>
+        <li> some text 2 |- </li>
+        <li> some text 3</li>
+      </ul>
+    </p>
+    <h4>case 10 </h4>
+    <p>
+      <ul>
+        <li> some text </li>
+        <li> some text 2 </li>
+        <li> some text 3|-</li>
+      </ul>
+    </p>
+    <h4>case 11 </h4>
+    <p>
+      <ul>
+        <li> some text -| </li>
+        <li> some text 2 </li>
+        <li> some text 3</li>
+      </ul>
+    </p>
+    <h4>case 12 </h4>
+    <p>
+      <ul>
+        <li> some text </li>
+        <li> some text 2 <a href="#"> a link |-</a> </li>
+        <li> some text 3</li>
+      </ul>
+    </p>
+    <h4>case 13 </h4>
+    <p>
+      A case |- with br-tag <br> new line. <br> we Will need to refine this.
     </p>
 </div>
   {{/if}}

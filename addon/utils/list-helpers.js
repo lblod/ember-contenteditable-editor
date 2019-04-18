@@ -369,14 +369,6 @@ const getParentLI = (node) => {
   return getParentLI(node.parentNode);
 };
 
-
-/***************************************************
- * For an LI checks if this is the only one in List
- ***************************************************/
-const isOnlyLI = (node) => {
-  return isLI(node) && node.parentElement && isList(node.parentElement) && node.parentElement.childElementCount == 1;
-};
-
 const isLI = ( node ) => {
     return node.nodeType === node.ELEMENT_NODE && ['li'].includes(node.tagName.toLowerCase());
 };
@@ -388,7 +380,6 @@ const isTextNode = ( node ) => {
 const getListTagName = ( listElement ) => {
   return ['ul'].includes(listElement.tagName.toLowerCase()) ? 'ul' : 'ol';
 };
-
 
 /***********************************************
  * Give a node, we want to grow a region (a list of nodes)

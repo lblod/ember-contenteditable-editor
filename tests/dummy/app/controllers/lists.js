@@ -30,6 +30,9 @@ export default Controller.extend({
     },
     insertUL(){
       this.get('rawEditor').insertUL();
+    },
+    insertOL(){
+      this.get('rawEditor').insertOL();
     }
   }
 });

@@ -31,7 +31,7 @@ import { task, timeout } from 'ember-concurrency';
 import nextTextNode from './next-text-node';
 const HIGHLIGHT_DATA_ATTRIBUTE = 'data-editor-highlight';
 const NON_BREAKING_SPACE = '\u00A0';
-import { unorderedListAction } from './list-helpers';
+import { unorderedListAction, orderedListAction } from './list-helpers';
 
 /* IE11 and safari polyfill from MDN */
 function ReplaceWithPolyfill() {
@@ -1179,6 +1179,10 @@ const RawEditor = EmberObject.extend({
 
   insertUL() {
     unorderedListAction(this);
+  },
+
+  insertOL() {
+    orderedListAction(this);
   }
 
 });

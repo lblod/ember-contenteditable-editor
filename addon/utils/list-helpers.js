@@ -231,66 +231,6 @@ const insertNewList = ( rawEditor, currentNode, listType = 'ul' ) => {
 };
 
 /***************************************************
- * Unwraps list content from an LI from a list with one single element.
- *
- *  TODOS
- *  -----
- *    - Cursors positioning is weird
- *    - The ending textNode issue is not properly tackeled
- *
- *   EXAMPLES
- *   --------
- *   The '|' represents the cursor and gives an idea about the currentNode.
- *
- *   case 1
- *   ------
- *
- *   ```
- *   <ul>
- *     <li>| a some text</li>
- *   </ul>
- *   ```
- *
- *    ```
- *    a some <span> t | ext </span>
- *    ```
- *
- *   case 2
- *   ------
- *
- *   ```
- *    <ul>
- *     <li> a | some <div> block element text, this might seem weird, TBD </div>  other text </li>
- *    </ul>
- *   ```
- *   ```
- *    a | some <div> block element text, this might seem weird, TBD </div>  other text
- *   ```
- *
- ***************************************************/
-const unwrapListFromSingleLI = ( rawEditor, currentNode ) => {
-  let currLI = getParentLI(currentNode);
-  let listE = currLI.parentNode;
-  let parentE = listE.parentNode;
-  if(!currLI || !listE || !parentE){
-    warn('No wrapping LI/List/Parent of list found!', {id: 'list-helpers:unwrapListFromSingleLI'});
-    return;
-  }
-
-  let allNodesInLI = [...currLI.childNodes]; //make sure you have a copy of array
-  allNodesInLI.forEach(n => parentE.insertBefore(n, listE));
-
-  // provide a text node after the list
-  //TODO: do we really need to do this here?
-  parentE.insertBefore(document.createTextNode(invisibleSpace), listE);
-  parentE.removeChild(listE);
-
-  //Editor state update
-  rawEditor.updateRichNode();
-};
-
-
-/***************************************************
  * Unwraps list content from an LI from a list wiht multiple LI's and splits the list.
  *
  *  TODOS
@@ -322,6 +262,30 @@ const unwrapListFromSingleLI = ( rawEditor, currentNode ) => {
  *     <li> the last </li>
  *   </ul>
  *    ```
+ *   case 2
+ *   ------
+ *
+ *   ```
+ *   <ul>
+ *     <li>| a some text</li>
+ *   </ul>
+ *   ```
+ *
+ *    ```
+ *    a some <span> t | ext </span>
+ *    ```
+ *
+ *   case 3
+ *   ------
+ *
+ *   ```
+ *    <ul>
+ *     <li> a | some <div> block element text, this might seem weird, TBD </div>  other text </li>
+ *    </ul>
+ *   ```
+ *   ```
+ *    a | some <div> block element text, this might seem weird, TBD </div>  other text
+ *   ```
  ***************************************************/
 const unwrapLIAndSplitList = ( rawEditor, currentNode ) => {
   let currLI = getParentLI(currentNode);
@@ -391,7 +355,7 @@ const unwrapLIAndSplitList = ( rawEditor, currentNode ) => {
  * depending on what the context looks like
  ***************************************************/
 const getNestedContextHandler = (node) => {
-  if(isOnlyLI(getParentLI(node))) return unwrapListFromSingleLI;
+  if(isOnlyLI(getParentLI(node))) return unwrapLIAndSplitList;
   if(!isOnlyLI(getParentLI(node))) return unwrapLIAndSplitList;
   return () => { warn('unsupported nested context.', {id: 'list-helpers:getNestedContextHandler'});};
 };

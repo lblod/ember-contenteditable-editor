@@ -2,7 +2,7 @@ import { invisibleSpace, isDisplayedAsBlock, isList } from './dom-helpers';
 import { warn } from '@ember/debug';
 
 /**
- * Handler for unordered list action.
+ * Handlers for list action.
  *
  * - It works only when current node is a textNode
  * - The general flow is dependent on two situation types:
@@ -13,6 +13,10 @@ import { warn } from '@ember/debug';
  * TODO
  * ----
  * - cursor positonining is uncontrolled right now, after action handled.
+ */
+
+/**
+ * handles unordered list
  */
 const unorderedListAction = function ( rawEditor ) {
   const currentNode = rawEditor.currentNode;
@@ -33,6 +37,30 @@ const unorderedListAction = function ( rawEditor ) {
 
   rawEditor.externalDomUpdate('handle unorderedListAction', handleAction);
 };
+
+/**
+ * handles ordered list
+ */
+const orderedListAction = function ( rawEditor ) {
+  const currentNode = rawEditor.currentNode;
+
+  if(!isTextNode(currentNode)){
+    warn('Lists only supported for textNodes', {id: 'list-helpers:orderedListAction'});
+    return;
+  }
+
+  let handleAction = () => {
+    if(isInList(currentNode)){
+      let nestedContextHandler = getNestedContextHandler(currentNode);
+      nestedContextHandler(rawEditor, currentNode);
+      return;
+    }
+    insertNewList(rawEditor, currentNode, 'ol');
+  };
+
+  rawEditor.externalDomUpdate('handle orderedListAction', handleAction);
+};
+
 
 
 /***************************************************
@@ -467,4 +495,4 @@ const growNeighbouringSiblingsUntil = ( condition, node ) => {
   return nodes;
 };
 
-export { unorderedListAction }
+export { unorderedListAction, orderedListAction }

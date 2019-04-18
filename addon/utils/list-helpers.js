@@ -28,7 +28,7 @@ const unorderedListAction = function ( rawEditor ) {
 
   let handleAction = () => {
     if(isInList(currentNode)){
-      let nestedContextHandler = getNestedContextHandler(currentNode);
+      let nestedContextHandler = getNestedContextHandler(currentNode, unorderedListAction);
       nestedContextHandler(rawEditor, currentNode);
       return;
     }
@@ -51,7 +51,7 @@ const orderedListAction = function ( rawEditor ) {
 
   let handleAction = () => {
     if(isInList(currentNode)){
-      let nestedContextHandler = getNestedContextHandler(currentNode);
+      let nestedContextHandler = getNestedContextHandler(currentNode, orderedListAction);
       nestedContextHandler(rawEditor, currentNode);
       return;
     }
@@ -345,6 +345,58 @@ const unwrapLIAndSplitList = ( rawEditor, currentNode ) => {
 
 
 /***************************************************
+ * Switches list type where currentNode is situatued in.
+ *
+ *  TODOS
+ *  -----
+ *    - Cursors positioning is weird
+ *    - The ending textNode issue is not properly tackeled
+ *
+ *   EXAMPLES
+ *   --------
+ *   The '|' represents the cursor and gives an idea about the currentNode.
+ *
+ *   case 1
+ *   ------
+ *
+ *   ```
+ *   <ul>
+ *     <li> The first </li>
+ *     <li>| a some text</li>
+ *     <li> the last </li>
+ *   </ul>
+ *   ```
+ *
+ *   ```
+ *   <ol>
+ *     <li> The first </li>
+ *     <li>| a some text</li>
+ *     <li> the last </li>
+ *   </ol>
+ *   ```
+ ****************************************************/
+const shuffleListType = ( rawEditor, currentNode) => {
+  let currLI = getParentLI(currentNode);
+  let currlistE = currLI.parentNode;
+  let currlistType = getListTagName(currlistE);
+  let targetListType = currlistType == 'ul'?'ol':'ul';
+  let parentE = currlistE.parentNode;
+  let allLIs = [...currlistE.children];
+
+  let listE = document.createElement(targetListType);
+  allLIs.forEach(li => listE.append(li));
+
+  parentE.insertBefore(listE, currlistE);
+  // provide a text node after the list
+  //TODO: do we really need to do this here? Can it be more sublte?
+  parentE.insertBefore(document.createTextNode(invisibleSpace), currlistE);
+  parentE.removeChild(currlistE);
+
+  //Editor state update
+  rawEditor.updateRichNode();
+};
+
+/***************************************************
  * UTILS
  ***************************************************/
 
@@ -354,10 +406,30 @@ const unwrapLIAndSplitList = ( rawEditor, currentNode ) => {
  * context handler,
  * depending on what the context looks like
  ***************************************************/
-const getNestedContextHandler = (node) => {
-  if(isOnlyLI(getParentLI(node))) return unwrapLIAndSplitList;
-  if(!isOnlyLI(getParentLI(node))) return unwrapLIAndSplitList;
-  return () => { warn('unsupported nested context.', {id: 'list-helpers:getNestedContextHandler'});};
+const getNestedContextHandler = ( node, listAction ) => {
+  let li = getParentLI(node);
+  let listE = li.parentElement;
+
+  if(!listE){
+    return () => { warn('unsupported nested context.', {id: 'list-helpers:getNestedContextHandler'});};
+  }
+
+  if(!isListActionConsistentWithCurrentList(listE, listAction)){
+    return shuffleListType;
+  }
+
+  return unwrapLIAndSplitList;
+};
+
+const isListActionConsistentWithCurrentList = ( listE, listAction ) => {
+  let listType = getListTagName(listE);
+  if(listType == 'ul' && listAction == unorderedListAction){
+    return true;
+  }
+  if(listType == 'ol' && listAction == orderedListAction){
+    return true;
+  }
+  return false;
 };
 
 /***************************************************

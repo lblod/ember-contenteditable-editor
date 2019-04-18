@@ -177,25 +177,25 @@ const isInList = ( node ) => {
  *    </ul>
  *    ```
  ***************************************************/
-const insertNewList = ( rawEditor, currentNode ) => {
+const insertNewList = ( rawEditor, currentNode, listType = 'ul' ) => {
   let liContentNodes = growLIContentFromNode(currentNode);
-  let ulLocationRef = liContentNodes[0];
+  let listELocationRef = liContentNodes[0];
 
-  let ul = document.createElement('ul');
+  let listE = document.createElement(listType);
   let li = document.createElement('li');
-  ul.append(li);
+  listE.append(li);
 
-  let parent = ulLocationRef.parentNode;
+  let parent = listELocationRef.parentNode;
 
   if(!parent){
     warn('Lists assume a parent node', {id: 'list-helpers:insertNewList'});
     return;
   }
 
-  parent.insertBefore(ul, ulLocationRef);
+  parent.insertBefore(listE, listELocationRef);
   // provide a text node after the list
   //TODO: do we really need to do this here? Can it be more sublte?
-  parent.insertBefore(document.createTextNode(invisibleSpace), ulLocationRef);
+  parent.insertBefore(document.createTextNode(invisibleSpace), listELocationRef);
   liContentNodes.forEach(n => li.appendChild(n));
 
   //Editor state update

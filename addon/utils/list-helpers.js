@@ -325,11 +325,14 @@ const insertNewList = ( rawEditor, currentNode, listType = 'ul' ) => {
  *
  *   ```
  *    <ul>
- *     <li> a | some <div> block element text, this might seem weird, TBD </div>  other text </li>
+ *     <li> a | some <div> block element text </div>  other text </li>
  *    </ul>
  *   ```
  *   ```
- *    a | some <div> block element text, this might seem weird, TBD </div>  other text
+ *    <ul>
+ *     <li> <div> block element text </div>  other text </li>
+ *    </ul>
+ *    a | some
  *   ```
  ***************************************************/
 const unwrapLIAndSplitList = ( rawEditor, currentNode ) => {
@@ -355,6 +358,48 @@ const unwrapLIAndSplitList = ( rawEditor, currentNode ) => {
     listToUpdate.push(e);
   };
 
+
+  //SPLIT LI: Make sure this happens:
+  //    ```
+  //     <ul><li> felix <div>foo</div> ruiz | <div>other div text </div></li></ul>
+  //     ```
+  // to
+  //     ```
+  //       <ul><li> felix <div>foo</div></li></ul>
+  //         ruiz |
+  //       <ul><div>other div text </div></li></ul>
+  //     ```
+  let unwrappedLINodes = growLIContentFromNode(currentNode);
+  let currLiNodes = [...currLI.childNodes];
+  let LINodesBefore = [];
+  let LINodesAfter = [];
+  let nodeListToUpdate = LINodesBefore;
+
+  for(var liN of currLiNodes){
+    if(unwrappedLINodes.some(n => n.isSameNode(liN))){
+      currLI.removeChild(liN);
+      nodeListToUpdate = LINodesAfter;
+      continue;
+    }
+    nodeListToUpdate.push(liN);
+  }
+
+  if(LINodesBefore.length > 0){
+    let li = document.createElement('li');
+    LINodesBefore.forEach(n => li.appendChild(n));
+    LIsBefore.push(li);
+  }
+
+  if(LINodesAfter.length > 0){
+    let li = document.createElement('li');
+    LINodesAfter.forEach(n => li.appendChild(n));
+    LIsAfter.push(li);
+  }
+
+  //END SPLIT LI
+
+
+  //INSERT LISTS
   let ulBefore = null;
 
   if(LIsBefore.length > 0){
@@ -362,10 +407,11 @@ const unwrapLIAndSplitList = ( rawEditor, currentNode ) => {
     LIsBefore.forEach(li => ulBefore.append(li));
   }
 
- //unwrap
- let allNodesInLI = [...currLI.childNodes]; //make sure you have a copy of array
+  //unwrap
+  let allNodesInLI = unwrappedLINodes;
 
   let ulAfter = null;
+
   if(LIsAfter.length > 0){
     ulAfter = document.createElement(listType);
     LIsAfter.forEach(li => ulAfter.append(li));

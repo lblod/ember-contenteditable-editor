@@ -448,7 +448,7 @@ const unwrapLIAndSplitList = ( rawEditor, currentNode ) => {
 
 
 /***************************************************
- * Switches list type where currentNode is situatued in.
+ * Switches list type where currentNode is situated in.
  *
  *  TODOS
  *  -----
@@ -588,6 +588,12 @@ const growLIContentFromNode = ( node ) => {
  * Walk up the parents until a blockElement is matched.
  * return the node of wich the parent is the matching
  * block element
+ * This is useful for fetching the span element in following example:
+ *   ```
+ *    <p>
+ *      text <span> foo <a href="#"> current node </a></span>
+ *    </p>
+ *   ```
  ************************************************/
 const returnParentNodeBeforeBlockElement = ( node ) => {
   if(!node.parentNode) return node;

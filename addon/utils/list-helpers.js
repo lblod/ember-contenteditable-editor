@@ -62,6 +62,29 @@ const orderedListAction = function ( rawEditor ) {
 };
 
 
+/**
+ * handles indent Action
+ */
+const indentAction = function ( rawEditor ) {
+  const currentNode = rawEditor.currentNode;
+
+  if(!isTextNode(currentNode)){
+    warn('Lists only supported for textNodes', {id: 'list-helpers:orderedListAction'});
+    return;
+  }
+
+  let handleAction = () => {
+    if(!isInList(currentNode)){
+      warn('Indent only supported in context of list', {id: 'list-helpers:indentAction'});
+    }
+    let currLI = getParentLI(currentNode);
+    let currlistE = currLI.parentNode;
+    let currlistType = getListTagName(currlistE);
+    insertNewList(rawEditor, currentNode, currlistType);
+  };
+
+  rawEditor.externalDomUpdate('handle indentListAction', handleAction);
+};
 
 /***************************************************
  * HELPERS
@@ -527,4 +550,4 @@ const growNeighbouringSiblingsUntil = ( condition, node ) => {
   return nodes;
 };
 
-export { unorderedListAction, orderedListAction }
+export { unorderedListAction, orderedListAction, indentAction }

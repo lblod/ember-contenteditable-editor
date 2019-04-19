@@ -337,8 +337,43 @@ const insertNewList = ( rawEditor, currentNode, listType = 'ul' ) => {
  *    </ul>
  *    a | some
  *   ```
+*
+ *   case 4
+ *   ------
+ *
+ *   ```
+ *    <ul>
+ *      <li> item 1</li>
+ *     <li>
+ *       <ul>
+ *          <li> subitem 1</li>
+ *          <li> subitem | 2 </li>
+ *          <li> subitem 3</li>
+ *       </ul>
+ *     </li>
+ *     <li> item 2</li>
+ *    </ul>
+ *   ```
+ *   ```
+ *    <ul>
+ *      <li> item 1</li>
+ *     <li>
+ *       <ul>
+ *          <li> subitem 1</li>
+ *       </ul>
+ *     </li>
+ *     <li> subitem | 2 </li>
+ *     <li>
+ *       <ul>
+ *          <li> subitem 3</li>
+ *       </ul>
+ *     </li>
+ *     <li> item 2</li>
+ *    </ul>
+ *   ```
  ***************************************************/
 const unwrapLIAndSplitList = ( rawEditor, currentNode ) => {
+
   let currLI = getParentLI(currentNode);
   let listE = currLI.parentNode;
   let listType = getListTagName(listE);
@@ -401,39 +436,12 @@ const unwrapLIAndSplitList = ( rawEditor, currentNode ) => {
 
   //END SPLIT LI
 
-
-  //INSERT LISTS
-  let ulBefore = null;
-
-  if(LIsBefore.length > 0){
-    ulBefore =  document.createElement(listType);
-    LIsBefore.forEach(li => ulBefore.append(li));
+  if(!isInList(listE)){
+    unwrapList(listType, LIsBefore, unwrappedLINodes, LIsAfter, parentE, listE);
   }
-
-  //unwrap
-  let allNodesInLI = unwrappedLINodes;
-
-  let ulAfter = null;
-
-  if(LIsAfter.length > 0){
-    ulAfter = document.createElement(listType);
-    LIsAfter.forEach(li => ulAfter.append(li));
+  else{
+    unwrapNestedList(listType, LIsBefore, unwrappedLINodes, LIsAfter, parentE, listE);
   }
-
-  if(ulBefore){
-    parentE.insertBefore(ulBefore, listE);
-  }
-
-  allNodesInLI.forEach(n => parentE.insertBefore(n, listE));
-
-  if(ulAfter){
-    parentE.insertBefore(ulAfter, listE);
-  }
-  // provide a text node after the list
-  //TODO: do we really need to do this here?
-  parentE.insertBefore(document.createTextNode(invisibleSpace), listE);
-  parentE.removeChild(listE);
-
   rawEditor.updateRichNode();
 };
 
@@ -619,6 +627,86 @@ const growNeighbouringSiblingsUntil = ( condition, node ) => {
     currNode = currNode.nextSibling;
   }
   return nodes;
+};
+
+const unwrapNestedList = ( listType, LIsBefore, unwrappedLINodes, LIsAfter, parentE, listE ) => {
+  let listInLIBefore = null;
+
+  if(LIsBefore.length > 0){
+    let listBefore =  document.createElement(listType);
+    LIsBefore.forEach(li => listBefore.append(li));
+    listInLIBefore = document.createElement('li');
+    listInLIBefore.appendChild(listBefore);
+  }
+
+  let newLIContent = null;
+
+  if(unwrappedLINodes.length > 0){
+    newLIContent = document.createElement('li');
+    unwrappedLINodes.forEach(n => newLIContent.appendChild(n));
+  }
+
+  let listInLIAfter = null;
+
+  if(LIsAfter.length > 0){
+    let listAfter =  document.createElement(listType);
+    LIsAfter.forEach(li => listAfter.append(li));
+    listInLIAfter = document.createElement('li');
+    listInLIAfter.appendChild(listAfter);
+  }
+
+  let parentList = parentE.parentNode; //TODO check if there
+  if(listInLIBefore){
+    parentList.insertBefore(listInLIBefore, parentE);
+  }
+
+  if(newLIContent){
+    parentList.insertBefore(newLIContent, parentE);
+  }
+
+  if(listInLIAfter){
+    parentList.insertBefore(listInLIAfter, parentE);
+  }
+
+  // provide a text node after the list
+  //TODO: do we really need to do this here?
+  parentList.removeChild(parentE);
+
+};
+
+const unwrapList = ( listType, LIsBefore, unwrappedLINodes, LIsAfter, parentE, listE ) => {
+  let listBefore = null;
+
+  if(LIsBefore.length > 0){
+    listBefore =  document.createElement(listType);
+    LIsBefore.forEach(li => listBefore.append(li));
+  }
+
+  //unwrap
+  //TODO: check if content!!!
+  let allNodesInLI = unwrappedLINodes;
+
+  let listAfter = null;
+
+  if(LIsAfter.length > 0){
+    listAfter = document.createElement(listType);
+    LIsAfter.forEach(li => listAfter.append(li));
+  }
+
+  if(listBefore){
+    parentE.insertBefore(listBefore, listE);
+  }
+
+  allNodesInLI.forEach(n => parentE.insertBefore(n, listE));
+
+  if(listAfter){
+    parentE.insertBefore(listAfter, listE);
+  }
+
+  // provide a text node after the list
+  //TODO: do we really need to do this here?
+  parentE.insertBefore(document.createTextNode(invisibleSpace), listE);
+  parentE.removeChild(listE);
 };
 
 export { unorderedListAction, orderedListAction, indentAction, unindentAction }

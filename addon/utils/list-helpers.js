@@ -78,6 +78,7 @@ const indentAction = function ( rawEditor ) {
   let handleAction = () => {
     if(!isInList(currentNode)){
       warn('Indent only supported in context of list', {id: 'list-helpers:indentAction'});
+      return;
     }
     let currLI = getParentLI(currentNode);
     let currlistE = currLI.parentNode;

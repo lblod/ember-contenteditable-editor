@@ -372,6 +372,39 @@ const insertNewList = ( rawEditor, currentNode, listType = 'ul' ) => {
  *     <li> item 2</li>
  *    </ul>
  *   ```
+ *   case 5
+ *   ------
+ *
+ *   ```
+ *    <ul>
+ *      <li> item 1</li>
+ *     <li>
+ *       <ul>
+ *          <li> subitem 1</li>
+ *          <li><div> subitem | 2 </div></li>
+ *          <li> subitem 3</li>
+ *       </ul>
+ *     </li>
+ *     <li> item 2</li>
+ *    </ul>
+ *   ```
+ *   ```
+ *    <ul>
+ *      <li> item 1</li>
+ *     <li>
+ *       <ul>
+ *          <li> subitem 1</li>
+ *       </ul>
+ *     </li>
+ *     <li><div> subitem | 2 </div></li>
+ *     <li>
+ *       <ul>
+ *          <li> subitem 3</li>
+ *       </ul>
+ *     </li>
+ *     <li> item 2</li>
+ *    </ul>
+ *   ```
  ***************************************************/
 const unwrapLIAndSplitList = ( rawEditor, currentNode ) => {
 
@@ -408,8 +441,12 @@ const unwrapLIAndSplitList = ( rawEditor, currentNode ) => {
   //         ruiz |
   //       <ul><div>other div text </div></li></ul>
   //     ```
-  let LINodesToUnwrap = growLIContentFromNode(currentNode);
   let currLiNodes = [...currLI.childNodes];
+
+  //It might be the case that currentNode is part of block.
+  //Then we choose to split LI around that block
+  let potentialBlockParentCurrentNode = currLiNodes.find(n => isDisplayedAsBlock(n) && n.contains(currentNode));
+  let LINodesToUnwrap = potentialBlockParentCurrentNode ? [ potentialBlockParentCurrentNode ] : growLIContentFromNode(currentNode);
   let LINodesBefore = [];
   let LINodesAfter = [];
   let nodeListToUpdate = LINodesBefore;

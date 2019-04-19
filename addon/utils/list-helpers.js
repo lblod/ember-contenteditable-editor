@@ -14,7 +14,8 @@ import { warn } from '@ember/debug';
  * ----
  *  - cursor positonining is uncontrolled right now, after action handled.
  *  - Decent insertTextNode for cursor: find best guess on when to this.
- *  - The attributes while deleting and inserting lists/LI should be kept.
+ *  - block decent support unindent.
+ *  - clean up
  */
 
 /**
@@ -437,10 +438,10 @@ const unwrapLIAndSplitList = ( rawEditor, currentNode ) => {
   //END SPLIT LI
 
   if(!isInList(listE)){
-    unwrapList(listType, LIsBefore, unwrappedLINodes, LIsAfter, parentE, listE);
+    unwrapLI(listType, LIsBefore, unwrappedLINodes, LIsAfter, parentE, listE);
   }
   else{
-    unwrapNestedList(listType, LIsBefore, unwrappedLINodes, LIsAfter, parentE, listE);
+    unwrapNestedLI(listType, LIsBefore, unwrappedLINodes, LIsAfter, parentE, listE);
   }
   rawEditor.updateRichNode();
 };
@@ -629,7 +630,7 @@ const growNeighbouringSiblingsUntil = ( condition, node ) => {
   return nodes;
 };
 
-const unwrapNestedList = ( listType, LIsBefore, unwrappedLINodes, LIsAfter, parentE, listE ) => {
+const unwrapNestedLI = ( listType, LIsBefore, unwrappedLINodes, LIsAfter, parentE, listE ) => {
   let listInLIBefore = null;
 
   if(LIsBefore.length > 0){
@@ -674,7 +675,7 @@ const unwrapNestedList = ( listType, LIsBefore, unwrappedLINodes, LIsAfter, pare
 
 };
 
-const unwrapList = ( listType, LIsBefore, unwrappedLINodes, LIsAfter, parentE, listE ) => {
+const unwrapLI = ( listType, LIsBefore, unwrappedLINodes, LIsAfter, parentE, listE ) => {
   let listBefore = null;
 
   if(LIsBefore.length > 0){

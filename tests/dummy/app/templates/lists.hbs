@@ -3,6 +3,7 @@
   <button {{action 'insertUL'}}> insert ul </button>
   <button {{action 'insertOL'}}> insert ol </button>
   <button {{action 'insertIndent'}}> indent </button>
+  <button {{action 'insertUnindent'}}> unindent </button>
 </div>
 {{#content-editable editable=true focused=true yieldHTML=true
    textInsert=(action 'handleTextInsert')

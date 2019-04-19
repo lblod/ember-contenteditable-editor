@@ -36,6 +36,9 @@ export default Controller.extend({
     },
     insertIndent(){
       this.get('rawEditor').insertIndent();
+    },
+    insertUnindent(){
+      this.get('rawEditor').insertUnindent();
     }
   }
 });

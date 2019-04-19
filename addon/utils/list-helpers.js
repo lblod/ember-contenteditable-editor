@@ -408,14 +408,14 @@ const unwrapLIAndSplitList = ( rawEditor, currentNode ) => {
   //         ruiz |
   //       <ul><div>other div text </div></li></ul>
   //     ```
-  let unwrappedLINodes = growLIContentFromNode(currentNode);
+  let LINodesToUnwrap = growLIContentFromNode(currentNode);
   let currLiNodes = [...currLI.childNodes];
   let LINodesBefore = [];
   let LINodesAfter = [];
   let nodeListToUpdate = LINodesBefore;
 
   for(var liN of currLiNodes){
-    if(unwrappedLINodes.some(n => n.isSameNode(liN))){
+    if(LINodesToUnwrap.some(n => n.isSameNode(liN))){
       currLI.removeChild(liN);
       nodeListToUpdate = LINodesAfter;
       continue;
@@ -438,10 +438,10 @@ const unwrapLIAndSplitList = ( rawEditor, currentNode ) => {
   //END SPLIT LI
 
   if(!isInList(listE)){
-    unwrapLI(listType, LIsBefore, unwrappedLINodes, LIsAfter, parentE, listE);
+    unwrapLI(listType, LIsBefore, LINodesToUnwrap, LIsAfter, parentE, listE);
   }
   else{
-    unwrapNestedLI(listType, LIsBefore, unwrappedLINodes, LIsAfter, parentE, listE);
+    unwrapNestedLI(listType, LIsBefore, LINodesToUnwrap, LIsAfter, parentE, listE);
   }
   rawEditor.updateRichNode();
 };

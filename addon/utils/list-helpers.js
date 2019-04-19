@@ -16,6 +16,10 @@ import { warn } from '@ember/debug';
  *  - Decent insertTextNode for cursor: find best guess on when to this.
  *  - block decent support unindent.
  *  - clean up
+ *  - case 20 in dummy app does not work
+ *  - indenting
+ *      <li> felix <div> this | node </div> </li> should be
+ *      <li> felix <ul><li><div> this | node </div></li></ul></li> should be
  */
 
 /**

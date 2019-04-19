@@ -84,6 +84,25 @@ const indentAction = function ( rawEditor ) {
   };
 
   rawEditor.externalDomUpdate('handle indentListAction', handleAction);
+/**
+ * handles unindent Action
+ */
+const unindentAction = function ( rawEditor ) {
+  const currentNode = rawEditor.currentNode;
+
+  if(!isTextNode(currentNode)){
+    warn('UnindentAction only supported for textNodes', {id: 'list-helpers:unindentAction'});
+    return;
+  }
+
+  let handleAction = () => {
+    if(!isInList(currentNode)){
+      warn('Indent only supported in context of list', {id: 'list-helpers:unindentAction'});
+    }
+    unwrapLIAndSplitList(rawEditor, currentNode);
+  };
+
+  rawEditor.externalDomUpdate('handle unindentAction', handleAction);
 };
 
 /***************************************************
@@ -550,4 +569,4 @@ const growNeighbouringSiblingsUntil = ( condition, node ) => {
   return nodes;
 };
 
-export { unorderedListAction, orderedListAction, indentAction }
+export { unorderedListAction, orderedListAction, indentAction, unindentAction }

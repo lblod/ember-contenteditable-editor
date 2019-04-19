@@ -31,7 +31,7 @@ import { task, timeout } from 'ember-concurrency';
 import nextTextNode from './next-text-node';
 const HIGHLIGHT_DATA_ATTRIBUTE = 'data-editor-highlight';
 const NON_BREAKING_SPACE = '\u00A0';
-import { unorderedListAction, orderedListAction, indentAction } from './list-helpers';
+import { unorderedListAction, orderedListAction, indentAction, unindentAction } from './list-helpers';
 
 /* IE11 and safari polyfill from MDN */
 function ReplaceWithPolyfill() {
@@ -1187,8 +1187,11 @@ const RawEditor = EmberObject.extend({
 
   insertIndent() {
     indentAction(this);
-  }
+  },
 
+  insertUnindent() {
+    unindentAction(this);
+  }
 });
 
 function uuidv4() {

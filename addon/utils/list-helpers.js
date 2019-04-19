@@ -132,16 +132,14 @@ const unindentAction = function ( rawEditor ) {
  *    a some <span> t | ext </span>
  *    ```
  *
- *    (less trivial)
+ *   EXAMPLES IN A LIST
+ *   ------------------
  *
  *    ```
  *    <ul>
  *     <li> a some <div> block element text | </div>  other text </li>
  *    </ul>
  *    ```
- *
- *   EXAMPLES IN A LIST
- *   ------------------
  *
  *   ```
  *   <ul>
@@ -170,8 +168,6 @@ const isInList = ( node ) => {
   while(currNode){
 
     if(isLI(currNode)) return true;
-
-    if(isDisplayedAsBlock(currNode)) return false;
 
     currNode = currNode.parentNode;
   }

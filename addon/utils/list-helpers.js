@@ -12,7 +12,9 @@ import { warn } from '@ember/debug';
  *
  * TODO
  * ----
- * - cursor positonining is uncontrolled right now, after action handled.
+ *  - cursor positonining is uncontrolled right now, after action handled.
+ *  - Decent insertTextNode for cursor: find best guess on when to this.
+ *  - The attributes while deleting and inserting lists/LI should be kept.
  */
 
 /**

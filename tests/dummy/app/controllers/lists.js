@@ -33,6 +33,9 @@ export default Controller.extend({
     },
     insertOL(){
       this.get('rawEditor').insertOL();
+    },
+    insertIndent(){
+      this.get('rawEditor').insertIndent();
     }
   }
 });

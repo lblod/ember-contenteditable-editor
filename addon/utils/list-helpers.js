@@ -69,7 +69,7 @@ const indentAction = function ( rawEditor ) {
   const currentNode = rawEditor.currentNode;
 
   if(!isTextNode(currentNode)){
-    warn('Lists only supported for textNodes', {id: 'list-helpers:orderedListAction'});
+    warn('Indent only supported for textNodes', {id: 'list-helpers:indentAction'});
     return;
   }
 
@@ -83,7 +83,10 @@ const indentAction = function ( rawEditor ) {
     insertNewList(rawEditor, currentNode, currlistType);
   };
 
-  rawEditor.externalDomUpdate('handle indentListAction', handleAction);
+  rawEditor.externalDomUpdate('handle indentAction', handleAction);
+};
+
+
 /**
  * handles unindent Action
  */

@@ -28,10 +28,7 @@ import { warn } from '@ember/debug';
 const unorderedListAction = function ( rawEditor ) {
   const currentNode = rawEditor.currentNode;
 
-  if(!isTextNode(currentNode)){
-    warn('Lists only supported for textNodes', {id: 'list-helpers:unorderedListAction'});
-    return;
-  }
+  if(!isEligibleForListAction(currentNode)) return;
 
   let handleAction = () => {
     if(isInList(currentNode)){
@@ -51,10 +48,7 @@ const unorderedListAction = function ( rawEditor ) {
 const orderedListAction = function ( rawEditor ) {
   const currentNode = rawEditor.currentNode;
 
-  if(!isTextNode(currentNode)){
-    warn('Lists only supported for textNodes', {id: 'list-helpers:orderedListAction'});
-    return;
-  }
+  if(!isEligibleForListAction(currentNode)) return;
 
   let handleAction = () => {
     if(isInList(currentNode)){
@@ -75,10 +69,7 @@ const orderedListAction = function ( rawEditor ) {
 const indentAction = function ( rawEditor ) {
   const currentNode = rawEditor.currentNode;
 
-  if(!isTextNode(currentNode)){
-    warn('Indent only supported for textNodes', {id: 'list-helpers:indentAction'});
-    return;
-  }
+  if(!isEligibleForListAction(currentNode)) return;
 
   let handleAction = () => {
     if(!isInList(currentNode)){
@@ -101,10 +92,7 @@ const indentAction = function ( rawEditor ) {
 const unindentAction = function ( rawEditor ) {
   const currentNode = rawEditor.currentNode;
 
-  if(!isTextNode(currentNode)){
-    warn('UnindentAction only supported for textNodes', {id: 'list-helpers:unindentAction'});
-    return;
-  }
+  if(!isEligibleForListAction(currentNode)) return;
 
   let handleAction = () => {
     if(!isInList(currentNode)){
@@ -751,6 +739,16 @@ const unwrapLI = ( listType, LIsBefore, unwrappedLINodes, LIsAfter, parentE, lis
   //TODO: do we really need to do this here?
   parentE.insertBefore(document.createTextNode(invisibleSpace), listE);
   parentE.removeChild(listE);
+};
+
+const isEligibleForListAction = ( node ) => {
+
+  if(!isTextNode(node)){
+    warn('Current action only supported for textNodes', {id: 'list-helpers:isEligibleForListAction'});
+    return false;;
+  }
+  return true;
+
 };
 
 export { unorderedListAction, orderedListAction, indentAction, unindentAction }

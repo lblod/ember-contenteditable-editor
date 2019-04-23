@@ -725,7 +725,7 @@ const growNeighbouringSiblingsUntil = ( condition, node ) => {
   return nodes;
 };
 
-const unindentNestedLI = ( listType, LIsBefore, unindentpedLINodes, LIsAfter, parentE, listE ) => {
+const unindentNestedLI = ( listType, LIsBefore, unindentLINodes, LIsAfter, parentE, listE ) => {
   let listInLIBefore = null;
 
   if(LIsBefore.length > 0){
@@ -737,9 +737,9 @@ const unindentNestedLI = ( listType, LIsBefore, unindentpedLINodes, LIsAfter, pa
 
   let newLIContent = null;
 
-  if(unindentpedLINodes.length > 0){
+  if(unindentLINodes.length > 0){
     newLIContent = document.createElement('li');
-    unindentpedLINodes.forEach(n => newLIContent.appendChild(n));
+    unindentLINodes.forEach(n => newLIContent.appendChild(n));
   }
 
   let listInLIAfter = null;
@@ -770,7 +770,7 @@ const unindentNestedLI = ( listType, LIsBefore, unindentpedLINodes, LIsAfter, pa
 
 };
 
-const unindentLI = ( listType, LIsBefore, unindentpedLINodes, LIsAfter, parentE, listE ) => {
+const unindentLI = ( listType, LIsBefore, unindentLINodes, LIsAfter, parentE, listE ) => {
   let listBefore = null;
 
   if(LIsBefore.length > 0){
@@ -780,7 +780,7 @@ const unindentLI = ( listType, LIsBefore, unindentpedLINodes, LIsAfter, parentE,
 
   //unindent
   //TODO: check if content!!!
-  let allNodesInLI = unindentpedLINodes;
+  let allNodesInLI = unindentLINodes;
 
   let listAfter = null;
 

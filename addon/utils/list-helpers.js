@@ -581,9 +581,9 @@ const getListTagName = ( listElement ) => {
   return ['ul'].includes(listElement.tagName.toLowerCase()) ? 'ul' : 'ol';
 };
 
-/***********************************************
- * Give a node, we want to grow a region (a list of nodes)
- * we consider sensible to insert as content for an LI.
+/**
+ * Given a node, we want to grow a region (a list of nodes)
+ * we consider sensible for inserting a new list
  *
  * CURRENT IMPLEMENTATION
  * ----------------------
@@ -600,16 +600,110 @@ const getListTagName = ( listElement ) => {
  *  ```
  *  bla bal <span><a href="#"> foo | <br></a> test
  *  ```
+ * @method getLogicalBlockContentsForNewList
+ *
+ * @param {Object} domNode where cursor is
+ *
+ * @return [Array] [domNode1, ..., domNodeN]
+ *
+ * @public
  */
-const growLIContentFromNode = ( node ) => {
-
+const getLogicalBlockContentsForNewList = ( node ) => {
   let baseNode = returnParentNodeBeforeBlockElement(node);
-
   //left and right adjacent siblings should be added until we hit a block node.
   return growNeighbouringSiblingsUntil(isDisplayedAsBlock, baseNode);
 };
 
-/***********************************************
+
+/**
+ * Given a node in a list, we want to grow a region (a list of nodes)
+ * we consider sensible to for switching the type of list.
+ * In this case, we return the parent list dom element where current
+ * domNode is in.
+ *
+ * @method getLogicalBlockContentsSwitchListType
+ *
+ * @param {Object} domNode where cursor is
+ *
+ * @return [Array] [domNode1, ..., domNodeN]
+ *
+ * @public
+ */
+const getLogicalBlockContentsSwitchListType = ( node ) => {
+  let currLI = getParentLI(node);
+  return [ currLI.parentNode ];
+};
+
+
+/**
+ * Given a node in a nested list context, build the logicalBlock contents to perform
+ * an unindent (i.e. unindent) action upon.
+ *
+ * CURRENT IMPLEMENTATION
+ * ----------------------
+ *
+ * Best to use an example. "|" is cursor.
+ *
+ * Type case 1
+ * -----------
+ *
+ * ```
+ * <ol>
+ *   <li>
+ *     <ul>
+ *       some text |
+ *     </ul>
+ *   </li>
+ *</ol>
+ * ```
+ *
+ *  The region we return.
+ *
+ *  ```
+ *  some text |
+ *  ```
+ *
+ * Type case 2
+ * -----------
+ *
+ * ```
+ * <ol>
+ *   <li>
+ *     <ul>
+ *       some text <div> text in a block | </div>
+ *     </ul>
+ *   </li>
+ *</ol>
+ * ```
+ *
+ *  The region we return.
+ *
+ *  ```
+ *  <div> text in a block | </div>
+ *  ```
+ * @method getLogicalBlockContentsForUnindent
+ *
+ * @param {Object} domNode where cursor is
+ *
+ * @return [Array] [domNode1, ..., domNodeN]
+ *
+ * @public
+ */
+const getLogicalBlockContentsForUnindent = ( node ) => {
+  let currLI = getParentLI(node);
+  let currLiNodes = [...currLI.childNodes];
+  let potentialBlockParentCurrentNode = currLiNodes.find(n => isDisplayedAsBlock(n) && n.contains(node));
+
+  if(potentialBlockParentCurrentNode)
+    return [ potentialBlockParentCurrentNode ];
+
+  let baseNode = returnParentNodeBeforeBlockElement(node);
+  return growNeighbouringSiblingsUntil(isDisplayedAsBlock, baseNode);
+
+};
+
+
+/**
  * Walk up the parents until a blockElement is matched.
  * return the node of wich the parent is the matching
  * block element

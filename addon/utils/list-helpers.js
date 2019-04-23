@@ -22,6 +22,7 @@ import { warn } from '@ember/debug';
  *      <li> felix <ul><li><div> this | node </div></li></ul></li> should be
  */
 
+
 /**
  * handles unordered list
  */
@@ -30,17 +31,10 @@ const unorderedListAction = function ( rawEditor ) {
 
   if(!isEligibleForListAction(currentNode)) return;
 
-  let handleAction = () => {
-    if(isInList(currentNode)){
-      let nestedContextHandler = getNestedContextHandler(currentNode, unorderedListAction);
-      nestedContextHandler(rawEditor, currentNode);
-      return;
-    }
-    insertNewList(rawEditor, currentNode);
-  };
-
-  rawEditor.externalDomUpdate('handle unorderedListAction', handleAction);
+  rawEditor.externalDomUpdate('handle unorderedListAction',
+                              handleListAction(rawEditor, currentNode, unorderedListAction, 'ul'));
 };
+
 
 /**
  * handles ordered list
@@ -50,16 +44,8 @@ const orderedListAction = function ( rawEditor ) {
 
   if(!isEligibleForListAction(currentNode)) return;
 
-  let handleAction = () => {
-    if(isInList(currentNode)){
-      let nestedContextHandler = getNestedContextHandler(currentNode, orderedListAction);
-      nestedContextHandler(rawEditor, currentNode);
-      return;
-    }
-    insertNewList(rawEditor, currentNode, 'ol');
-  };
-
-  rawEditor.externalDomUpdate('handle orderedListAction', handleAction);
+  rawEditor.externalDomUpdate('handle orderedListAction',
+                              handleListAction(rawEditor, currentNode, orderedListAction, 'ol'));
 };
 
 
@@ -98,18 +84,42 @@ const unindentAction = function ( rawEditor ) {
     if(!isInList(currentNode)){
       warn('Indent only supported in context of list', {id: 'list-helpers:unindentAction'});
     }
-    unwrapLIAndSplitList(rawEditor, currentNode);
+    unindentLIAndSplitList(rawEditor, currentNode);
   };
 
   rawEditor.externalDomUpdate('handle unindentAction', handleAction);
 };
 
+
 /***************************************************
  * HELPERS
  ***************************************************/
 
+/**
+ * Boilerplate to handle List action
+ * Both for UL and OL
+ */
+const handleListAction = ( rawEditor, currentNode, actionType, listType) => {
+  return () => {
+    if(!isInList(currentNode)){
+      let logicalBlockContents = getLogicalBlockContentsForNewList(currentNode);
+      insertNewList(rawEditor, logicalBlockContents, listType);
+      return;
+    }
 
-/***************************************************
+    if(doesActionSwitchListType(currentNode, actionType)){
+      let logicalBlockContents = getLogicalBlockContentsSwitchListType(currentNode);
+      shuffleListType(rawEditor, logicalBlockContents);
+      return;
+    }
+
+    let logicalBlockContents = getLogicalBlockContentsForUnindent(currentNode);
+    unindentLogicalBlockContents(rawEditor, logicalBlockContents);
+  };
+};
+
+
+/**
  * Checks whether node is in a list
  *
  *   EXAMPLES NOT IN A LIST

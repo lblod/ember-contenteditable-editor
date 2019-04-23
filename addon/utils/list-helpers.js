@@ -17,6 +17,205 @@ import { warn } from '@ember/debug';
  *  - block decent support unindent.
  *  - clean up
  *  - case 20 in dummy app does not work
+ *
+ * IMPLEMENTED BEHAVIOUR
+ * ---------------------
+ *   The '|' represents the cursor and gives an idea about the currentNode.
+ *
+ *  Some examples
+ *
+ *   case 1
+ *   ------
+ *   Call unorderedListAction x 1
+ *   ```
+ *   | a some text
+ *   ```
+ *   ```
+ *   <ul>
+ *     <li>| a some text</li>
+ *   </ul>
+ *   ```
+ *
+ *   case 2
+ *   ------
+ *   Call unorderedListAction x 1
+ *   ```
+ *   a some <span> t | ext </span>
+ *   ```
+ *   ```
+ *   <ul>
+ *     <li>a some <span> t | ext </span></li>
+ *   </ul>
+ *   ```
+ *
+ *   case 3
+ *   ------
+ *   Call indent x 1
+ *   ```
+ *    <ul>
+ *     <li> a some <div> block element text | </div>  other text </li>
+ *    </ul>
+ *   ```
+ *   ```
+ *    <ul>
+ *      <li> a some
+ *        <ul>
+ *          <li><div> block element text | </div></li>
+ *        </ul>
+ *        other text
+ *      </li>
+ *    </ul>
+ *   ```
+ *
+ *   case 4
+ *   ------
+ *   Call unorderedListAction x 1
+ *    ```
+ *    A case |- with br-tag <br> new line. <br> we Will need to refine this.
+ *    ```
+ *
+ *    ```
+ *    <ul>
+ *      <li>A case |- with br-tag <br> new line. <br> we Will need to refine this.</li>
+ *    </ul>
+ *    ```
+ *
+ *   case 6
+ *   ------
+ *   Call unorderedListAction or unindent x 1
+ *   ```
+ *   <ul>
+ *     <li> The first </li>
+ *     <li>| a some text</li>
+ *     <li> the last </li>
+ *   </ul>
+ *   ```
+ *
+ *    ```
+ *   <ul>
+ *    <li> The first </li>
+ *   </ul>
+ *   | a some text
+ *   <ul>
+ *     <li> the last </li>
+ *   </ul>
+ *    ```
+ *
+ *   case 7
+ *   ------
+ *   Call unorderedListAction or unindent x 1
+ *   ```
+ *   <ul>
+ *     <li>| a some text</li>
+ *   </ul>
+ *   ```
+ *
+ *    ```
+ *    a some <span> t | ext </span>
+ *    ```
+ *
+ *   case 8
+ *   ------
+ *   Call unorderedListAction or unindent x 1
+ *   ```
+ *    <ul>
+ *     <li> a | some <div> block element text </div>  other text </li>
+ *    </ul>
+ *   ```
+ *   ```
+ *    <ul>
+ *     <li> <div> block element text </div>  other text </li>
+ *    </ul>
+ *    a | some
+ *   ```
+ *
+ *   case 9
+ *   ------
+ *   Call unorderedListAction or unindent x 1
+ *   ```
+ *    <ul>
+ *      <li> item 1</li>
+ *     <li>
+ *       <ul>
+ *          <li> subitem 1</li>
+ *          <li> subitem | 2 </li>
+ *          <li> subitem 3</li>
+ *       </ul>
+ *     </li>
+ *     <li> item 2</li>
+ *    </ul>
+ *   ```
+ *   ```
+ *    <ul>
+ *      <li> item 1</li>
+ *     <li>
+ *       <ul>
+ *          <li> subitem 1</li>
+ *       </ul>
+ *     </li>
+ *     <li> subitem | 2 </li>
+ *     <li>
+ *       <ul>
+ *          <li> subitem 3</li>
+ *       </ul>
+ *     </li>
+ *     <li> item 2</li>
+ *    </ul>
+ *   ```
+ *
+ *   case 10
+ *   ------
+ *   Call unorderedListAction or unindent x 1
+ *
+ *   ```
+ *    <ul>
+ *      <li> item 1</li>
+ *     <li>
+ *       <ul>
+ *          <li> subitem 1</li>
+ *          <li><div> subitem | 2 </div></li>
+ *          <li> subitem 3</li>
+ *       </ul>
+ *     </li>
+ *     <li> item 2</li>
+ *    </ul>
+ *   ```
+ *   ```
+ *    <ul>
+ *      <li> item 1</li>
+ *     <li>
+ *       <ul>
+ *          <li> subitem 1</li>
+ *       </ul>
+ *     </li>
+ *     <li><div> subitem | 2 </div></li>
+ *     <li>
+ *       <ul>
+ *          <li> subitem 3</li>
+ *       </ul>
+ *     </li>
+ *     <li> item 2</li>
+ *    </ul>
+ *   ```
+ *
+ *   case 11
+ *   ------
+ *   Call unorderedListAction x 1
+ *
+ *   ```
+ *   <ul>
+ *     <li> The first </li>
+ *     <li>| a some text</li>
+ *     <li> the last </li>
+ *   </ul>
+ *   ```
+ *
+ *   ```
+ *   <ol>
+ *     <li> The first </li>
+ *     <li>| a some text</li>
+ *     <li> the last </li>
+ *   </ol>
  */
 
 
@@ -120,7 +319,7 @@ const handleListAction = ( rawEditor, currentNode, actionType, listType) => {
  *
  *   EXAMPLES NOT IN A LIST
  *   ----------------------
- *   The '|' represents the cursor and gives an idea about the currentNode.
+
  *
  *   ```
  *   | a some text
@@ -171,66 +370,6 @@ const isInList = ( node ) => {
  *    - Cursor positioning is weird
  *    - The ending textNode issue is not properly tackeled
  *
- *   EXAMPLES
- *   --------
- *   The '|' represents the cursor and gives an idea about the currentNode.
- *
- *   case 1
- *   ------
- *
- *   ```
- *   | a some text
- *   ```
- *   ```
- *   <ul>
- *     <li>| a some text</li>
- *   </ul>
- *   ```
- *
- *   case 2
- *   ------
- *
- *   ```
- *   a some <span> t | ext </span>
- *   ```
- *   ```
- *   <ul>
- *     <li>a some <span> t | ext </span></li>
- *   </ul>
- *   ```
- *
- *   case 3
- *   ------
- *
- *   ```
- *    <ul>
- *     <li> a some <div> block element text | </div>  other text </li>
- *    </ul>
- *   ```
- *   ```
- *    <ul>
- *      <li> a some
- *        <div>
- *          <ul>
- *            <li> block element text | </li>
- *          </ul>
- *        </div>
- *        other text
- *      </li>
- *    </ul>
- *   ```
- *
- *    case 4
- *    ------
- *    ```
- *    A case |- with br-tag <br> new line. <br> we Will need to refine this.
- *    ```
- *
- *    ```
- *    <ul>
- *      <li>A case |- with br-tag <br> new line. <br> we Will need to refine this.</li>
- *    </ul>
- *    ```
  */
 const insertNewList = ( rawEditor, logicalListBlocks, listType = 'ul' ) => {
   let listELocationRef = logicalListBlocks[0];
@@ -264,125 +403,6 @@ const insertNewList = ( rawEditor, logicalListBlocks, listType = 'ul' ) => {
  *  -----
  *    - Cursors positioning is weird
  *    - The ending textNode issue is not properly tackeled
- *
- *   EXAMPLES
- *   --------
- *   The '|' represents the cursor and gives an idea about the currentNode.
- *
- *   case 1
- *   ------
- *
- *   ```
- *   <ul>
- *     <li> The first </li>
- *     <li>| a some text</li>
- *     <li> the last </li>
- *   </ul>
- *   ```
- *
- *    ```
- *   <ul>
- *    <li> The first </li>
- *   </ul>
- *   | a some text
- *   <ul>
- *     <li> the last </li>
- *   </ul>
- *    ```
- *   case 2
- *   ------
- *
- *   ```
- *   <ul>
- *     <li>| a some text</li>
- *   </ul>
- *   ```
- *
- *    ```
- *    a some <span> t | ext </span>
- *    ```
- *
- *   case 3
- *   ------
- *
- *   ```
- *    <ul>
- *     <li> a | some <div> block element text </div>  other text </li>
- *    </ul>
- *   ```
- *   ```
- *    <ul>
- *     <li> <div> block element text </div>  other text </li>
- *    </ul>
- *    a | some
- *   ```
-*
- *   case 4
- *   ------
- *
- *   ```
- *    <ul>
- *      <li> item 1</li>
- *     <li>
- *       <ul>
- *          <li> subitem 1</li>
- *          <li> subitem | 2 </li>
- *          <li> subitem 3</li>
- *       </ul>
- *     </li>
- *     <li> item 2</li>
- *    </ul>
- *   ```
- *   ```
- *    <ul>
- *      <li> item 1</li>
- *     <li>
- *       <ul>
- *          <li> subitem 1</li>
- *       </ul>
- *     </li>
- *     <li> subitem | 2 </li>
- *     <li>
- *       <ul>
- *          <li> subitem 3</li>
- *       </ul>
- *     </li>
- *     <li> item 2</li>
- *    </ul>
- *   ```
- *   case 5
- *   ------
- *
- *   ```
- *    <ul>
- *      <li> item 1</li>
- *     <li>
- *       <ul>
- *          <li> subitem 1</li>
- *          <li><div> subitem | 2 </div></li>
- *          <li> subitem 3</li>
- *       </ul>
- *     </li>
- *     <li> item 2</li>
- *    </ul>
- *   ```
- *   ```
- *    <ul>
- *      <li> item 1</li>
- *     <li>
- *       <ul>
- *          <li> subitem 1</li>
- *       </ul>
- *     </li>
- *     <li><div> subitem | 2 </div></li>
- *     <li>
- *       <ul>
- *          <li> subitem 3</li>
- *       </ul>
- *     </li>
- *     <li> item 2</li>
- *    </ul>
- *   ```
  */
 const unindentLogicalBlockContents = ( rawEditor, logicalBlockContents ) => {
 
@@ -460,37 +480,14 @@ const unindentLogicalBlockContents = ( rawEditor, logicalBlockContents ) => {
 };
 
 
-/***************************************************
+/**
  * Switches list type where currentNode is situated in.
  *
  *  TODOS
  *  -----
  *    - Cursors positioning is weird
  *    - The ending textNode issue is not properly tackeled
- *
- *   EXAMPLES
- *   --------
- *   The '|' represents the cursor and gives an idea about the currentNode.
- *
- *   case 1
- *   ------
- *
- *   ```
- *   <ul>
- *     <li> The first </li>
- *     <li>| a some text</li>
- *     <li> the last </li>
- *   </ul>
- *   ```
- *
- *   ```
- *   <ol>
- *     <li> The first </li>
- *     <li>| a some text</li>
- *     <li> the last </li>
- *   </ol>
- *   ```
- ****************************************************/
+ */
 const shuffleListType = ( rawEditor, logicalBlockContents) => {
   let currlistE = logicalBlockContents[0];
   let currlistType = getListTagName(currlistE);

@@ -17,9 +17,6 @@ import { warn } from '@ember/debug';
  *  - block decent support unindent.
  *  - clean up
  *  - case 20 in dummy app does not work
- *  - indenting
- *      <li> felix <div> this | node </div> </li> should be
- *      <li> felix <ul><li><div> this | node </div></li></ul></li> should be
  */
 
 
@@ -58,14 +55,13 @@ const indentAction = function ( rawEditor ) {
   if(!isEligibleForListAction(currentNode)) return;
 
   let handleAction = () => {
-    if(!isInList(currentNode)){
-      warn('Indent only supported in context of list', {id: 'list-helpers:indentAction'});
-      return;
-    }
+    if(!isEligibleForIndentAction(currentNode)) return;
+
     let currLI = getParentLI(currentNode);
     let currlistE = currLI.parentNode;
     let currlistType = getListTagName(currlistE);
-    insertNewList(rawEditor, currentNode, currlistType);
+    let logicalBlockContents = getLogicalBlockContentsForIndentationAction(currentNode);
+    insertNewList(rawEditor, logicalBlockContents, currlistType);
   };
 
   rawEditor.externalDomUpdate('handle indentAction', handleAction);
@@ -81,10 +77,10 @@ const unindentAction = function ( rawEditor ) {
   if(!isEligibleForListAction(currentNode)) return;
 
   let handleAction = () => {
-    if(!isInList(currentNode)){
-      warn('Indent only supported in context of list', {id: 'list-helpers:unindentAction'});
-    }
-    unindentLIAndSplitList(rawEditor, currentNode);
+    if(!isEligibleForIndentAction(currentNode)) return;
+
+    let logicalBlockContents = getLogicalBlockContentsForIndentationAction(currentNode);
+    unindentLogicalBlockContents(rawEditor, logicalBlockContents);
   };
 
   rawEditor.externalDomUpdate('handle unindentAction', handleAction);

@@ -835,4 +835,16 @@ const isEligibleForListAction = ( node ) => {
 
 };
 
+const isEligibleForIndentAction = ( node ) => {
+
+  if(!isInList(node)){
+      warn('Indent only supported in context of list', {id: 'list-helpers:isEligibleForIndentAction'});
+      return false;
+  }
+  return true;
+
+};
+
+
+
 export { unorderedListAction, orderedListAction, indentAction, unindentAction }

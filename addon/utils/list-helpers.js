@@ -164,7 +164,7 @@ const handleListAction = ( rawEditor, currentNode, actionType, listType) => {
  *     </li>
  *   </ul>
  *   ```
- ***************************************************/
+ */
 const isInList = ( node ) => {
   let currNode = node.parentNode;
   while(currNode){
@@ -178,7 +178,7 @@ const isInList = ( node ) => {
 };
 
 
-/***************************************************
+/**
  * Inserts a new list.
  *
  *  TODOS
@@ -251,10 +251,9 @@ const isInList = ( node ) => {
  *      <li>A case |- with br-tag <br> new line. <br> we Will need to refine this.</li>
  *    </ul>
  *    ```
- ***************************************************/
-const insertNewList = ( rawEditor, currentNode, listType = 'ul' ) => {
-  let liContentNodes = growLIContentFromNode(currentNode);
-  let listELocationRef = liContentNodes[0];
+ */
+const insertNewList = ( rawEditor, logicalListBlocks, listType = 'ul' ) => {
+  let listELocationRef = logicalListBlocks[0];
 
   let listE = document.createElement(listType);
   let li = document.createElement('li');
@@ -271,14 +270,15 @@ const insertNewList = ( rawEditor, currentNode, listType = 'ul' ) => {
   // provide a text node after the list
   //TODO: do we really need to do this here? Can it be more sublte?
   parent.insertBefore(document.createTextNode(invisibleSpace), listELocationRef);
-  liContentNodes.forEach(n => li.appendChild(n));
+  logicalListBlocks.forEach(n => li.appendChild(n));
 
   //Editor state update
   rawEditor.updateRichNode();
 };
 
-/***************************************************
- * Unwraps list content from an LI from a list wiht multiple LI's and splits the list.
+
+/**
+ * Unindents logical block contents from context it resides in.
  *
  *  TODOS
  *  -----
@@ -403,17 +403,17 @@ const insertNewList = ( rawEditor, currentNode, listType = 'ul' ) => {
  *     <li> item 2</li>
  *    </ul>
  *   ```
- ***************************************************/
-const unwrapLIAndSplitList = ( rawEditor, currentNode ) => {
+ */
+const unindentLogicalBlockContents = ( rawEditor, logicalBlockContents ) => {
 
-  let currLI = getParentLI(currentNode);
+  let currLI = getParentLI(logicalBlockContents[0]);
   let listE = currLI.parentNode;
   let listType = getListTagName(listE);
   let parentE = listE.parentNode;
   let allLIs = [...listE.children];
 
   if(!currLI || !listE || !parentE){
-    warn('No wrapping LI/List/Parent of list found!', {id: 'list-helpers:unwrapLIAndSplitList'});
+    warn('No wrapping LI/List/Parent of list found!', {id: 'list-helpers:unindentLIAndSplitList'});
     return;
   }
 
@@ -443,14 +443,12 @@ const unwrapLIAndSplitList = ( rawEditor, currentNode ) => {
 
   //It might be the case that currentNode is part of block.
   //Then we choose to split LI around that block
-  let potentialBlockParentCurrentNode = currLiNodes.find(n => isDisplayedAsBlock(n) && n.contains(currentNode));
-  let LINodesToUnwrap = potentialBlockParentCurrentNode ? [ potentialBlockParentCurrentNode ] : growLIContentFromNode(currentNode);
   let LINodesBefore = [];
   let LINodesAfter = [];
   let nodeListToUpdate = LINodesBefore;
 
   for(var liN of currLiNodes){
-    if(LINodesToUnwrap.some(n => n.isSameNode(liN))){
+    if(logicalBlockContents.some(n => n.isSameNode(liN))){
       currLI.removeChild(liN);
       nodeListToUpdate = LINodesAfter;
       continue;
@@ -473,10 +471,10 @@ const unwrapLIAndSplitList = ( rawEditor, currentNode ) => {
   //END SPLIT LI
 
   if(!isInList(listE)){
-    unwrapLI(listType, LIsBefore, LINodesToUnwrap, LIsAfter, parentE, listE);
+    unindentLI(listType, LIsBefore, logicalBlockContents, LIsAfter, parentE, listE);
   }
   else{
-    unwrapNestedLI(listType, LIsBefore, LINodesToUnwrap, LIsAfter, parentE, listE);
+    unindentNestedLI(listType, LIsBefore, logicalBlockContents, LIsAfter, parentE, listE);
   }
   rawEditor.updateRichNode();
 };
@@ -513,9 +511,8 @@ const unwrapLIAndSplitList = ( rawEditor, currentNode ) => {
  *   </ol>
  *   ```
  ****************************************************/
-const shuffleListType = ( rawEditor, currentNode) => {
-  let currLI = getParentLI(currentNode);
-  let currlistE = currLI.parentNode;
+const shuffleListType = ( rawEditor, logicalBlockContents) => {
+  let currlistE = logicalBlockContents[0];
   let currlistType = getListTagName(currlistE);
   let targetListType = currlistType == 'ul'?'ol':'ul';
   let parentE = currlistE.parentNode;
@@ -537,42 +534,19 @@ const shuffleListType = ( rawEditor, currentNode) => {
 /***************************************************
  * UTILS
  ***************************************************/
-
-
-/***************************************************
- * dispatch function to get the proper nested
- * context handler,
- * depending on what the context looks like
- ***************************************************/
-const getNestedContextHandler = ( node, listAction ) => {
+const doesActionSwitchListType = ( node, listAction ) => {
   let li = getParentLI(node);
   let listE = li.parentElement;
-
-  if(!listE){
-    return () => { warn('unsupported nested context.', {id: 'list-helpers:getNestedContextHandler'});};
-  }
-
-  if(!isListActionConsistentWithCurrentList(listE, listAction)){
-    return shuffleListType;
-  }
-
-  return unwrapLIAndSplitList;
-};
-
-const isListActionConsistentWithCurrentList = ( listE, listAction ) => {
   let listType = getListTagName(listE);
   if(listType == 'ul' && listAction == unorderedListAction){
-    return true;
+    return false;
   }
   if(listType == 'ol' && listAction == orderedListAction){
-    return true;
+    return false;
   }
-  return false;
+  return true;
 };
 
-/***************************************************
- * Gets first Parent LI or none
- ***************************************************/
 const getParentLI = (node) => {
   if(!node.parentNode) return null;
   if(isLI(node.parentNode)) return node.parentNode;
@@ -720,10 +694,15 @@ const getLogicalBlockContentsForUnindent = ( node ) => {
  * This is useful for fetching the span element in following example:
  *   ```
  *    <p>
- *      text <span> foo <a href="#"> current node </a></span>
+ *      text <span> foo <a href="#"> current node | </a></span>
  *    </p>
  *   ```
- ************************************************/
+ *  The node we return.
+ *
+ *  ```
+ *  <span> foo <a href="#"> current node | </a></span>
+ *  ```
+ */
 const returnParentNodeBeforeBlockElement = ( node ) => {
   if(!node.parentNode) return node;
 
@@ -734,10 +713,11 @@ const returnParentNodeBeforeBlockElement = ( node ) => {
   return returnParentNodeBeforeBlockElement(node.parentNode);
 };
 
-/***********************************************
+
+/**
  * Give a node, we want to grow a region (a list of sibling nodes)
  * until we match a condition
- ************************************************/
+ */
 const growNeighbouringSiblingsUntil = ( condition, node ) => {
   let nodes = [];
   let currNode = node;
@@ -765,7 +745,7 @@ const growNeighbouringSiblingsUntil = ( condition, node ) => {
   return nodes;
 };
 
-const unwrapNestedLI = ( listType, LIsBefore, unwrappedLINodes, LIsAfter, parentE, listE ) => {
+const unindentNestedLI = ( listType, LIsBefore, unindentpedLINodes, LIsAfter, parentE, listE ) => {
   let listInLIBefore = null;
 
   if(LIsBefore.length > 0){
@@ -777,9 +757,9 @@ const unwrapNestedLI = ( listType, LIsBefore, unwrappedLINodes, LIsAfter, parent
 
   let newLIContent = null;
 
-  if(unwrappedLINodes.length > 0){
+  if(unindentpedLINodes.length > 0){
     newLIContent = document.createElement('li');
-    unwrappedLINodes.forEach(n => newLIContent.appendChild(n));
+    unindentpedLINodes.forEach(n => newLIContent.appendChild(n));
   }
 
   let listInLIAfter = null;
@@ -810,7 +790,7 @@ const unwrapNestedLI = ( listType, LIsBefore, unwrappedLINodes, LIsAfter, parent
 
 };
 
-const unwrapLI = ( listType, LIsBefore, unwrappedLINodes, LIsAfter, parentE, listE ) => {
+const unindentLI = ( listType, LIsBefore, unindentpedLINodes, LIsAfter, parentE, listE ) => {
   let listBefore = null;
 
   if(LIsBefore.length > 0){
@@ -818,9 +798,9 @@ const unwrapLI = ( listType, LIsBefore, unwrappedLINodes, LIsAfter, parentE, lis
     LIsBefore.forEach(li => listBefore.append(li));
   }
 
-  //unwrap
+  //unindent
   //TODO: check if content!!!
-  let allNodesInLI = unwrappedLINodes;
+  let allNodesInLI = unindentpedLINodes;
 
   let listAfter = null;
 

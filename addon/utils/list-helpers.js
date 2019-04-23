@@ -109,7 +109,7 @@ const handleListAction = ( rawEditor, currentNode, actionType, listType) => {
       return;
     }
 
-    let logicalBlockContents = getLogicalBlockContentsForUnindent(currentNode);
+    let logicalBlockContents = getLogicalBlockContentsForIndentationAction(currentNode);
     unindentLogicalBlockContents(rawEditor, logicalBlockContents);
   };
 };
@@ -133,25 +133,13 @@ const handleListAction = ( rawEditor, currentNode, actionType, listType) => {
  *   EXAMPLES IN A LIST
  *   ------------------
  *
+ *    Note here: when in a nested list context even if cursors is in block element,
+ *    we return true
  *    ```
  *    <ul>
  *     <li> a some <div> block element text | </div>  other text </li>
  *    </ul>
  *    ```
- *
- *   ```
- *   <ul>
- *    <li> a some <div> text </div>  other text </li>
- *    <li>  other text | </li>
- *   </ul>
- *
- *   ```
- *
- *   ```
- *   <ul>
- *     <li> a some <div> text </div>  other text other text |</li>
- *   </ul>
- *   ```
  *
  *   ```
  *   <ul>
@@ -198,10 +186,6 @@ const isInList = ( node ) => {
  *     <li>| a some text</li>
  *   </ul>
  *   ```
- *
- *    ```
- *    a some <span> t | ext </span>
- *    ```
  *
  *   case 2
  *   ------
@@ -661,7 +645,7 @@ const getLogicalBlockContentsSwitchListType = ( node ) => {
  *  ```
  *  <div> text in a block | </div>
  *  ```
- * @method getLogicalBlockContentsForUnindent
+ * @method getLogicalBlockContentsForIndentationAction
  *
  * @param {Object} domNode where cursor is
  *
@@ -669,7 +653,7 @@ const getLogicalBlockContentsSwitchListType = ( node ) => {
  *
  * @public
  */
-const getLogicalBlockContentsForUnindent = ( node ) => {
+const getLogicalBlockContentsForIndentationAction = ( node ) => {
   let currLI = getParentLI(node);
   let currLiNodes = [...currLI.childNodes];
   let potentialBlockParentCurrentNode = currLiNodes.find(n => isDisplayedAsBlock(n) && n.contains(node));
@@ -711,7 +695,7 @@ const returnParentNodeBeforeBlockElement = ( node ) => {
 
 
 /**
- * Give a node, we want to grow a region (a list of sibling nodes)
+ * Given a node, we want to grow a region (a list of sibling nodes)
  * until we match a condition
  */
 const growNeighbouringSiblingsUntil = ( condition, node ) => {

@@ -13,7 +13,7 @@ import { warn } from '@ember/debug';
  * TODO
  * ----
  *  - cursor positonining is uncontrolled right now, after action handled.
- *  - Decent insertTextNode for cursor: find best guess on when to this.
+ *  - some times empty textnodes are not included in logicalBlock. Probably an issue with the conditoin isDisplayedAsBlock
  *
  * IMPLEMENTED BEHAVIOUR
  * ---------------------
@@ -377,7 +377,7 @@ const insertNewList = ( rawEditor, logicalListBlocks, listType = 'ul' ) => {
 
   parent.insertBefore(listE, listELocationRef);
   logicalListBlocks.forEach(n => li.appendChild(n));
-  
+
   if(!isInList(listE)) //let's assume if you nest a list, you don't want to wrap text around it
     makeLogicalBlockCursorSafe([listE]);
 
@@ -492,10 +492,6 @@ const shuffleListType = ( rawEditor, logicalBlockContents) => {
   rawEditor.updateRichNode();
 };
 
-
-/***************************************************
- * UTILS
- ***************************************************/
 const doesActionSwitchListType = ( node, listAction ) => {
   let li = getParentLI(node);
   let listE = li.parentElement;
@@ -740,7 +736,9 @@ const createParentWithLogicalBlockContents = ( logicalBlockContents, type ) => {
   return element;
 };
 
-
+/**
+ * Checks wether node is safe to put a cursor in. Checks either left or right from the node.
+ */
 const isNodeCursorSafe = ( node, before = true ) => {
   if(node.nodeType == Node.TEXT_NODE)
     return true;
@@ -766,6 +764,14 @@ const isNodeCursorSafe = ( node, before = true ) => {
   return true;
 };
 
+/**
+ * Makes sure logicalBlock is cursor safe.
+ * By checking the first BlockContentNode as being safe at its left.
+ * The last node is checked at its right.
+ * Adds invisibleWhitespace
+ * The inbetween elements are ignored.
+ * (This function is basically something which should be executed at anthoer level)
+ */
 const makeLogicalBlockCursorSafe = ( logicalBlockContents ) => {
   if(logicalBlockContents.length == 0) return logicalBlockContents;
 

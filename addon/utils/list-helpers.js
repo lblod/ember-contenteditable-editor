@@ -218,7 +218,6 @@ import { warn } from '@ember/debug';
  *   </ol>
  */
 
-
 /**
  * handles unordered list
  */
@@ -231,7 +230,6 @@ const unorderedListAction = function ( rawEditor ) {
                               handleListAction(rawEditor, currentNode, unorderedListAction, 'ul'));
 };
 
-
 /**
  * handles ordered list
  */
@@ -243,7 +241,6 @@ const orderedListAction = function ( rawEditor ) {
   rawEditor.externalDomUpdate('handle orderedListAction',
                               handleListAction(rawEditor, currentNode, orderedListAction, 'ol'));
 };
-
 
 /**
  * handles indent Action
@@ -265,7 +262,6 @@ const indentAction = function ( rawEditor ) {
 
   rawEditor.externalDomUpdate('handle indentAction', handleAction);
 };
-
 
 /**
  * handles unindent Action
@@ -313,7 +309,6 @@ const handleListAction = ( rawEditor, currentNode, actionType, listType) => {
   };
 };
 
-
 /**
  * Checks whether node is in a list
  *
@@ -359,7 +354,6 @@ const isInList = ( node ) => {
   return false;
 };
 
-
 /**
  * Inserts a new list.
  *
@@ -394,7 +388,6 @@ const insertNewList = ( rawEditor, logicalListBlocks, listType = 'ul' ) => {
   rawEditor.updateRichNode();
 };
 
-
 /**
  * Unindents logical block contents from context it resides in.
  *
@@ -416,7 +409,7 @@ const unindentLogicalBlockContents = ( rawEditor, logicalBlockContents, moveOneL
     return;
   }
 
-  let [LIsBefore, LIsAfter] = siblingsBeforeAndAfterLogicalBlockContents(allLIs,[ currLI ]);
+  let [LIsBefore, LIsAfter] = siblingsBeforeAndAfterLogicalBlockContents(allLIs, [currLI]);
   let [siblingsBefore, siblingsAfter] = siblingsBeforeAndAfterLogicalBlockContents([...currLI.childNodes], logicalBlockContents);
 
   if(siblingsBefore.length > 0){
@@ -464,7 +457,6 @@ const unindentLogicalBlockContents = ( rawEditor, logicalBlockContents, moveOneL
   rawEditor.updateRichNode();
 };
 
-
 /**
  * Switches list type where currentNode is situated in.
  *
@@ -492,6 +484,7 @@ const shuffleListType = ( rawEditor, logicalBlockContents) => {
   //Editor state update
   rawEditor.updateRichNode();
 };
+
 
 /***************************************************
  * UTILS
@@ -560,7 +553,6 @@ const getLogicalBlockContentsForNewList = ( node ) => {
   return growNeighbouringSiblingsUntil(isDisplayedAsBlock, baseNode);
 };
 
-
 /**
  * Given a node in a list, we want to grow a region (a list of nodes)
  * we consider sensible to for switching the type of list.
@@ -579,7 +571,6 @@ const getLogicalBlockContentsSwitchListType = ( node ) => {
   let currLI = getParentLI(node);
   return [ currLI.parentNode ];
 };
-
 
 /**
  * Given a node in a nested list context, build the logicalBlock contents to perform
@@ -648,7 +639,6 @@ const getLogicalBlockContentsForIndentationAction = ( node ) => {
 
 };
 
-
 /**
  * Walk up the parents until a blockElement is matched.
  * return the node of wich the parent is the matching
@@ -674,7 +664,6 @@ const returnParentNodeBeforeBlockElement = ( node ) => {
 
   return returnParentNodeBeforeBlockElement(node.parentNode);
 };
-
 
 /**
  * Given a node, we want to grow a region (a list of sibling nodes)

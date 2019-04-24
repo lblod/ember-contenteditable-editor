@@ -319,7 +319,6 @@ const handleListAction = ( rawEditor, currentNode, actionType, listType) => {
  *
  *   EXAMPLES NOT IN A LIST
  *   ----------------------
-
  *
  *   ```
  *   | a some text
@@ -404,7 +403,7 @@ const insertNewList = ( rawEditor, logicalListBlocks, listType = 'ul' ) => {
  *    - Cursors positioning is weird
  *    - The ending textNode issue is not properly tackeled
  */
-const unindentLogicalBlockContents = ( rawEditor, logicalBlockContents ) => {
+const unindentLogicalBlockContents = ( rawEditor, logicalBlockContents, moveOneListUpwards= false ) => {
 
   let currLI = getParentLI(logicalBlockContents[0]);
   let listE = currLI.parentNode;
@@ -417,65 +416,51 @@ const unindentLogicalBlockContents = ( rawEditor, logicalBlockContents ) => {
     return;
   }
 
-  let LIsBefore =  [];
-  let LIsAfter = [];
-  let listToUpdate = LIsBefore;
-  for(var e of allLIs){
-    if(e.isSameNode(currLI)){
-      listToUpdate = LIsAfter;
-      continue;
-    }
-    listToUpdate.push(e);
-  };
+  let [LIsBefore, LIsAfter] = siblingsBeforeAndAfterLogicalBlockContents(allLIs,[ currLI ]);
+  let [siblingsBefore, siblingsAfter] = siblingsBeforeAndAfterLogicalBlockContents([...currLI.childNodes], logicalBlockContents);
 
-
-  //SPLIT LI: Make sure this happens:
-  //    ```
-  //     <ul><li> felix <div>foo</div> ruiz | <div>other div text </div></li></ul>
-  //     ```
-  // to
-  //     ```
-  //       <ul><li> felix <div>foo</div></li></ul>
-  //         ruiz |
-  //       <ul><div>other div text </div></li></ul>
-  //     ```
-  let currLiNodes = [...currLI.childNodes];
-
-  //It might be the case that currentNode is part of block.
-  //Then we choose to split LI around that block
-  let LINodesBefore = [];
-  let LINodesAfter = [];
-  let nodeListToUpdate = LINodesBefore;
-
-  for(var liN of currLiNodes){
-    if(logicalBlockContents.some(n => n.isSameNode(liN))){
-      currLI.removeChild(liN);
-      nodeListToUpdate = LINodesAfter;
-      continue;
-    }
-    nodeListToUpdate.push(liN);
-  }
-
-  if(LINodesBefore.length > 0){
-    let li = document.createElement('li');
-    LINodesBefore.forEach(n => li.appendChild(n));
+  if(siblingsBefore.length > 0){
+    let li = createParentWithLogicalBlockContents(siblingsBefore, 'li');
     LIsBefore.push(li);
   }
 
-  if(LINodesAfter.length > 0){
-    let li = document.createElement('li');
-    LINodesAfter.forEach(n => li.appendChild(n));
-    LIsAfter.push(li);
+  if(siblingsAfter.length > 0){
+    let li = createParentWithLogicalBlockContents(siblingsAfter, 'li');
+    LIsAfter = [li, ...LIsAfter];
   }
 
-  //END SPLIT LI
+  if(LIsBefore.length > 0 && !moveOneListUpwards){
+    let listBefore = createParentWithLogicalBlockContents(LIsBefore, listType);
+    parentE.insertBefore(listBefore, listE);
+  }
 
-  if(!isInList(listE)){
-    unindentLI(listType, LIsBefore, logicalBlockContents, LIsAfter, parentE, listE);
+  if(!moveOneListUpwards)
+    logicalBlockContents.forEach(n => parentE.insertBefore(n, listE));
+
+  if(LIsAfter.length > 0 && !moveOneListUpwards){
+    let listAfter = createParentWithLogicalBlockContents(LIsAfter, listType);
+    parentE.insertBefore(listAfter, listE);
   }
-  else{
-    unindentNestedLI(listType, LIsBefore, logicalBlockContents, LIsAfter, parentE, listE);
+
+  if(!isInList(listE) && !moveOneListUpwards){
+    // provide a text node after the list
+    //TODO: do we really need to do this here?
+    parentE.insertBefore(document.createTextNode(invisibleSpace), listE);
   }
+
+  if(isInList(listE) && !moveOneListUpwards){
+    parentE.removeChild(listE); //we don't need the original list
+    unindentLogicalBlockContents(rawEditor, logicalBlockContents, true);
+  }
+
+  if(moveOneListUpwards){
+    let li = createParentWithLogicalBlockContents(logicalBlockContents, 'li');
+    let newLIs = [...LIsBefore, li, ...LIsAfter];
+    newLIs.forEach(n => listE.appendChild(n));
+  }
+
+  listE.removeChild(currLI);
+
   rawEditor.updateRichNode();
 };
 
@@ -722,86 +707,6 @@ const growNeighbouringSiblingsUntil = ( condition, node ) => {
   return nodes;
 };
 
-const unindentNestedLI = ( listType, LIsBefore, unindentLINodes, LIsAfter, parentE, listE ) => {
-  let listInLIBefore = null;
-
-  if(LIsBefore.length > 0){
-    let listBefore =  document.createElement(listType);
-    LIsBefore.forEach(li => listBefore.append(li));
-    listInLIBefore = document.createElement('li');
-    listInLIBefore.appendChild(listBefore);
-  }
-
-  let newLIContent = null;
-
-  if(unindentLINodes.length > 0){
-    newLIContent = document.createElement('li');
-    unindentLINodes.forEach(n => newLIContent.appendChild(n));
-  }
-
-  let listInLIAfter = null;
-
-  if(LIsAfter.length > 0){
-    let listAfter =  document.createElement(listType);
-    LIsAfter.forEach(li => listAfter.append(li));
-    listInLIAfter = document.createElement('li');
-    listInLIAfter.appendChild(listAfter);
-  }
-
-  let parentList = parentE.parentNode; //TODO check if there
-  if(listInLIBefore){
-    parentList.insertBefore(listInLIBefore, parentE);
-  }
-
-  if(newLIContent){
-    parentList.insertBefore(newLIContent, parentE);
-  }
-
-  if(listInLIAfter){
-    parentList.insertBefore(listInLIAfter, parentE);
-  }
-
-  // provide a text node after the list
-  //TODO: do we really need to do this here?
-  parentList.removeChild(parentE);
-
-};
-
-const unindentLI = ( listType, LIsBefore, unindentLINodes, LIsAfter, parentE, listE ) => {
-  let listBefore = null;
-
-  if(LIsBefore.length > 0){
-    listBefore =  document.createElement(listType);
-    LIsBefore.forEach(li => listBefore.append(li));
-  }
-
-  //unindent
-  //TODO: check if content!!!
-  let allNodesInLI = unindentLINodes;
-
-  let listAfter = null;
-
-  if(LIsAfter.length > 0){
-    listAfter = document.createElement(listType);
-    LIsAfter.forEach(li => listAfter.append(li));
-  }
-
-  if(listBefore){
-    parentE.insertBefore(listBefore, listE);
-  }
-
-  allNodesInLI.forEach(n => parentE.insertBefore(n, listE));
-
-  if(listAfter){
-    parentE.insertBefore(listAfter, listE);
-  }
-
-  // provide a text node after the list
-  //TODO: do we really need to do this here?
-  parentE.insertBefore(document.createTextNode(invisibleSpace), listE);
-  parentE.removeChild(listE);
-};
-
 const isEligibleForListAction = ( node ) => {
 
   if(!isTextNode(node)){
@@ -822,6 +727,38 @@ const isEligibleForIndentAction = ( node ) => {
 
 };
 
+const siblingsBeforeAndAfterLogicalBlockContents = ( allSiblings, logicalBlockContents ) => {
 
+  //SPLIT LI: Make sure this happens:
+  //    ```
+  //     <ul><li> felix <div>foo</div> ruiz | <div>other div text </div></li></ul>
+  //     ```
+  // to
+  //     ```
+  //       <ul><li> felix <div>foo</div></li></ul>
+  //         ruiz |
+  //       <ul><div>other div text </div></li></ul>
+  //     ```
+
+  let siblingsBefore = [];
+  let siblingsAfter = [];
+  let nodeListToUpdate = siblingsBefore;
+
+  for(var node of allSiblings){
+    if(logicalBlockContents.some(n => n.isSameNode(node))){
+      nodeListToUpdate = siblingsAfter;
+      continue;
+    }
+    nodeListToUpdate.push(node);
+  }
+
+  return [ siblingsBefore, siblingsAfter ];
+};
+
+const createParentWithLogicalBlockContents = ( logicalBlockContents, type ) => {
+  let element = document.createElement(type);
+  logicalBlockContents.forEach(n => element.appendChild(n));
+  return element;
+};
 
 export { unorderedListAction, orderedListAction, indentAction, unindentAction }

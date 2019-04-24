@@ -376,10 +376,10 @@ const insertNewList = ( rawEditor, logicalListBlocks, listType = 'ul' ) => {
   }
 
   parent.insertBefore(listE, listELocationRef);
-  // provide a text node after the list
-  //TODO: do we really need to do this here? Can it be more sublte?
-  parent.insertBefore(document.createTextNode(invisibleSpace), listELocationRef);
   logicalListBlocks.forEach(n => li.appendChild(n));
+  
+  if(!isInList(listE)) //let's assume if you nest a list, you don't want to wrap text around it
+    makeLogicalBlockCursorSafe([listE]);
 
   //Editor state update
   rawEditor.updateRichNode();
@@ -407,6 +407,9 @@ const unindentLogicalBlockContents = ( rawEditor, logicalBlockContents, moveOneL
 
   let [LIsBefore, LIsAfter] = siblingsBeforeAndAfterLogicalBlockContents(allLIs, [currLI]);
   let [siblingsBefore, siblingsAfter] = siblingsBeforeAndAfterLogicalBlockContents([...currLI.childNodes], logicalBlockContents);
+
+  logicalBlockContents = makeLogicalBlockCursorSafe(logicalBlockContents);
+  [siblingsBefore, siblingsAfter] = [ makeLogicalBlockCursorSafe(siblingsBefore), makeLogicalBlockCursorSafe(siblingsAfter)];
 
   if(siblingsBefore.length > 0){
     let li = createParentWithLogicalBlockContents(siblingsBefore, 'li');
@@ -438,7 +441,8 @@ const unindentLogicalBlockContents = ( rawEditor, logicalBlockContents, moveOneL
 
   //We are in highest list in context, and we didn't start from nested context
   if(!isInList(listE) && !moveOneListUpwards){
-    parentE.insertBefore(document.createTextNode(invisibleSpace), listE);
+    makeLogicalBlockCursorSafe([listE]);
+    //parentE.insertBefore(document.createTextNode(invisibleSpace), listE);
     listE.removeChild(currLI);
     parentE.removeChild(listE); //we don't need the original list
     rawEditor.updateRichNode();
@@ -482,9 +486,6 @@ const shuffleListType = ( rawEditor, logicalBlockContents) => {
   allLIs.forEach(li => listE.append(li));
 
   parentE.insertBefore(listE, currlistE);
-  // provide a text node after the list
-  //TODO: do we really need to do this here? Can it be more sublte?
-  parentE.insertBefore(document.createTextNode(invisibleSpace), currlistE);
   parentE.removeChild(currlistE);
 
   //Editor state update
@@ -737,6 +738,63 @@ const createParentWithLogicalBlockContents = ( logicalBlockContents, type ) => {
   let element = document.createElement(type);
   logicalBlockContents.forEach(n => element.appendChild(n));
   return element;
+};
+
+
+const isNodeCursorSafe = ( node, before = true ) => {
+  if(node.nodeType == Node.TEXT_NODE)
+    return true;
+
+  if(isLI(node))
+    return true;
+
+  let parent = node.parentNode;
+
+  if(!parent)
+    return true;
+
+  if(before){
+    let prevSibling = node.previousSibling;
+    if(!prevSibling || prevSibling.nodeType!= Node.TEXT_NODE) return false;
+  }
+
+  else {
+    let nextSibling = node.nextSibling;
+    if(!nextSibling || nextSibling.nodeType!= Node.TEXT_NODE) return false;
+  }
+
+  return true;
+};
+
+const makeLogicalBlockCursorSafe = ( logicalBlockContents ) => {
+  if(logicalBlockContents.length == 0) return logicalBlockContents;
+
+  let firstNode = logicalBlockContents[0];
+
+  if(!isNodeCursorSafe(firstNode)){
+    let textNode = document.createTextNode(invisibleSpace);
+    firstNode.parentNode.insertBefore(textNode, firstNode);
+    logicalBlockContents = [textNode, ...logicalBlockContents];
+  }
+
+  let lastNode = logicalBlockContents.slice(-1)[0];
+
+  if(isNodeCursorSafe(lastNode, false))
+    return logicalBlockContents;
+
+  let textNode = document.createTextNode(invisibleSpace);
+  let nextSibling = lastNode.nextSibling;
+
+  if(!nextSibling){
+    lastNode.parentNode.append(textNode);
+  }
+  else{
+    lastNode.parentNode.insertBefore(textNode, nextSibling);
+  }
+
+  logicalBlockContents.push(textNode);
+
+  return logicalBlockContents;
 };
 
 export { unorderedListAction, orderedListAction, indentAction, unindentAction }

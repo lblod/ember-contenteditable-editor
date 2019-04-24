@@ -14,9 +14,6 @@ import { warn } from '@ember/debug';
  * ----
  *  - cursor positonining is uncontrolled right now, after action handled.
  *  - Decent insertTextNode for cursor: find best guess on when to this.
- *  - block decent support unindent.
- *  - clean up
- *  - case 20 in dummy app does not work
  *
  * IMPLEMENTED BEHAVIOUR
  * ---------------------
@@ -421,39 +418,49 @@ const unindentLogicalBlockContents = ( rawEditor, logicalBlockContents, moveOneL
     LIsAfter = [li, ...LIsAfter];
   }
 
-  if(LIsBefore.length > 0 && !moveOneListUpwards){
-    let listBefore = createParentWithLogicalBlockContents(LIsBefore, listType);
-    parentE.insertBefore(listBefore, listE);
-  }
+  //If we don't need to move our logical block on list up,
+  //we will split the list in two and make sure the logicalBlock
+  //resides in between
+  if(!moveOneListUpwards){
 
-  if(!moveOneListUpwards)
+    if(LIsBefore.length > 0){
+      let listBefore = createParentWithLogicalBlockContents(LIsBefore, listType);
+      parentE.insertBefore(listBefore, listE);
+    }
+
     logicalBlockContents.forEach(n => parentE.insertBefore(n, listE));
 
-  if(LIsAfter.length > 0 && !moveOneListUpwards){
-    let listAfter = createParentWithLogicalBlockContents(LIsAfter, listType);
-    parentE.insertBefore(listAfter, listE);
+    if(LIsAfter.length > 0){
+      let listAfter = createParentWithLogicalBlockContents(LIsAfter, listType);
+      parentE.insertBefore(listAfter, listE);
+    }
   }
 
+  //We are in highest list in context, and we didn't start from nested context
   if(!isInList(listE) && !moveOneListUpwards){
-    // provide a text node after the list
-    //TODO: do we really need to do this here?
     parentE.insertBefore(document.createTextNode(invisibleSpace), listE);
+    listE.removeChild(currLI);
+    parentE.removeChild(listE); //we don't need the original list
+    rawEditor.updateRichNode();
+    return;
   }
 
+  //Current list is a nested list, and the block needs to move one LI up
   if(isInList(listE) && !moveOneListUpwards){
+    listE.removeChild(currLI);
     parentE.removeChild(listE); //we don't need the original list
     unindentLogicalBlockContents(rawEditor, logicalBlockContents, true);
+    return;
   }
 
+  //We don't care wether our current list is nested. We just need to add the new LI's
   if(moveOneListUpwards){
     let li = createParentWithLogicalBlockContents(logicalBlockContents, 'li');
     let newLIs = [...LIsBefore, li, ...LIsAfter];
     newLIs.forEach(n => listE.appendChild(n));
+    listE.removeChild(currLI);
+    rawEditor.updateRichNode();
   }
-
-  listE.removeChild(currLI);
-
-  rawEditor.updateRichNode();
 };
 
 /**

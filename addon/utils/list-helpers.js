@@ -397,7 +397,6 @@ const insertNewList = ( rawEditor, logicalListBlocks, listType = 'ul' ) => {
  *    - The ending textNode issue is not properly tackeled
  */
 const unindentLogicalBlockContents = ( rawEditor, logicalBlockContents, moveOneListUpwards= false ) => {
-
   let currLI = getParentLI(logicalBlockContents[0]);
   let listE = currLI.parentNode;
   let listType = getListTagName(listE);
@@ -509,7 +508,7 @@ const getParentLI = (node) => {
 };
 
 const isLI = ( node ) => {
-    return node.nodeType === node.ELEMENT_NODE && ['li'].includes(node.tagName.toLowerCase());
+  return node.nodeType === node.ELEMENT_NODE && ['li'].includes(node.tagName.toLowerCase());
 };
 
 const isTextNode = ( node ) => {
@@ -636,7 +635,6 @@ const getLogicalBlockContentsForIndentationAction = ( node ) => {
 
   let baseNode = returnParentNodeBeforeBlockElement(node);
   return growNeighbouringSiblingsUntil(isDisplayedAsBlock, baseNode);
-
 };
 
 /**
@@ -697,38 +695,22 @@ const growNeighbouringSiblingsUntil = ( condition, node ) => {
 };
 
 const isEligibleForListAction = ( node ) => {
-
   if(!isTextNode(node)){
     warn('Current action only supported for textNodes', {id: 'list-helpers:isEligibleForListAction'});
     return false;;
   }
   return true;
-
 };
 
 const isEligibleForIndentAction = ( node ) => {
-
   if(!isInList(node)){
       warn('Indent only supported in context of list', {id: 'list-helpers:isEligibleForIndentAction'});
       return false;
   }
   return true;
-
 };
 
 const siblingsBeforeAndAfterLogicalBlockContents = ( allSiblings, logicalBlockContents ) => {
-
-  //SPLIT LI: Make sure this happens:
-  //    ```
-  //     <ul><li> felix <div>foo</div> ruiz | <div>other div text </div></li></ul>
-  //     ```
-  // to
-  //     ```
-  //       <ul><li> felix <div>foo</div></li></ul>
-  //         ruiz |
-  //       <ul><div>other div text </div></li></ul>
-  //     ```
-
   let siblingsBefore = [];
   let siblingsAfter = [];
   let nodeListToUpdate = siblingsBefore;

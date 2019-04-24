@@ -354,12 +354,6 @@ const isInList = ( node ) => {
 /**
  * Inserts a new list.
  *
- *  TODOS
- *  -----
- *    - handle line breaks as proper separator of LI content (see case 4)
- *    - Cursor positioning is weird
- *    - The ending textNode issue is not properly tackeled
- *
  */
 const insertNewList = ( rawEditor, logicalListBlocks, listType = 'ul' ) => {
   let listELocationRef = logicalListBlocks[0];
@@ -387,11 +381,6 @@ const insertNewList = ( rawEditor, logicalListBlocks, listType = 'ul' ) => {
 
 /**
  * Unindents logical block contents from context it resides in.
- *
- *  TODOS
- *  -----
- *    - Cursors positioning is weird
- *    - The ending textNode issue is not properly tackeled
  */
 const unindentLogicalBlockContents = ( rawEditor, logicalBlockContents, moveOneListUpwards= false ) => {
   let currLI = getParentLI(logicalBlockContents[0]);
@@ -469,11 +458,6 @@ const unindentLogicalBlockContents = ( rawEditor, logicalBlockContents, moveOneL
 
 /**
  * Switches list type where currentNode is situated in.
- *
- *  TODOS
- *  -----
- *    - Cursors positioning is weird
- *    - The ending textNode issue is not properly tackeled
  */
 const shuffleListType = ( rawEditor, logicalBlockContents) => {
   let currlistE = logicalBlockContents[0];

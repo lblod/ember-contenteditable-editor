@@ -113,7 +113,7 @@ function rawHighlightRegionInNode( node, start, end ) {
   if( node.type === "tag" ){
     // make sure the data attribute is set
     if( node.start < start || node.end > end ){
-      warn( "rawHighlightRegionInNode does not support partial highlighting of nodes" );
+      warn( "rawHighlightRegionInNode does not support partial highlighting of nodes", {id: "content-editable.highlight"} );
     } else {
       node.domNode.setAttribute(HIGHLIGHT_DATA_ATTRIBUTE, 'true');
     }
@@ -180,7 +180,7 @@ function rawHighlightRegionInNode( node, start, end ) {
     const parent = node.parent;
     parent.children.splice( parent.children.indexOf( node ), 1, ...newRichNodes );
   } else {
-    warn( "raw highlighting can only occur on text nodes or on tag nodes" );
+    warn( "raw highlighting can only occur on text nodes or on tag nodes", {id: "content-editable.highlight"} );
   }
 }
 
@@ -514,8 +514,8 @@ const RawEditor = EmberObject.extend({
    */
   highlightRange(start, end, data = {}) {
     if( data && Object.entries(data).length != 0 ) {
-      warn( "Data attributes were supplied to highlightRange but this is not supported at the moment" );
-      warn( data );
+      warn( "Data attributes were supplied to highlightRange but this is not supported at the moment", {id: "content-editable.highlight"} );
+      warn( data, {id: "content-editable.highlight"} );
     }
 
     let match = this.findHighlights(node => node.end === end && node.start === start);

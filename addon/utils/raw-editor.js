@@ -86,8 +86,13 @@ function findNodesToHighlight( node, start, end ){
     // partial range
     if( node.type === "tag" ){
       // partial tag walks children
-      return node.children // accept br tags etc
-        && node.children.flatMap( (child) => findNodesToHighlight( child, start, end ) );
+      if (node.children) {
+        return node.children // accept br tags etc
+          && node.children.flatMap( (child) => findNodesToHighlight( child, start, end ) );
+      }
+      else {
+        return [];
+      }
     } else if( node.type === "text" ){
       // partial text returns itself
       return [node];

@@ -375,8 +375,6 @@ const insertNewList = ( rawEditor, logicalListBlocks, listType = 'ul' ) => {
   if(!isInList(listE)) //let's assume if you nest a list, you don't want to wrap text around it
     makeLogicalBlockCursorSafe([listE]);
 
-  //Editor state update
-  rawEditor.updateRichNode();
 };
 
 /**
@@ -434,7 +432,6 @@ const unindentLogicalBlockContents = ( rawEditor, logicalBlockContents, moveOneL
     //parentE.insertBefore(document.createTextNode(invisibleSpace), listE);
     listE.removeChild(currLI);
     parentE.removeChild(listE); //we don't need the original list
-    rawEditor.updateRichNode();
     return;
   }
 
@@ -452,7 +449,6 @@ const unindentLogicalBlockContents = ( rawEditor, logicalBlockContents, moveOneL
     let newLIs = [...LIsBefore, li, ...LIsAfter];
     newLIs.forEach(n => listE.appendChild(n));
     listE.removeChild(currLI);
-    rawEditor.updateRichNode();
   }
 };
 
@@ -471,9 +467,6 @@ const shuffleListType = ( rawEditor, logicalBlockContents) => {
 
   parentE.insertBefore(listE, currlistE);
   parentE.removeChild(currlistE);
-
-  //Editor state update
-  rawEditor.updateRichNode();
 };
 
 const doesActionSwitchListType = ( node, listAction ) => {

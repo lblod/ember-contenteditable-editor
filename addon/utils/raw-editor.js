@@ -1101,10 +1101,12 @@ const RawEditor = EmberObject.extend({
         // no suitable text node is present, so we create a textnode
         // TODO: handle empty node
         var textNode;
-        if (richNodeAfterCarret)
+        if (richNodeAfterCarret){
           textNode = insertTextNodeWithSpace(node, richNodeAfterCarret.domNode);
-        else
-          textNode = insertTextNodeWithSpace(node, richNode.children[offset-1], true);
+        }
+        else{
+          textNode = insertTextNodeWithSpace(node, richNode.children[offset-1].domNode, true);
+        }
         this.updateRichNode();
         this.set('currentNode', textNode);
         const absolutePosition = this.getRichNodeFor(textNode).start;

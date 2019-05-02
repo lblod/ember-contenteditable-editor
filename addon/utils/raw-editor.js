@@ -551,7 +551,7 @@ const RawEditor = EmberObject.extend({
     if (nodes.length === 0) warn(`no highlight found contained in range [$start, $end]`, {id: "content-editable.highlight-not-found"});
     nodes.forEach( highlight => { this.removeHighlight(highlight); });
     this.updateRichNode();
-    this.setCurrentPosition(this.get('currentSelection')[0], false); //ensure caret is still correct
+    this.setCurrentPosition(this.currentPosition, false); //ensure caret is still correct
   },
 
   /**
@@ -625,7 +625,7 @@ const RawEditor = EmberObject.extend({
         this.removeHighlight(highlight);
       }
     );
-    this.setCurrentPosition(this.get('currentSelection')[0], false); //ensure caret is still correct
+    this.setCurrentPosition(this.currentPosition, false); //ensure caret is still correct
     this.updateRichNode();
   },
 

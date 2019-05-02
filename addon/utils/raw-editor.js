@@ -612,7 +612,7 @@ const RawEditor = EmberObject.extend({
   /**
    * Clear list of  highlights in the editor
    *
-   * @method clearAllHightlights
+   * @method clearHightlights
    *
    * @private
    */

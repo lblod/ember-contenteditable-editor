@@ -243,14 +243,20 @@ export default Component.extend({
       }
       else {
         let handlers = this.get('inputHandlers').filter(h => h.isHandlerFor(event));
-        handlers.some( handler => {
-          let response = handler.handleEvent(event);
-          if (!response.get('allowBrowserDefault'))
-            event.preventDefault();
-          if (!response.get('allowPropagation'))
-            return true;
-          return false;
-        });
+        try {
+          handlers.some( handler => {
+            let response = handler.handleEvent(event);
+            if (!response.get('allowBrowserDefault'))
+              event.preventDefault();
+            if (!response.get('allowPropagation'))
+              return true;
+            return false;
+          });
+        }
+        catch(e) {
+          warn(`handler failure`, {id: 'contenteditable.keydown.handler'});
+          warn(e, {id: 'contenteditable.keydown.handler'});
+        }
       }
       this.get('rawEditor').updateRichNode();
       this.get('rawEditor').generateDiffEvents.perform();

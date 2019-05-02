@@ -4,7 +4,7 @@ import {
   insertTextNodeWithSpace,
   insertNodeBAfterNodeA,
   sliceTextIntoTextNode,
-  removeNodeFromTree,
+  removeNodeFromTree as unwrapDOMNode,
   removeNode,
   isVoidElement,
   isIgnorableElement,
@@ -587,13 +587,14 @@ const RawEditor = EmberObject.extend({
    */
   removeHighlight(highlight) {
     if( highlight.domNode.nodeName === "MARK" ){
-      // TODO: remove the mark
       highlight.domNode.removeAttribute(HIGHLIGHT_DATA_ATTRIBUTE);
+      // unwrap mark
+      unwrapDOMNode(highlight.domNode);
+      const parent = highlight.parent;
+      parent.children.splice( parent.children.indexOf( highlight ), 1, ...highlight.children );
     } else {
       highlight.domNode.removeAttribute(HIGHLIGHT_DATA_ATTRIBUTE);
     }
-    // removeNodeFromTree(node);
-    this.updateRichNode();
   },
 
   /**

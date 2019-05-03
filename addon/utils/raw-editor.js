@@ -1169,15 +1169,353 @@ const RawEditor = EmberObject.extend({
     }
   }).restartable(),
 
+
+  /* Potential methods for the new API */
   getContexts(options) {
     const {region} = options || {};
     if( region )
       return scanContexts( this.rootNode, region );
     else
       return scanContexts( this.rootNode );
+  },
+
+  /**
+   * SELECTION AND UPDATING API
+   *
+   * Selection and Update API go hand-in-hand.  First make a
+   * selection, then determine the desired changes on the DOM tree.
+   * Note that selection and update need to be synchronous.  Do not
+   * assume that a selection that is made in one runloop can be used
+   * to update the tree in another.
+   *
+   * Examples:
+   *
+   * Add context to highlighted range
+   *
+   *     const selection = editor.selectHighlight( range );
+   *     editor.update( selection, {
+   *       add: {
+   *         property: "http://data.vlaanderen.be/ns/besluit/citeert",
+   *         typeof: "http://data.vlaanderen.be/ns/besluit/Besluit",
+   *         innerContent: selection.text // this is somewhat redundant, it's roughly the
+   *                                      // default case.  in fact, it may drop
+   *                                      // knowledge so you shouldn't do it unless you
+   *                                      // need to.
+   *
+   *       } } );
+   *
+   * Add type to existing type definition:
+   *
+   *     const sel = editor.selectContext( range, { typeof: "http://data.vlaanderen.be/ns/besluit/Besluit" } );
+   *     editor.update( sel, { add: {
+   *       typeof: "http://mu.semte.ch/vocabularies/ext/AanstellingsBesluit",
+   *       newContext: false } } );
+   *
+   * Add new context below existing type definition:
+   *
+   *     const sel = editor.selectContext( range, { typeof: "http://data.vlaanderen.be/ns/besluit/Besluit" } );
+   *     editor.update( sel, { add: {
+   *       typeof: "http://mu.semte.ch/vocabularies/ext/AanstellingsBesluit",
+   *       newContext: true } } );
+   *
+   * Alter the type of some context:
+   *
+   *     const sel = editor.selectContext( range, { typeof: "http://tasks-at-hand.com/ns/metaPoint" } );
+   *     editor.update( sel, {
+   *       remove: { typeof: "http://tasks-at-hand.com/ns/MetaPoint" },
+   *       add: { typeof: ["http://tasks-at-hand.com/ns/AgendaPoint", "http://tasks-at-hand.com/ns/Decesion"] }
+   *     } );
+   *
+   */
+
+
+  /**
+   * SELECTION API RESULT
+   *
+   * This is an internal API.  It is subject to change.
+   *
+   * The idea of the selection API is that it yields the nodes on
+   * which changes need to occur with their respective ranges.  This
+   * means that we may return more than one node and that each of the
+   * nodes might only have a sub-range selected on them.  We also need
+   * to share sufficient information on the intention of the user, so
+   * we can manipulate the contents correctly.
+   *
+   * The resulting entity has a top-level object which describes the
+   * intention of the user.  Further elements of the selection contain
+   * the effectively selected blobs on which we expect the user to
+   * operate.
+   *
+   * @param {boolean} selectedHighlightRange Truethy iff the plugin
+   *   selected a portion of the highlight, rather than a contextual
+   *   element.
+   * @param {[Selection]} selections A matched selection containing
+   *   both the tag to which the change should be applied, as well as
+   *   the RichNode of the change.
+   * @param {[Number]} selections.range Range which should be
+   *   highlighted.  Described by start and end.
+   * @param {RichNode} selections.richNode Rich Node to which the
+   *   selection applies.
+   */
+
+  /**
+   * Selects the highlighted range, or part of it, for applying
+   * operations to.
+   *
+   * With no arguments, this method selects the full highlighted range
+   * in order to apply operations to it.  The options hash can be used
+   * to supply constraints:
+   *
+   * - { offset } : Array containing the left offset and right offset.
+   *   Both need to be positive numbers.  The former is the amount of
+   *   characters to strip off the left, the latter the amount of
+   *   characters to strip off the right.
+   * - TODO { regex } : Regular expression to run against the matching
+   *   string.  Full matching string is used for manipulation.
+   */
+  selectHighlight([start,end], options = {}){
+    if( options.offset ) {
+      start += options.offset[0] || 0;
+      end -= options.offset[1] || 0;
+    }
+    if( start > end ) {
+      throw new Error(`Selection ${start}, ${end} with applied offset of ${options.offset} gives an index in which start of region is not before or at the end of the region`);
+    }
+
+    const selections = [];
+    const nextWalkedNodes = [this.richNode];
+
+    while( nextWalkedNodes.length ) {
+      let currentNodes = nextWalkedNodes;
+      nextWalkedNodes = [];
+
+      for( let node of currentNodes ){
+        if( !node.children ){
+          // handle lowest level node
+          if( ( node.start >= start && node.end <= end ) // node is fully contained
+              || ( node.start <= start && node.end >= start ) // partial overlap left
+              || node.start <= end && node.end >= end ) // partial overlap right
+            selections.push( {
+              richNode: node,
+              range: [ Math.max( node.start, start ), Math.min( node.end, end ) ] } );
+        } else {
+          // handle node with subnodes: walk anything that overlaps.
+          if(( node.start <= start && node.end >= start ) // node overlaps on the left
+             || ( node.start <= end && node.end >= end ) // node overlaps on the right
+             || ( node.start >= start && node.end <= end ) // node is inside
+            ) {
+            node.children.forEach( (child) => nextWalkedNodes.push( child ) );
+          }
+        }
+      }
+    }
+
+    return {
+      selectedHighlightRange: true,
+      selections: selections
+    };
+  },
+
+  /**
+   * Selects nodes based on an RDFa context that should be applied.
+   *
+   * Options for scope search default to 'auto'.
+   *
+   * Options for filtering:
+   * - range: The range object describing the highlighted region.
+   * - scope:
+   *   - 'outer': Search from inner range and search for an item
+         spanning the full supplied range or more.
+   *   - 'inner': Search from outer range and search for an item which
+         is fully contained in the supplied range.
+   *   - 'auto': Perform a best effort to find the nodes in which you're
+         interested.
+   * - property: string of URI or array of URIs containing the
+   *   property (or properties) which must apply.
+   * - typeof: string of URI or array of URIs containing the property
+       (or types) which must apply.
+   * - datatype: string of URI or array of URIs containing the
+       property (or datatypes) which must apply.
+   * - TODO resource: string of URI or array of URIs containing the
+       property (or properties) which must apply.
+   * - TODO content: string or regular expression of RDFa content.
+   * - TODO attribute: string or regular expression of attribute available on the node.
+   */
+  selectContext( range, options = {}){
+
+  },
+
+  /**
+   * OPERATION API
+   */
+
+  /**
+   * Replaces a DOM node
+   *
+   * This raw method replaces a DOM node in a callback.  This allows
+   * the raw editor to prepare for the brute change and to alter the
+   * contents.  It should be used as a last resort.
+   *
+   * Callback is used if the editor can prepare itself for the change.
+   * failedCallback is called when the editor cannot execute the
+   * change.
+   *
+   * - domNode: Node which will be altered
+   * - callback: Function which should execute the dom node
+   *   alteration.  This function receives the DOM node which was
+   *   supplied earlier as a first argument.
+   * - failedCallback: Function which will be executed if the callback
+   *   could not be executed.  It receives the dom Node and an
+   *   explanation as to why the execution could not happen
+   * - motivation: Obligatory statement explaining why you need
+   *   replaceDomNode and cannot use one of the other methods.
+   */
+  replaceDomNode( domNode, { callback, failedCallback, motivation, desc } ){
+
+  },
+
+  /**
+   * Alters a selection from the API described above.
+   *
+   * Any selected range can be manipulated.  This method allows such
+   * changes to happen on following key terms: property, typeof,
+   * dataType, resource, content, (TODO: attribute), innerContent,
+   * innerHtml
+   *
+   * - selection: Object retrieved from #selectContext or
+   *   #selectHighlight.
+   * - options: Object specifying desired behaviour.
+   * - options.remove: Removes RDFa content that was already there.
+   *     Allows removing any of property, typeof, datatype, resource,
+   *     content, (TODO: attribute), innerContent, innerHtml
+   * - options.add: Adds specific content to the selection, pushing
+   *     nvalues on top of already existing values.  Allows adding any
+   *     of property, typeof, datatype, resource.  Set the
+   *     forceNewContext property to true to force a new context if a
+   *     full tag is selected.
+   * - options.set: Allows setting any of property, typeof, datatype,
+   *     resource content attribute innerContent innerHtml.  Set the
+   *     newContext property to true to force a new context if a full
+   *     tag is selected.
+   * - options.desc: You are oncouraged to write a brief description
+   *     of the desired manipulation here for debugging needs.
+   *
+   * The syntax for specifying items to remove works as follows:
+   * - true: Removes any value to be removed.
+   * - string: Removes the specific value as supplied.  If no value
+   *   matches, nothing is removed.  For semantic content, translation
+   *   is done based on the current context, eg: if there is a
+   *   foaf:name in the document, then suppling the string
+   *   "http://xmlns.com/foaf/0.1/name" will usually mean foaf:name is
+   *   matched.
+   * - [string]: An array of strings means all the matches will be
+   *   removed.  Matching works the same way as string.
+   * - regex: Considers the present value and executes a regular
+   *   expression on said value.  If the regular expression matches,
+   *   the value is removed.
+   * - [regex]: An array of regular experssions.  If any matches, the
+   *   value itself is matched.
+   *
+   * The syntax for specifying items to add works for all properties
+   * which can be set using "add".  Specification works as follows:
+   * - string: Specifies a single value to set or add.
+   * - [string]: Specifies a series of values to set or add.
+   *
+   * NOTE: The system is free to set or add
+   * properties based on a short form (derived from the prefixes
+   * available in the context) if it is possible and if it desires to
+   * do so.
+   *
+   * NOTE: newContext is set to undefined by default and behaves
+   * similar to false.  This is because we assume that when you don't
+   * care about the context there's a fair chance that we can merge
+   * the contexts.  In specific cases you may desire to have things
+   * merge (or not) explicitly.  You should set eithre true or false
+   * in that case.
+   *
+   * NOTE/TODO: In order to make plugins simpler, we should look into
+   * specifying namespaces in the plugin.  By sharing these namespaces
+   * with these setter methods, it becomes shorter te specify the URLs
+   * to match on.
+   *
+   * NOTE/TODO: It is our intention to allow for multiple operations
+   * to occur in series.  Altering the range in multiple steps.  This
+   * can currently be done by executing the alterSelection multiple
+   * times.  Connecting the changes this way does require you to make
+   * a new selection each time you want to execute a new change.  If
+   * this case occurs often *and* we can find sensible defaults on
+   * updating the selection, we could make this case simpler.  The
+   * options hash would also allow an array in that case.
+   */
+  update( selection, { remove, add, set, desc } ) {
+    const newContextHeuristic = newContextHeuristic( selection, { remove, add, set, desc } );
+
+    // This function needs to figure out how to best manipulate the
+    // DOM tree, and execute that manipulation.  This is complex.  We
+    // need to further reason on the received information, possibly
+    // walk back up the tree and possibly discard zero-width nodes.
+    // This requires knowledge of annotated context and of transient
+    // properties which can be split or merged.
+
+    // Indicates whether or not the tree can be manipulated in such a
+    // way that a single node is left.  Has an understanding of
+    // transient marks.  This should return two values: whether or not
+    // this is possible completely, and the set of predicted resulting
+    // nodes.  These mockNodes can be used to check whether or not we
+    // could 'fix' the mark manually or do a best-effort approach.
+
+    const [ canJoinSelection, mockNodes ] = canJoinSelection( selection );
+
+
+  }
+});
+
+/**
+ * Heuristically choose whether we should be creating a new context or
+ * not.
+ *
+ * @method newContextHeuristic Object Returns whether or not we should
+ * create a new context or not.  It is a heuristic and yields an
+ * object containing force, yes, and no.  Force means we must make a
+ * new context.  Yes means we should try to make a new context, and no
+ * means we should try not to make a new context.
+ */
+function newContextHeuristic( selection, { remove, add, set } ) {
+  // prefer overriding choice
+  if( add.newContext === true )
+    return { force: true, yes: true, no: false, forceNo: false };
+  else if( add.newContext === false )
+    return { force: false, yes: false, no: true, forceNo: true };
+
+  // no overriding choice, let's guess
+
+  // if we remove stuff, we probably want to overwrite stuff,
+  if( remove )
+    return { force: false, yes: false, no: true, forceNo: false };
+
+  // if we're selecting a slab of text, we probably want to create a
+  // new context
+  if( selection.selectedHighlightRange )
+    return { force: false, yes: true, no: false, forceNo: false };
+
+  // no other selection happened, we should try to merge the contexts
+  // if possible.
+  return { force: false, yes: false, no: true, forceNo: false };
+}
+
+/**
+ * Indicates whether or not we should annotate a single node or if the
+ * annotation can span multiple nodes.
+ */
+function shouldJoinNodes( selection, { remove, add, set } ) {
+  if( add.typeof ) {
+    return { mustjoin: true, shouldjoin: true };
   }
 
-});
+  if( remove.typeof || add.property || add.content ) {
+
+  }
+}
 
 function uuidv4() {
   return ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, c => {

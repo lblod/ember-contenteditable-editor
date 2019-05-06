@@ -1290,7 +1290,7 @@ const RawEditor = EmberObject.extend({
               range: [ Math.max( node.start, start ), Math.min( node.end, end ) ] } );
           }
         } else {
-          if ( node.isInRegion(start, end) || node.isPartiallyInRegion(start, end) ) {
+          if(this.hasRegionCrossSectionWithRichNode([start, end], node)) {
             node.children.forEach( (child) => nextWalkedNodes.push( child ) );
           }
         }
@@ -1301,6 +1301,12 @@ const RawEditor = EmberObject.extend({
       selectedHighlightRange: true,
       selections: selections
     };
+  },
+
+  hasRegionCrossSectionWithRichNode([start, end], node){
+    return ( node.start <= start && node.end >= start ) // node overlaps on the left
+      || ( node.start <= end && node.end >= end ) // node overlaps on the right
+      || ( node.start >= start && node.end <= end ); // node is inside
   },
 
   /**

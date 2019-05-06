@@ -1283,27 +1283,22 @@ const RawEditor = EmberObject.extend({
     }
 
     const selections = [];
-    const nextWalkedNodes = [this.richNode];
+    let nextWalkedNodes = [this.richNode];
 
     while( nextWalkedNodes.length ) {
       let currentNodes = nextWalkedNodes;
       nextWalkedNodes = [];
 
       for( let node of currentNodes ){
-        if( !node.children ){
+        if( !node.children ) {
           // handle lowest level node
-          if( ( node.start >= start && node.end <= end ) // node is fully contained
-              || ( node.start <= start && node.end >= start ) // partial overlap left
-              || node.start <= end && node.end >= end ) // partial overlap right
+          if ( node.isInRegion(start, end) || node.isPartiallyInRegion(start, end) ) {
             selections.push( {
               richNode: node,
               range: [ Math.max( node.start, start ), Math.min( node.end, end ) ] } );
+          }
         } else {
-          // handle node with subnodes: walk anything that overlaps.
-          if(( node.start <= start && node.end >= start ) // node overlaps on the left
-             || ( node.start <= end && node.end >= end ) // node overlaps on the right
-             || ( node.start >= start && node.end <= end ) // node is inside
-            ) {
+          if ( node.isInRegion(start, end) || node.isPartiallyInRegion(start, end) ) {
             node.children.forEach( (child) => nextWalkedNodes.push( child ) );
           }
         }
@@ -1341,9 +1336,125 @@ const RawEditor = EmberObject.extend({
    * - TODO content: string or regular expression of RDFa content.
    * - TODO attribute: string or regular expression of attribute available on the node.
    */
-  selectContext( range, options = {}){
+  selectContext([start,end], options = {}){
+    if ( !options.scope ) {
+      options.scope = 'auto';
+    }
 
+    if ( !['outer', 'inner', 'auto'].includes(options.scope) ) {
+      throw new Error(`Scope must be one of 'outer', 'inner' or 'auto' but is '${options.scope}'`);
+    }
+
+    if ( start > end ) {
+      throw new Error(`Selection ${start}, ${end} gives an index in which start of region is not before or at the end of the region`);
+    }
+
+    const supportedFilterKeywords = ['typeof', 'property', 'datatype', 'resource']; // TODO support content, attribute
+
+    // Make an array of all filter criteria
+    ['typeof', 'property', 'datatype', 'resource'].forEach( key => filter[key] = filter ? [filter[key]].flat() : [] );
+
+    // Validates if a node contains at least 1 RDFa attribute
+    const isEmptyRdfaAttributes = function(rdfaAttributes) {
+      return supportedFilterKeywords
+        .map( (key) => rdfaAttributes[key] == null )
+        .reduce( (a,b) => a && b );
+    };
+
+    // Validates if the RDFa attributes of a node matches at least 1 filter criteria
+    const includesMatchingRdfaAttribute = function(rdfaAttributes, filter) {
+      return !isEmptyRdfaAttributes(rdfaAttributes)
+        && supportedFilterKeywords.find( key => filter[key].length && filter[key].includes(rdfaAttributes[key]) ) != null;
+    };
+
+    // Validates if the RDFa context of a node matches all filter criteria. Order of the criteria are not taken into account.
+    const isMatchingContext = function(triples, filter) {
+      const includesMatchingTriple = (triples, fragment, value) => triples.find( t => t[fragment] == value);
+
+      return filter.resource.find( resource => !includesMatchingTriple(triples, 'subject', resource) ) == null
+        && filter.property.find( prop => !includesMatchingTriple(triples, 'predicate', prop) ) == null
+        && filter.typeof.find( type => !includesMatchingTriple(triples, 'object', type) ) == null
+        && filter.datatype.find( datatype => !includesMatchingTriple(triples, 'datatype', datatype) ) == null;
+       // TODO support content, attribute
+    };
+
+    const filter = {};
+    supportedFilterKeywords.forEach(key => filter[key] = options[key]);
+    const selections = [];
+
+    let nextWalkedBlocks = scanContexts( this.rootNode, [start, end] );
+    const startingBlocks = nextWalkedBlocks;
+    let foundInnerMatch = false;
+
+    if ( options.scope == 'auto' ) {
+      while( nextWalkedBlocks.length ) {
+        const currentBlocks = nextWalkedBlocks;
+        nextWalkedBlocks = [];
+
+        for( let block of currentBlocks ) {
+          if ( includesMatchingRdfaAttribute(block.rdfaAttributes, filter) && isMatchingContext(block.context, filter) ) {
+            foundInnerMatch = true;
+            selections.push( {
+              richNode: block.richNode,
+              range: [ Math.max( block.richNode.start, start ), Math.min( block.richNode.end, end ) ]
+            } );
+          } else {
+            block.richNode.children.forEach( (child) => nextWalkedBlocks.push( child ) );
+          }
+        }
+      }
+
+      if ( !foundInnerMatch ) {
+        nextWalkedBlocks = startingBlocks;
+      }
+    } else if ( options.scope == 'outer' || ( options.scope == 'auto' && !foundInnerMatch ) ) {
+      while( nextWalkedBlocks.length ) {
+        const currentBlocks = nextWalkedBlocks;
+        nextWalkedBlocks = [];
+
+        for( let block of currentBlocks ) {
+          if ( isMatchingContext(block.triples, filter) ) {
+            if ( includesMatchingRdfaAttribute(block.rdfaAttributes) ) {
+              selections.push( {
+                richNode: block.richNode,
+                range: [ Math.max( block.richNode.start, start ), Math.min( block.richNode.end, end ) ]
+              } );
+            } else {
+              nextWalkedBlocks.push ( block.richNode.parent );
+            }
+          }
+          // No need to walk up the tree since the context towards top doesn't match
+        }
+      }
+    } else if ( options.scope == 'inner' ) {
+      nextWalkedBlocks.forEach( (block) => block.nbOfTriplesOutsideTree = block.context.length );
+
+      while( nextWalkedBlocks.length ) {
+        const currentBlocks = nextWalkedBlocks;
+        nextWalkedBlocks = [];
+
+        for( let block of currentBlocks ) {
+          const triplesInnerTree = block.context.slice(block.nbOfTriplesOutsideTree);
+          if ( includesMatchingRdfaAttribute(block.rdfaAttributes, filter) && isMatchingContext(triplesInnerTree, filter) ) {
+            selections.push( {
+              richNode: block.richNode,
+              range: [ Math.max( block.richNode.start, start ), Math.min( block.richNode.end, end ) ]
+            } );
+          } else {
+            block.richNode.children.forEach( (child) => {
+              child.nbOfTriplesOutsideTree = block.nbOfTriplesOutsideTree;
+              nextWalkedBlocks.push( child );
+            });
+          }
+        }
+      }
+    }
+
+    return {
+      selections: selections
+    };
   },
+
 
   /**
    * OPERATION API

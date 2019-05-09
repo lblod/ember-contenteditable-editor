@@ -534,13 +534,6 @@ const RawEditor = EmberObject.extend({
    * @public
    */
   clearHighlightForLocations(locations){
-
-    let nodeForLocation = node => {
-      return locations.find(location => {
-        return node.start === location[0] && node.end === location[1];
-      });
-    };
-
     let highlights = this.findHighlights( (node) => {
       return locations.find( location => {
         return node.start >= location[0] && node.end <= location[1];

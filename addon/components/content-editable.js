@@ -264,8 +264,7 @@ export default Component.extend({
     }
     else {
       runInDebug( () => {
-        console.warn(event);
-        warn('unhandled keydown', {id: 'contenteditable.event-handling'});
+        console.warn('unhandled keydown', event); //eslint-disable-line no-console
       });
     }
   },

@@ -675,7 +675,7 @@ const growNeighbouringSiblingsUntil = ( condition, node ) => {
 const isEligibleForListAction = ( node ) => {
   if(!isTextNode(node)){
     warn('Current action only supported for textNodes', {id: 'list-helpers:isEligibleForListAction'});
-    return false;;
+    return false;
   }
   return true;
 };

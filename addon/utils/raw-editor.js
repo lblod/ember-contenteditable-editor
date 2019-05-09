@@ -1350,7 +1350,8 @@ const RawEditor = EmberObject.extend({
     const supportedFilterKeywords = ['typeof', 'property', 'datatype', 'resource']; // TODO support content, attribute
 
     // Make an array of all filter criteria
-    ['typeof', 'property', 'datatype', 'resource'].forEach( key => filter[key] = filter ? [filter[key]].flat() : [] );
+    const filter = {};
+    supportedFilterKeywords.forEach( key => filter[key] = options[key] ? [ options[key] ].flat() : [] );
 
     // Validates if a node contains at least 1 RDFa attribute
     const isEmptyRdfaAttributes = function(rdfaAttributes) {

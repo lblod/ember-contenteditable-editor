@@ -1266,6 +1266,7 @@ const RawEditor = EmberObject.extend({
    *   string.  Full matching string is used for manipulation.
    */
   selectHighlight([start,end], options = {}){
+
     if( options.offset ) {
       start += options.offset[0] || 0;
       end -= options.offset[1] || 0;
@@ -1335,6 +1336,7 @@ const RawEditor = EmberObject.extend({
    * - TODO attribute: string or regular expression of attribute available on the node.
    */
   selectContext([start,end], options = {}){
+
     if ( !options.scope ) {
       options.scope = 'auto';
     }
@@ -1452,6 +1454,24 @@ const RawEditor = EmberObject.extend({
     return {
       selections: selections
     };
+    let startingBlocks = scanContexts( this.rootNode, [start, end] );
+    let foundInnerMatch = false;
+
+    let selections = [];
+
+    if ( options.scope == 'auto' ) {
+      selections = walkDownAndFilterInner(startingBlocks.map(b => b.semanticNode), filter, [start, end]);
+      foundInnerMatch = selections.length > 0;
+    }
+
+    if ( options.scope == 'outer' || ( options.scope == 'auto' && !foundInnerMatch ) ) {
+      selections = walkUpAndFilterOuter(startingBlocks.map(b => b.semanticNode), filter, [start, end]);
+
+    } else if ( options.scope == 'inner' ) {
+      selections = walkDownAndFilterInner(startingBlocks.map(b => b.semanticNode), filter, [start, end], true);
+    }
+
+    return { selections };
   },
 
 

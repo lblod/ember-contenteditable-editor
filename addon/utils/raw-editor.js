@@ -1356,6 +1356,8 @@ const RawEditor = EmberObject.extend({
     supportedFilterKeywords.forEach( key => filter[key] = options[key] ? [ options[key] ].flat() : [] );
 
 
+    // >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>HELPERS
+
     // Validates if the RDFa attributes of a node matches at least 1 filter criteria
     const includesMatchingRdfaAttribute = function(rdfaAttributes, filter) {
       return rdfaAttributes
@@ -1367,12 +1369,15 @@ const RawEditor = EmberObject.extend({
     const isMatchingContext = function(triples, filter) {
       const includesMatchingTriple = (triples, fragment, value) => triples.find( t => t[fragment] == value);
 
+      //TODO: find out how to differentiate between resource as object and as subject
       return filter.resource.find( resource => !includesMatchingTriple(triples, 'subject', resource) ) == null
         && filter.property.find( prop => !includesMatchingTriple(triples, 'predicate', prop) ) == null
         && filter.typeof.find( type => !includesMatchingTriple(triples, 'object', type) ) == null
         && filter.datatype.find( datatype => !includesMatchingTriple(triples, 'datatype', datatype) ) == null;
        // TODO support content, attribute
     };
+
+    const isRegionContainedIn = ([a, b], [c, d]) => c <= a && b <= d;
 
     const walkDownAndFilterInner = (startingRichNodes, filter, [ start, end ], strict = false) => {
       if(startingRichNodes.length == 0){
@@ -1441,6 +1446,9 @@ const RawEditor = EmberObject.extend({
 
       return selections;
     };
+
+    // >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> END HELPERS
+
     let startingBlocks = scanContexts( this.rootNode, [start, end] );
     let foundInnerMatch = false;
 

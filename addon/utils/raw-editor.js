@@ -1374,11 +1374,41 @@ const RawEditor = EmberObject.extend({
        // TODO support content, attribute
     };
 
+    const walkDownAndFilterInner = (startingRichNodes, filter, [ start, end ], strict = false) => {
+      if(startingRichNodes.length == 0){
+        return [];
+      }
+      let selections = [];
+      let startRichNode = startingRichNodes[0];
 
+      if(strict && !startRichNode.nbOfTriplesOutsideTree){
+        startRichNode.nbOfTriplesOutsideTree = startRichNode.rdfaContext.length;
+      }
 
+      let triples = strict ? startRichNode.nbOfTriplesOutsideTree.context.slice(startRichNode.nbOfTriplesOutsideTree) : startRichNode.rdfaContext;
+
+      if ( includesMatchingRdfaAttribute(startRichNode.rdfaAttributes, filter)
+           && isMatchingContext(triples, filter)
+           && isRegionContainedIn([startRichNode.start, startRichNode.end], [start, end])) {
+
+        selections.push( {
+              richNode: startRichNode,
+              range: [ Math.max( startRichNode.start, start ), Math.min( startRichNode.end, end ) ]
+        } );
 
       }
 
+      if(strict)
+        (startRichNode.richNode || []).forEach( n => n.nbOfTriplesOutsideTree = startRichNode.nbOfTriplesOutsideTree);
+
+      //go through children
+      selections = [ ...selections, ...walkDownAndFilterInner(startRichNode.richNode || [], filter, [start, end], strict)];
+
+      //walk through the remaining startingstartRichNodes
+      selections = [...selections, ...walkDownAndFilterInner(startingRichNodes.slice(1), filter, [start, end], strict)];
+
+      return selections;
+    };
       }
       }
 

@@ -1409,12 +1409,37 @@ const RawEditor = EmberObject.extend({
 
       return selections;
     };
+
+    const walkUpAndFilterOuter = (startingRichNodes, filter, [ start, end ]) => {
+      if(startingRichNodes.length == 0){
+        return [];
       }
+      let selections = [];
+      let startRichNode = startingRichNodes[0];
+
+      if (!isMatchingContext(startRichNode.triples, filter)){
+        // No need to walk up the tree since the context towards top doesn't match
+        return walkUpAndFilterOuter(startingRichNodes.slice(1), filter, [start, end]);
       }
 
+      if(includesMatchingRdfaAttribute(startRichNode.rdfaAttributes, filter)
+         && isRegionContainedIn([start, end], [startRichNode.start, startRichNode.end])){
+
+        selections.push( {
+              richNode: startRichNode,
+              range: [ Math.max( startRichNode.start, start ), Math.min( startRichNode.end, end ) ]
+        });
 
       }
 
+      //move up the parents if nothing has been found
+      if(selections.length == 0)
+        selections = walkUpAndFilterOuter(startRichNode.parent ? [ startRichNode.parent ] : [], filter, [start, end]);
+
+     //walk through the remaining startRichNodes
+      selections = [...selections, ...walkUpAndFilterOuter(startingRichNodes.slice(1), filter, [start, end])];
+
+      return selections;
     };
     let startingBlocks = scanContexts( this.rootNode, [start, end] );
     let foundInnerMatch = false;

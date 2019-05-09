@@ -1496,7 +1496,24 @@ const RawEditor = EmberObject.extend({
    *   replaceDomNode and cannot use one of the other methods.
    */
   replaceDomNode( domNode, { callback, failedCallback, motivation, desc } ){
-
+    const richNode = this.getRichNodeFor(domNode);
+    if (richNode) {
+      const currentNode = currentNode;
+      const relativePosition = this.getRelativeCursorPosition();
+      warn('replacing dom node: ${motivation}', {id: 'contenteditable.replacingdomnode'});
+      callback(domNode);
+      this.updateRichNode();
+      if (this.rootNode.contains(currentNode)) {
+        this.setCarret(currentNode,relativePosition);
+      }
+      else {
+        this.updateSelectionAfterComplexInput();
+      }
+      this.generateDiffEvents.perform();
+    }
+    else {
+      failedCallback(domNode, 'node not found in richNode');
+    }
   },
 
   /**

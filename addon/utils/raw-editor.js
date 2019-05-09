@@ -1355,12 +1355,6 @@ const RawEditor = EmberObject.extend({
     const filter = {};
     supportedFilterKeywords.forEach( key => filter[key] = options[key] ? [ options[key] ].flat() : [] );
 
-    // Validates if a node contains at least 1 RDFa attribute
-    const isEmptyRdfaAttributes = function(rdfaAttributes) {
-      return supportedFilterKeywords
-        .map( (key) => rdfaAttributes[key] == null )
-        .reduce( (a,b) => a && b );
-    };
 
     // Validates if the RDFa attributes of a node matches at least 1 filter criteria
     const includesMatchingRdfaAttribute = function(rdfaAttributes, filter) {

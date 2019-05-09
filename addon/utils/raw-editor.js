@@ -32,7 +32,14 @@ import nextTextNode from './next-text-node';
 const HIGHLIGHT_DATA_ATTRIBUTE = 'data-editor-highlight';
 const NON_BREAKING_SPACE = '\u00A0';
 import { unorderedListAction, orderedListAction, indentAction, unindentAction } from './list-helpers';
-import 'mdn-polyfills/Node.prototype.replaceWith';
+import ReplaceWithPolyfill from 'mdn-polyfills/Node.prototype.replaceWith';
+
+if (!Element.prototype.replaceWith)
+  Element.prototype.replaceWith = ReplaceWithPolyfill;
+if (!CharacterData.prototype.replaceWith)
+  CharacterData.prototype.replaceWith = ReplaceWithPolyfill;
+if (!DocumentType.prototype.replaceWith)
+  DocumentType.prototype.replaceWith = ReplaceWithPolyfill;
 
 function findNodesToHighlight( node, start, end ){
   // We need to highlight all portions of text based on the output

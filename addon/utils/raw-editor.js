@@ -928,11 +928,28 @@ const RawEditor = EmberObject.extend({
    */
   externalDomUpdate(description, domUpdate) {
     debug(`executing an external dom update: ${description}`, {id: 'contenteditable.external-dom-update'} );
-    domUpdate();
-    this.updateRichNode();
-    this.updateSelectionAfterComplexInput();
-    forgivingAction('elementUpdate', this)();
-    this.generateDiffEvents.perform();
+    const currentNode = this.currentNode;
+    const richNode = this.getRichNodeFor(currentNode);
+    if (richNode) {
+      const relativePosition = this.getRelativeCursorPosition();
+      domUpdate();
+      this.updateRichNode();
+      if (this.currentNode === currentNode && this.rootNode.contains(currentNode) && currentNode.length >= relativePosition) {
+        this.setCarret(currentNode,relativePosition);
+      }
+      else {
+        this.updateSelectionAfterComplexInput();
+      }
+      forgivingAction('elementUpdate', this)();
+      this.generateDiffEvents.perform();
+    }
+    else {
+      domUpdate();
+      this.updateRichNode();
+      this.updateSelectionAfterComplexInput();
+      forgivingAction('elementUpdate', this)();
+      this.generateDiffEvents.perform();
+    }
   },
 
   /**

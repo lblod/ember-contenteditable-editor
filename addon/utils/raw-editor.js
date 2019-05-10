@@ -924,9 +924,10 @@ const RawEditor = EmberObject.extend({
    * @method externalDomUpdate
    * @param {String} description
    * @param {function} domUpdate
+   * @param {boolean} maintainCursor, keep cursor in place if possible
    * @public
    */
-  externalDomUpdate(description, domUpdate) {
+  externalDomUpdate(description, domUpdate, maintainCursor = false) {
     debug(`executing an external dom update: ${description}`, {id: 'contenteditable.external-dom-update'} );
     const currentNode = this.currentNode;
     const richNode = this.getRichNodeFor(currentNode);
@@ -934,7 +935,10 @@ const RawEditor = EmberObject.extend({
       const relativePosition = this.getRelativeCursorPosition();
       domUpdate();
       this.updateRichNode();
-      if (this.currentNode === currentNode && this.rootNode.contains(currentNode) && currentNode.length >= relativePosition) {
+      if (maintainCursor &&
+          this.currentNode === currentNode &&
+          this.rootNode.contains(currentNode) &&
+          currentNode.length >= relativePosition) {
         this.setCarret(currentNode,relativePosition);
       }
       else {

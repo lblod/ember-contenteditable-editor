@@ -224,7 +224,8 @@ const unorderedListAction = function ( rawEditor ) {
   if(!isEligibleForListAction(currentNode)) return;
 
   rawEditor.externalDomUpdate('handle unorderedListAction',
-                              handleListAction(rawEditor, currentNode, unorderedListAction, 'ul'));
+                              handleListAction(rawEditor, currentNode, unorderedListAction, 'ul'),
+                             true);
 };
 
 /**
@@ -236,7 +237,8 @@ const orderedListAction = function ( rawEditor ) {
   if(!isEligibleForListAction(currentNode)) return;
 
   rawEditor.externalDomUpdate('handle orderedListAction',
-                              handleListAction(rawEditor, currentNode, orderedListAction, 'ol'));
+                              handleListAction(rawEditor, currentNode, orderedListAction, 'ol'),
+                             true);
 };
 
 /**
@@ -257,7 +259,7 @@ const indentAction = function ( rawEditor ) {
     insertNewList(rawEditor, logicalBlockContents, currlistType);
   };
 
-  rawEditor.externalDomUpdate('handle indentAction', handleAction);
+  rawEditor.externalDomUpdate('handle indentAction', handleAction, true);
 };
 
 /**
@@ -275,7 +277,7 @@ const unindentAction = function ( rawEditor ) {
     unindentLogicalBlockContents(rawEditor, logicalBlockContents);
   };
 
-  rawEditor.externalDomUpdate('handle unindentAction', handleAction);
+  rawEditor.externalDomUpdate('handle unindentAction', handleAction, true);
 };
 
 

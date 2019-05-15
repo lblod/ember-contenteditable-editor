@@ -1324,14 +1324,10 @@ const RawEditor = EmberObject.extend({
          is fully contained in the supplied range.
    *   - 'auto': Perform a best effort to find the nodes in which you're
          interested.
-   * - property: string of URI or array of URIs containing the
-   *   property (or properties) which must apply.
-   * - typeof: string of URI or array of URIs containing the property
-       (or types) which must apply.
-   * - datatype: string of URI or array of URIs containing the
-       property (or datatypes) which must apply.
-   * - TODO resource: string of URI or array of URIs containing the
-       property (or properties) which must apply.
+   * - property: string of URI or array of URIs containing the property (or properties) which must apply.
+   * - typeof: string of URI or array of URIs containing the types which must apply.
+   * - datatype: string of URI containing the datatype which must apply.
+   * - resource: string of URI containing the resource which must apply.
    * - TODO content: string or regular expression of RDFa content.
    * - TODO attribute: string or regular expression of attribute available on the node.
    */
@@ -1349,124 +1345,171 @@ const RawEditor = EmberObject.extend({
       throw new Error(`Selection ${start}, ${end} gives an index in which start of region is not before or at the end of the region`);
     }
 
-    const supportedFilterKeywords = ['typeof', 'property', 'datatype', 'resource']; // TODO support content, attribute
-
-    // Make an array of all filter criteria
     const filter = {};
-    supportedFilterKeywords.forEach( key => filter[key] = options[key] ? [ options[key] ].flat() : [] );
+    const singleFilterKeywords = ['resource', 'datatype'];
+    singleFilterKeywords.forEach( key => filter[key] = options[key] );
+    // Make an array of all filter criteria that support arrays
+    const listFilterKeywords = ['typeof', 'property'];
+    listFilterKeywords.forEach( key => filter[key] = options[key] ? [ options[key] ].flat() : [] );
 
 
     // >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>HELPERS
 
-    // Validates if the RDFa attributes of a node matches at least 1 filter criteria
-    const includesMatchingRdfaAttribute = function(rdfaAttributes, filter) {
-      return rdfaAttributes
-        //TODO: !!!!!! rdfa attributes are not expanded !!!!!
-        && supportedFilterKeywords.find( key => filter[key] ); // && filter[key].includes(rdfaAttributes[key]) );
+    // Validates if the RDFa attributes of a node matches a specifc set of keys
+    const isMatchingRdfaAttribute = function(rdfaAttributes, filter, keys) {
+      const isMatchingValue = function(rdfaAttributes, key, value) {
+        if ( listFilterKeywords.includes(key) ) {
+          return value.reduce( (isMatch, v) => isMatch && rdfaAttributes[key].includes(v) , true);
+        } else {
+          if ( key == 'resource') {
+            return rdfaAttributes['resource'] == value || rdfaAttributes['about'] == value;
+          } else {
+            return rdfaAttributes[key] == value;
+          }
+        }
+      };
+
+      const nonEmptyKeys = keys.filter( key => filter[key] && filter[key].length );
+      nonEmptyKeys.reduce( (isMatch, key) => isMatch && isMatchingValue(rdfaAttributes, key, filter[key]), true);
     };
 
-    // Validates if the RDFa context of a node matches all filter criteria. Order of the criteria are not taken into account.
-    const isMatchingContext = function(triples, filter) {
-      const includesMatchingTriple = (triples, fragment, value) => triples.find( t => t[fragment] == value);
+    // Validates if the RDFa context a block matches all filter criteria
+    // In case a criteria has multiple values, all values must appear on the same node
+    //     (TODO context scanner currently only supports multi-value on typeof)
+    // In case resource and type are defined, they must appear on the same node
+    // In case property and datatype are defined, they must appear on the same node
+    // In case resource/typeof and property are defined, property must appear as inner context
+    //   of the typeof/resource node without any other typeof/resource being defined in between
+    const isMatchingContext = function(block, filter) {
+      // Validates if the scope in which a given property appears matches the resource/typeof filter criteria
+      // The function assumes the context that is passed is retrieved from the semantic node that contains the given
+      // property as an RDFa attribute. Therefore we start walking the context array from end to start to find
+      // the triple matching the given property.
+      const isMatchingScopeForProperty = function(context, property, resource, types) {
+        let i = context.length;
+        let matchingTriple = null;
 
-      //TODO: find out how to differentiate between resource as object and as subject
-      return filter.resource.find( resource => !includesMatchingTriple(triples, 'subject', resource) ) == null
-        && filter.property.find( prop => !includesMatchingTriple(triples, 'predicate', prop) ) == null
-        && filter.typeof.find( type => !includesMatchingTriple(triples, 'object', type) ) == null
-        && filter.datatype.find( datatype => !includesMatchingTriple(triples, 'datatype', datatype) ) == null;
-       // TODO support content, attribute
-    };
+        while ( !matchingTriple && i > 0 ) {
+          i--;
+          if ( context[i].predicate == property )
+            matchingTriple = context[i];
+        }
 
-    const isRegionContainedIn = ([a, b], [c, d]) => c <= a && b <= d;
+        const subject = matchingTriple.subject;
+        if (resource && subject != resource)
+          return false;
 
-    const walkDownAndFilterInner = (startingRichNodes, filter, [ start, end ], strict = false) => {
-      if(startingRichNodes.length == 0){
-        return [];
+        if ( types.length ) {
+          const typesOfSubject = context.filter(t => t.subject == subject && t.predicate == 'a').map(t => t.object);
+          const matchesAllTypes = types.reduce( (isMatch, t) => isMatch && typesOfSubject.includes(t) , true);
+          if ( !matchesAllTypes )
+            return false;
+        }
+
+        return true;
+      };
+
+
+      if ( filter.property.length || filter.datatype ) {
+        let isMatch = isMatchingRdfaAttribute(block.semanticNode.rdfaAttributes, filter, ['property', 'datatype']);
+
+        if ( isMatch && (filter.resource || filter.typeof.length) ) {
+          // we already know the properties match and appear on the same node
+          // Hence, they all have the same subject and it's sufficient to only pass the first property
+          return isMatchingScopeForProperty(block.context, filter.property[0], filter.resource, filter.typeof);
+        }
+
+        return isMatch;
+      } else if ( filter.resource || filter.typeof.length ) {
+        return isMatchingRdfaAttribute(block.semanticNode.rdfaAttributes, filter, ['resource', 'typeof']);
       }
+
+      return false; // no filter criteria defined?
+    };
+
+    // Find rich nodes that strictly fall inside the requested range and match the filter criteria
+    //
+    // We will go over the list of RDFa blocks that strictly fall inside the request range and check whether they
+    // match the requested filter criteria. There is no need to start walking the tree of rich nodes attached to
+    // the semanticNode because other RDFa contexts will be represented by another RDFa block in the initial list of blocks.
+    // In case 2 matching semantic nodes are nested only the highest (ancestor) node is returned.
+    const filterInner = function(blocks, filter, [start, end]) {
+      // Add a selection to the list, but only keep selections for the highest nodes in the tree
+      const updateSelections = function(selections, newSelection) {
+        const isChildOfExistingSelection = selections.find( selection => selection.isAncestorOf(newSelection) );
+
+        if ( !isChildOfExistingSelection ) {
+          const updatedSelections = selections.filter( selection => !selection.isDecendentOf(newSelection) );
+          updatedSelections.push(newSelection);
+          return updatedSelections;
+        } else { // the newSelection is a child of an existing selection. Nothing should happen.
+          return selections;
+        }
+      };
+
       let selections = [];
-      let startRichNode = startingRichNodes[0];
 
-      if(strict && !startRichNode.nbOfTriplesOutsideTree){
-        startRichNode.nbOfTriplesOutsideTree = startRichNode.rdfaContext.length;
-      }
-
-      let triples = strict ? startRichNode.nbOfTriplesOutsideTree.context.slice(startRichNode.nbOfTriplesOutsideTree) : startRichNode.rdfaContext;
-
-      if ( includesMatchingRdfaAttribute(startRichNode.rdfaAttributes, filter)
-           && isMatchingContext(triples, filter)
-           && isRegionContainedIn([startRichNode.start, startRichNode.end], [start, end])) {
-
-        selections.push( {
-              richNode: startRichNode,
-              range: [ Math.max( startRichNode.start, start ), Math.min( startRichNode.end, end ) ]
-        } );
-
-      }
-
-      if(strict)
-        (startRichNode.richNode || []).forEach( n => n.nbOfTriplesOutsideTree = startRichNode.nbOfTriplesOutsideTree);
-
-      //go through children
-      selections = [ ...selections, ...walkDownAndFilterInner(startRichNode.richNode || [], filter, [start, end], strict)];
-
-      //walk through the remaining startingstartRichNodes
-      selections = [...selections, ...walkDownAndFilterInner(startingRichNodes.slice(1), filter, [start, end], strict)];
+      blocks.filter( block => block.isInRegion([start, end]) ).forEach( function(block) {
+        if ( isMatchingContext(block, filter) ) {
+          selections = updateSelections( selections, { richNode: block.semanticNode, range: block.semanticNode.range } );
+        }
+      });
 
       return selections;
     };
 
-    const walkUpAndFilterOuter = (startingRichNodes, filter, [ start, end ]) => {
-      if(startingRichNodes.length == 0){
-        return [];
-      }
+    // Find rich nodes that strictly contain the requested range and match the filter criteria
+    //
+    // We will go over the list of RDFa blocks that strictly contain the request range and check whether they
+    // match the requested filter criteria. There is no need to start walking the tree of rich nodes attached to
+    // the semanticNode because other RDFa contexts will be represented by another RDFa block in the initial list of blocks.
+    // In case 2 matching semantic nodes are nested only the lowest (child) node is returned.
+    const filterOuter = function(blocks, filter, [start, end]) {
+      // Add a selection to the list, but only keep selections for the lowest nodes in the tree
+      const updateSelections = function(selections, newSelection) {
+        const isAncestorOfExistingSelection = selections.find( selection => selection.isDescendentOf(newSelection) );
+
+        if ( !isAncestorOfExistingSelection ) {
+          const updatedSelections = selections.filter( selection => !selection.isAncestorOf(newSelection) );
+          updatedSelections.push(newSelection);
+          return updatedSelections;
+        } else { // the newSelection is an ancestor of an existing selection. Nothing should happen.
+          return selections;
+        }
+      };
+
       let selections = [];
-      let startRichNode = startingRichNodes[0];
 
-      if (!isMatchingContext(startRichNode.triples, filter)){
-        // No need to walk up the tree since the context towards top doesn't match
-        return walkUpAndFilterOuter(startingRichNodes.slice(1), filter, [start, end]);
-      }
-
-      if(includesMatchingRdfaAttribute(startRichNode.rdfaAttributes, filter)
-         && isRegionContainedIn([start, end], [startRichNode.start, startRichNode.end])){
-
-        selections.push( {
-              richNode: startRichNode,
-              range: [ Math.max( startRichNode.start, start ), Math.min( startRichNode.end, end ) ]
-        });
-
-      }
-
-      //move up the parents if nothing has been found
-      if(selections.length == 0)
-        selections = walkUpAndFilterOuter(startRichNode.parent ? [ startRichNode.parent ] : [], filter, [start, end]);
-
-     //walk through the remaining startRichNodes
-      selections = [...selections, ...walkUpAndFilterOuter(startingRichNodes.slice(1), filter, [start, end])];
+      blocks.filter( block => block.containsRegion([start, end]) ).forEach( function(block) {
+        if ( isMatchingContext(block, filter) ) {
+          selections = updateSelections( selections, { richNode: block.semanticNode, range: block.semanticNode.range } );
+        }
+      });
 
       return selections;
     };
 
     // >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> END HELPERS
 
-    let startingBlocks = scanContexts( this.rootNode, [start, end] );
-    let foundInnerMatch = false;
+    let rdfaBlocks = scanContexts( this.rootNode, [start, end] );
 
     let selections = [];
 
-    if ( options.scope == 'auto' ) {
-      selections = walkDownAndFilterInner(startingBlocks.map(b => b.semanticNode), filter, [start, end]);
+    if ( rdfaBlocks.length == 0 )
+      return selections;
+
+    let foundInnerMatch = false;
+
+    if ( options.scope == 'inner' || options.scope == 'auto' ) {
+      selections = filterInner(rdfaBlocks, filter, [start, end]);
       foundInnerMatch = selections.length > 0;
     }
 
     if ( options.scope == 'outer' || ( options.scope == 'auto' && !foundInnerMatch ) ) {
-      selections = walkUpAndFilterOuter(startingBlocks.map(b => b.semanticNode), filter, [start, end]);
-
-    } else if ( options.scope == 'inner' ) {
-      selections = walkDownAndFilterInner(startingBlocks.map(b => b.semanticNode), filter, [start, end], true);
+      selections = filterOuter(rdfaBlocks, filter, [start, end]);
     }
 
-    return { selections };
+    return selections;
   },
 
 

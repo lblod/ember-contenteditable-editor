@@ -14,7 +14,7 @@ import ListInsertionMarkdownHandler from '../utils/list-insertion-markdown-handl
 import ArrowHandler from '../utils/arrow-handler';
 import TabHandler from '../utils/tab-handler';
 import { normalizeEvent } from 'ember-jquery-legacy';
-import { warn } from '@ember/debug';
+import { warn, runInDebug } from '@ember/debug';
 import { A } from '@ember/array';
 import { isEmpty } from '@ember/utils';
 import { next } from '@ember/runloop';
@@ -243,21 +243,29 @@ export default Component.extend({
       }
       else {
         let handlers = this.get('inputHandlers').filter(h => h.isHandlerFor(event));
-        handlers.some( handler => {
-          let response = handler.handleEvent(event);
-          if (!response.get('allowBrowserDefault'))
-            event.preventDefault();
-          if (!response.get('allowPropagation'))
-            return true;
-          return false;
-        });
+        try {
+          handlers.some( handler => {
+            let response = handler.handleEvent(event);
+            if (!response.get('allowBrowserDefault'))
+              event.preventDefault();
+            if (!response.get('allowPropagation'))
+              return true;
+            return false;
+          });
+        }
+        catch(e) {
+          warn(`handler failure`, {id: 'contenteditable.keydown.handler'});
+          warn(e, {id: 'contenteditable.keydown.handler'});
+        }
       }
       this.get('rawEditor').updateRichNode();
       this.get('rawEditor').generateDiffEvents.perform();
       this.capturedEvents.pushObject(event);
     }
     else {
-      warn('unhandled keydown', {id: 'contenteditable.event-handling'});
+      runInDebug( () => {
+        console.warn('unhandled keydown', event); //eslint-disable-line no-console
+      });
     }
   },
 

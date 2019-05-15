@@ -1,6 +1,5 @@
 import flatMap from './flat-map';
 import { warn } from '@ember/debug';
-import { get } from '@ember/object';
 
 export default function getRichNodeMatchingDomNode(domNode, tree) {
   if (!tree)

@@ -4,6 +4,7 @@ import {
   insertTextNodeWithSpace,
   insertNodeBAfterNodeA,
   sliceTextIntoTextNode,
+  removeNodeFromTree as unwrapDOMNode,
   removeNode,
   isVoidElement,
   isIgnorableElement,
@@ -30,38 +31,15 @@ import { task, timeout } from 'ember-concurrency';
 import nextTextNode from './next-text-node';
 const HIGHLIGHT_DATA_ATTRIBUTE = 'data-editor-highlight';
 const NON_BREAKING_SPACE = '\u00A0';
+import { unorderedListAction, orderedListAction, indentAction, unindentAction } from './list-helpers';
+import ReplaceWithPolyfill from 'mdn-polyfills/Node.prototype.replaceWith';
 
-
-/* IE11 and safari polyfill from MDN */
-function ReplaceWithPolyfill() {
-  'use-strict'; // For safari, and IE > 10
-  var parent = this.parentNode, i = arguments.length, currentNode;
-  if (!parent) return;
-  if (!i) // if there are no arguments
-    parent.removeChild(this);
-  while (i--) { // i-- decrements i and returns the value of i before the decrement
-    currentNode = arguments[i];
-    if (typeof currentNode !== 'object'){
-      currentNode = this.ownerDocument.createTextNode(currentNode);
-    } else if (currentNode.parentNode){
-      currentNode.parentNode.removeChild(currentNode);
-    }
-    // the value of "i" below is after the decrement
-    if (!i) // if currentNode is the first argument (currentNode === arguments[0])
-      parent.replaceChild(currentNode, this);
-    else // if currentNode isn't the first
-      parent.insertBefore(this.previousSibling, currentNode);
-  }
-}
 if (!Element.prototype.replaceWith)
-    Element.prototype.replaceWith = ReplaceWithPolyfill;
+  Element.prototype.replaceWith = ReplaceWithPolyfill;
 if (!CharacterData.prototype.replaceWith)
-    CharacterData.prototype.replaceWith = ReplaceWithPolyfill;
+  CharacterData.prototype.replaceWith = ReplaceWithPolyfill;
 if (!DocumentType.prototype.replaceWith)
   DocumentType.prototype.replaceWith = ReplaceWithPolyfill;
-/* IE11 and safari polyfill */
-
-
 
 function findNodesToHighlight( node, start, end ){
   // We need to highlight all portions of text based on the output
@@ -85,8 +63,13 @@ function findNodesToHighlight( node, start, end ){
     // partial range
     if( node.type === "tag" ){
       // partial tag walks children
-      return node.children // accept br tags etc
-        && node.children.flatMap( (child) => findNodesToHighlight( child, start, end ) );
+      if (node.children) {
+        return node.children // accept br tags etc
+          && node.children.flatMap( (child) => findNodesToHighlight( child, start, end ) );
+      }
+      else {
+        return [];
+      }
     } else if( node.type === "text" ){
       // partial text returns itself
       return [node];
@@ -107,7 +90,7 @@ function rawHighlightRegionInNode( node, start, end ) {
   if( node.type === "tag" ){
     // make sure the data attribute is set
     if( node.start < start || node.end > end ){
-      warn( "rawHighlightRegionInNode does not support partial highlighting of nodes" );
+      warn( "rawHighlightRegionInNode does not support partial highlighting of nodes", {id: "content-editable.highlight"} );
     } else {
       node.domNode.setAttribute(HIGHLIGHT_DATA_ATTRIBUTE, 'true');
     }
@@ -174,7 +157,7 @@ function rawHighlightRegionInNode( node, start, end ) {
     const parent = node.parent;
     parent.children.splice( parent.children.indexOf( node ), 1, ...newRichNodes );
   } else {
-    warn( "raw highlighting can only occur on text nodes or on tag nodes" );
+    warn( "raw highlighting can only occur on text nodes or on tag nodes", {id: "content-editable.highlight"} );
   }
 }
 
@@ -508,8 +491,8 @@ const RawEditor = EmberObject.extend({
    */
   highlightRange(start, end, data = {}) {
     if( data && Object.entries(data).length != 0 ) {
-      warn( "Data attributes were supplied to highlightRange but this is not supported at the moment" );
-      warn( data );
+      warn( "Data attributes were supplied to highlightRange but this is not supported at the moment", {id: "content-editable.highlight"} );
+      warn( data, {id: "content-editable.highlight"} );
     }
 
     let match = this.findHighlights(node => node.end === end && node.start === start);
@@ -545,7 +528,7 @@ const RawEditor = EmberObject.extend({
     if (nodes.length === 0) warn(`no highlight found contained in range [$start, $end]`, {id: "content-editable.highlight-not-found"});
     nodes.forEach( highlight => { this.removeHighlight(highlight); });
     this.updateRichNode();
-    this.setCurrentPosition(this.get('currentSelection')[0], false); //ensure caret is still correct
+    this.setCurrentPosition(this.currentPosition, false); //ensure caret is still correct
   },
 
   /**
@@ -574,13 +557,14 @@ const RawEditor = EmberObject.extend({
    */
   removeHighlight(highlight) {
     if( highlight.domNode.nodeName === "MARK" ){
-      // TODO: remove the mark
       highlight.domNode.removeAttribute(HIGHLIGHT_DATA_ATTRIBUTE);
+      // unwrap mark
+      unwrapDOMNode(highlight.domNode);
+      const parent = highlight.parent;
+      parent.children.splice( parent.children.indexOf( highlight ), 1, ...highlight.children );
     } else {
       highlight.domNode.removeAttribute(HIGHLIGHT_DATA_ATTRIBUTE);
     }
-    // removeNodeFromTree(node);
-    this.updateRichNode();
   },
 
   /**
@@ -599,7 +583,7 @@ const RawEditor = EmberObject.extend({
   /**
    * Clear list of  highlights in the editor
    *
-   * @method clearAllHightlights
+   * @method clearHightlights
    *
    * @private
    */
@@ -612,7 +596,7 @@ const RawEditor = EmberObject.extend({
         this.removeHighlight(highlight);
       }
     );
-    this.setCurrentPosition(this.get('currentSelection')[0], false); //ensure caret is still correct
+    this.setCurrentPosition(this.currentPosition, false); //ensure caret is still correct
     this.updateRichNode();
   },
 
@@ -940,15 +924,36 @@ const RawEditor = EmberObject.extend({
    * @method externalDomUpdate
    * @param {String} description
    * @param {function} domUpdate
+   * @param {boolean} maintainCursor, keep cursor in place if possible
    * @public
    */
-  externalDomUpdate(description, domUpdate) {
+  externalDomUpdate(description, domUpdate, maintainCursor = false) {
     debug(`executing an external dom update: ${description}`, {id: 'contenteditable.external-dom-update'} );
-    domUpdate();
-    this.updateRichNode();
-    this.updateSelectionAfterComplexInput();
-    forgivingAction('elementUpdate', this)();
-    this.generateDiffEvents.perform();
+    const currentNode = this.currentNode;
+    const richNode = this.getRichNodeFor(currentNode);
+    if (richNode) {
+      const relativePosition = this.getRelativeCursorPosition();
+      domUpdate();
+      this.updateRichNode();
+      if (maintainCursor &&
+          this.currentNode === currentNode &&
+          this.rootNode.contains(currentNode) &&
+          currentNode.length >= relativePosition) {
+        this.setCarret(currentNode,relativePosition);
+      }
+      else {
+        this.updateSelectionAfterComplexInput();
+      }
+      forgivingAction('elementUpdate', this)();
+      this.generateDiffEvents.perform();
+    }
+    else {
+      domUpdate();
+      this.updateRichNode();
+      this.updateSelectionAfterComplexInput();
+      forgivingAction('elementUpdate', this)();
+      this.generateDiffEvents.perform();
+    }
   },
 
   /**
@@ -1093,10 +1098,12 @@ const RawEditor = EmberObject.extend({
         // no suitable text node is present, so we create a textnode
         // TODO: handle empty node
         var textNode;
-        if (richNodeAfterCarret)
+        if (richNodeAfterCarret){
           textNode = insertTextNodeWithSpace(node, richNodeAfterCarret.domNode);
-        else
-          textNode = insertTextNodeWithSpace(node, richNode.children[offset-1], true);
+        }
+        else{
+          textNode = insertTextNodeWithSpace(node, richNode.children[offset-1].domNode, true);
+        }
         this.updateRichNode();
         this.set('currentNode', textNode);
         const absolutePosition = this.getRichNodeFor(textNode).start;
@@ -1154,13 +1161,28 @@ const RawEditor = EmberObject.extend({
     }, this);
 
     if(textHasChanges){
-      if ( ! extraInfo.any( (x) => x.noSnapshot)) {
+      if ( ! extraInfo.some( (x) => x.noSnapshot)) {
         this.createSnapshot();
       }
       forgivingAction('handleFullContentUpdate', this)(extraInfo);
     }
   }).restartable(),
 
+  insertUL() {
+    unorderedListAction(this);
+  },
+
+  insertOL() {
+    orderedListAction(this);
+  },
+
+  insertIndent() {
+    indentAction(this);
+  },
+
+  insertUnindent() {
+    unindentAction(this);
+  },
 
   /* Potential methods for the new API */
   getContexts(options) {
@@ -1650,8 +1672,6 @@ const RawEditor = EmberObject.extend({
     // could 'fix' the mark manually or do a best-effort approach.
 
     const [ canJoinSelection, mockNodes ] = canJoinSelection( selection );
-
-
   }
 });
 
@@ -1687,6 +1707,7 @@ function newContextHeuristic( selection, { remove, add, set } ) {
   // if possible.
   return { force: false, yes: false, no: true, forceNo: false };
 }
+
 
 /**
  * Indicates whether or not we should annotate a single node or if the

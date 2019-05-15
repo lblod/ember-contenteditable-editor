@@ -45,6 +45,9 @@ export default Controller.extend({
     },
     clearAll() {
       this.get('rawEditor').clearAllHighlights();
+    },
+    insertUL(){
+      this.get('rawEditor').insertUL();
     }
   }
 });

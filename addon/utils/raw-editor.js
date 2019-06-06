@@ -19,7 +19,7 @@ import replaceTextWithHtml from './replace-text-with-html';
 import flatMap from './flat-map';
 import { walk as walkDomNode } from '@lblod/marawa/node-walker';
 import { analyse as scanContexts } from '@lblod/marawa/rdfa-context-scanner';
-import RichNode from '@lblod/marawa/rich-node';
+import { positionInRange } from '@lblod/marawa/range-helpers';
 import { processDomNode as walkDomNodeAsText } from './text-node-walker';
 import previousTextNode from './previous-text-node';
 import { getTextContent } from './text-node-walker';
@@ -29,138 +29,11 @@ import { A } from '@ember/array';
 import DiffMatchPatch from 'diff-match-patch';
 import { task, timeout } from 'ember-concurrency';
 import nextTextNode from './next-text-node';
-const HIGHLIGHT_DATA_ATTRIBUTE = 'data-editor-highlight';
-const NON_BREAKING_SPACE = '\u00A0';
 import { unorderedListAction, orderedListAction, indentAction, unindentAction } from './list-helpers';
-import ReplaceWithPolyfill from 'mdn-polyfills/Node.prototype.replaceWith';
-
-if (!Element.prototype.replaceWith)
-  Element.prototype.replaceWith = ReplaceWithPolyfill;
-if (!CharacterData.prototype.replaceWith)
-  CharacterData.prototype.replaceWith = ReplaceWithPolyfill;
-if (!DocumentType.prototype.replaceWith)
-  DocumentType.prototype.replaceWith = ReplaceWithPolyfill;
-
-function findNodesToHighlight( node, start, end ){
-  // We need to highlight all portions of text based on the output
-  // contained in them.  We can split the important nodes in three
-  // pieces:
-  //
-  // - start: text nodes which contain partial content to highlight
-  // - middle: rich nodes which need to be fully highlighted
-  // - end: trailing text nodes which contain partial content to
-  //     highlight
-  //
-  // Detecting this range is tricky
-
-  if( node.start > end || node.end < start )
-    // out of range
-    return [];
-  else if( node.start === start && node.end === end )
-    // exact range
-    return [node];
-  else {
-    // partial range
-    if( node.type === "tag" ){
-      // partial tag walks children
-      if (node.children) {
-        return node.children // accept br tags etc
-          && node.children.flatMap( (child) => findNodesToHighlight( child, start, end ) );
-      }
-      else {
-        return [];
-      }
-    } else if( node.type === "text" ){
-      // partial text returns itself
-      return [node];
-    } else {
-      // other nodes are ignored
-      return [];
-    }
-  }
-}
-
-function rawHighlightRegionInNode( node, start, end ) {
-  // Next we need to ensure all the highlights are placed in the
-  // right spot.  This means finding all the "Phrasing content"
-  // https://developer.mozilla.org/en-US/docs/Web/Guide/HTML/Content_categories#Phrasing_content
-  // and adding marks around that if the content is not already
-  // inside of a mark.
-
-  if( node.type === "tag" ){
-    // make sure the data attribute is set
-    if( node.start < start || node.end > end ){
-      warn( "rawHighlightRegionInNode does not support partial highlighting of nodes", {id: "content-editable.highlight"} );
-    } else {
-      node.domNode.setAttribute(HIGHLIGHT_DATA_ATTRIBUTE, 'true');
-    }
-  } else if( node.type === "text" ) {
-    // split into marks and add data attribute
-    // we know the text length will not change in this case so we can replace in place.
-    const relativeStart = Math.max(start - node.start, 0);
-    const relativeEnd = Math.min(end - node.start, node.text.length);
-    const [preText, infixText, postText] =
-          [ node.text.slice( 0, relativeStart ),
-            node.text.slice( relativeStart, relativeEnd ),
-            node.text.slice( relativeEnd ) ];
-
-    const prefixNode = preText == "" ? null : document.createTextNode( preText );
-    const infixNode = document.createElement('mark');
-    const infixTextNode = document.createTextNode( infixText );
-    infixNode.appendChild( infixTextNode );
-    infixNode.setAttribute(HIGHLIGHT_DATA_ATTRIBUTE, 'true');
-    const postfixNode = postText == "" ? null : document.createTextNode( postText );
-    const newDomNodes = [prefixNode,infixNode,postfixNode].filter( (x) => x );
-
-    // TODO: we shouldn't be creating these manually, we should trigger some
-    // NodeWalker version.
-    const preRichNode = ! prefixNode ? null : new RichNode({
-      domNode: prefixNode,
-      parent: node.parent,
-      start: node.start,
-      end: start,
-      text: preText,
-      type: "text"
-    });
-    const infixRichNode = ! infixNode ? null : new RichNode({
-      domNode: infixNode,
-      parent: node.parent,
-      start: start,
-      end: end,
-      text: infixText,
-      type: "tag"
-    });
-    infixRichNode.children = [ new RichNode({
-      domNode: infixTextNode,
-      parent: infixRichNode,
-      start: start,
-      end: end,
-      text: infixText, // TODO: remove if consuming code doesn't use the TextNodeWalker
-      type: "text"
-    }) ];
-    const postfixRichNode = ! postfixNode ? null : new RichNode({
-      domNode: postfixNode,
-      parent: node.parent,
-      start: end,
-      end: end + postText.length,
-      text: postText,
-      type: "text"
-    });
-    const newRichNodes = [];
-    if( preRichNode ) { newRichNodes.push( preRichNode ); }
-    newRichNodes.push( infixRichNode );
-    if( postfixRichNode ) { newRichNodes.push( postfixRichNode ); }
-
-    // update the DOM tree
-    node.domNode.replaceWith( ...newDomNodes );
-    // update the richNode tree
-    const parent = node.parent;
-    parent.children.splice( parent.children.indexOf( node ), 1, ...newRichNodes );
-  } else {
-    warn( "raw highlighting can only occur on text nodes or on tag nodes", {id: "content-editable.highlight"} );
-  }
-}
-
+import { applyProperty, cancelProperty } from './property-helpers';
+import highlightProperty from './highlight-property';
+const NON_BREAKING_SPACE = '\u00A0';
+const HIGHLIGHT_DATA_ATTRIBUTE = 'data-editor-highlight';
 /**
  * raw contenteditable editor, a utility class that shields editor internals from consuming applications.
  *
@@ -494,25 +367,9 @@ const RawEditor = EmberObject.extend({
   highlightRange(start, end, data = {}) {
     if( data && Object.entries(data).length != 0 ) {
       warn( "Data attributes were supplied to highlightRange but this is not supported at the moment", {id: "content-editable.highlight"} );
-      warn( data, {id: "content-editable.highlight"} );
     }
-
-    let match = this.findHighlights(node => node.end === end && node.start === start);
-    if (match.length === 0) {
-      const currentPosition = this.currentPosition;
-      const needsPositionUpdate = start >= currentPosition && end <= currentPosition;
-
-      const nodesToHighlight = findNodesToHighlight( this.richNode, start, end );
-      nodesToHighlight.forEach( (node) => rawHighlightRegionInNode( node, start, end ) );
-
-      // this.updateRichNode(); // DONE by updating the tree manually
-      if( needsPositionUpdate )
-        this.setCurrentPosition( currentPosition );
-    }
-    else {
-      // note: this warning may not appear sufficiently often due to partial highlights
-      warn('highlighting already highlighted region', {id: 'content-editable.highlight-it'});
-    }
+    const selection = this.selectHighlight([start,end]);
+    applyProperty(selection, this, highlightProperty); // todo: replace 'this' with proper interface
   },
 
   /**
@@ -526,11 +383,8 @@ const RawEditor = EmberObject.extend({
    * @public
    */
   clearHighlightForRange(start,end) {
-    let nodes = this.findHighlights(node => node.start >= start && node.end <= end);
-    if (nodes.length === 0) warn(`no highlight found contained in range [$start, $end]`, {id: "content-editable.highlight-not-found"});
-    nodes.forEach( highlight => { this.removeHighlight(highlight); });
-    this.updateRichNode();
-    this.setCurrentPosition(this.currentPosition, false); //ensure caret is still correct
+    const selection = this.selectHighlight([start,end]);
+    cancelProperty(selection, this, highlightProperty); // todo: replace 'this' with proper interface
   },
 
   /**

@@ -1568,9 +1568,9 @@ const RawEditor = EmberObject.extend({
   replaceDomNode( domNode, { callback, failedCallback, motivation, desc } ){
     const richNode = this.getRichNodeFor(domNode);
     if (richNode) {
-      const currentNode = currentNode;
+      const currentNode = this.currentNode;
       const relativePosition = this.getRelativeCursorPosition();
-      warn('replacing dom node: ${motivation}', {id: 'contenteditable.replacingdomnode'});
+      warn(`replacing dom node: ${motivation}`, {id: 'contenteditable.replacingdomnode'});
       callback(domNode);
       this.updateRichNode();
       if (this.rootNode.contains(currentNode)) {

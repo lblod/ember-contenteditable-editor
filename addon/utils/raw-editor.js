@@ -208,6 +208,8 @@ const RawEditor = EmberObject.extend({
 
   /**
    * the domNode containing our caret
+   *
+   * NOTE: is set to null on a selection that spans nodes
    * @property currentNode
    * @type DomNode
    * @public

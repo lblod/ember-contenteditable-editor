@@ -1046,8 +1046,11 @@ const RawEditor = EmberObject.extend({
 
   getRelativeCursorPosition(){
     let currentRichNode = this.getRichNodeFor(this.currentNode);
-    let absolutePos = this.currentSelection[0];
-    return absolutePos - currentRichNode.start;
+    if (currentRichNode) {
+      let absolutePos = this.currentSelection[0];
+      return absolutePos - currentRichNode.start;
+    }
+    return null;
   },
 
   getRelativeCursorPostion() {

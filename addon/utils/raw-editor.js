@@ -1308,19 +1308,22 @@ const RawEditor = EmberObject.extend({
     while( nextWalkedNodes.length ) {
       let currentNodes = nextWalkedNodes;
       nextWalkedNodes = [];
-
       for( let node of currentNodes ){
         if( !node.children ) {
-          // handle lowest level node
-          if ( node.isInRegion(start, end) || node.isPartiallyInRegion(start, end) ) {
+          // if ( node.isPartiallyOrFullyInRegion([start,end]) ) {
+          if (positionInRange(node.start, [start, end]) || positionInRange(node.end, [start,end])
+              || positionInRange(start, node.region) || positionInRange(end, node.region) ) {
+            // handle lowest level node
             selections.push( {
               richNode: node,
               range: [ Math.max( node.start, start ), Math.min( node.end, end ) ] } );
           }
-        } else {
-          if(this.hasRegionCrossSectionWithRichNode([start, end], node)) {
-            node.children.forEach( (child) => nextWalkedNodes.push( child ) );
+          else {
           }
+        }
+        else {
+          if (positionInRange(start, node.region) || positionInRange(end, node.region) || positionInRange(node.start, [start,end]) || positionInRange(node.end, [start,end]))
+            node.children.forEach( (child) => nextWalkedNodes.push( child ) );
         }
       }
     }
@@ -1329,12 +1332,6 @@ const RawEditor = EmberObject.extend({
       selectedHighlightRange: true,
       selections: selections
     };
-  },
-
-  hasRegionCrossSectionWithRichNode([start, end], node){
-    return ( node.start <= start && node.end >= start ) // node overlaps on the left
-      || ( node.start <= end && node.end >= end ) // node overlaps on the right
-      || ( node.start >= start && node.end <= end ); // node is inside
   },
 
   /**

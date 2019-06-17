@@ -117,6 +117,9 @@ const RawEditor = EmberObject.extend({
     return sel[0] === sel[1];
   }),
 
+  applyProperty,
+  cancelProperty,
+
   init() {
     this.set('history', CappedHistory.create({ maxItems: 100}));
     this.set('components', A());

@@ -1,7 +1,6 @@
 import RichNode from '@lblod/marawa/rich-node';
 
 function replaceRichNodeWith(richNode, richNodes) {
-  console.log('replacing richnode');
   const parent = richNode.parent;
   const indexOfRichNode = parent.children.indexOf(richNode);
   for (let node of richNodes) {
@@ -11,7 +10,6 @@ function replaceRichNodeWith(richNode, richNodes) {
 }
 
 function wrapRichNode(richNode, wrappingdomNode) {
-  console.log('wrapping rich node');
   const wrappingRichNode = new RichNode({
     domNode: wrappingdomNode,
     parent: richNode.parent,
@@ -25,7 +23,6 @@ function wrapRichNode(richNode, wrappingdomNode) {
 
 
 function unwrapRichNode(richNode) {
-  console.log('unwrapping rich node');
   replaceRichNodeWith(richNode, richNode.children);
 }
 

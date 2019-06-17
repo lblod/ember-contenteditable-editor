@@ -266,7 +266,6 @@ function rawCancelProperty(richNode, property) {
     }
     else {
       //no children but it's a tag, so nothing to do ?
-      console.warn('cannot cancel property on not tag richNode');
     }
   }
   else {
@@ -334,7 +333,6 @@ function cancelProperty(selection, doc, property) {
         // we should cancel the property on the entire string, if we land here there is no useful tag above us.
         // Probably need a cancelling wrapper
         // TODO
-        console.log('did not find property, need cancelling wrapper');
       }
       else {
         // we should cancel the property on part of the string, we need to find a parent that is setting the property and cancel that
@@ -360,7 +358,6 @@ function cancelProperty(selection, doc, property) {
           // we didn't find where the property was applied, it could be that this property was enabled in a manner we don't yet understand
           // probably need a cancelling wrapper
           // TODO
-          console.log('did not find property, need cancelling wrapper');
         }
         else {
           // property doesn't seem to be enabled at all

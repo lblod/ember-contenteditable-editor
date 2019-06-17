@@ -123,13 +123,14 @@ function createWrapperForProperty(property) {
  * @param document, should provide a pernet api
  * @param property an editor property
  */
-function applyProperty(selection, doc, property) {
+function applyProperty(selection, doc, property, calledFromCancel) {
   if (selection.selections.length === 0) {
     warn(`can't apply property to empty selection`, {id: 'content-editable.editor-property'});
     return;
   }
 
-  cancelProperty(selection, doc, property);
+  if (!calledFromCancel)
+    cancelProperty(selection, doc, property);
   const nodesToApplyPropertyOn = findSuitableNodesToApplyOrCancelProperty(selection);
   for( let {richNode, range} of nodesToApplyPropertyOn) {
     const [start,end] = range;
@@ -346,12 +347,12 @@ function cancelProperty(selection, doc, property) {
           if (currentNode.start < start) {
             // reapply property on prefix
             const sel = doc.selectHighlight([currentNode.start, start]);
-            applyProperty(sel, doc, property);
+            applyProperty(sel, doc, property, true);
           }
           if (currentNode.end > end) {
             // reapply property on postfix
             const sel = doc.selectHighlight([ end, currentNode.end]);
-            applyProperty(sel, doc, property);
+            applyProperty(sel, doc, property, true);
           }
         }
         else if (propertyIsEnabledOnLeafNodes(currentNode, property)) {

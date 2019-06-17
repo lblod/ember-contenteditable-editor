@@ -1210,7 +1210,6 @@ const RawEditor = EmberObject.extend({
    * - TODO attribute: string or regular expression of attribute available on the node.
    */
   selectContext([start,end], options = {}){
-
     if ( !options.scope ) {
       options.scope = 'auto';
     }
@@ -1237,7 +1236,7 @@ const RawEditor = EmberObject.extend({
     const isMatchingRdfaAttribute = function(rdfaAttributes, filter, keys) {
       const isMatchingValue = function(rdfaAttributes, key, value) {
         if ( listFilterKeywords.includes(key) ) {
-          return value.reduce( (isMatch, v) => isMatch && rdfaAttributes[key].includes(v) , true);
+          return value.reduce( (isMatch, v) => isMatch && (rdfaAttributes[key] || []).includes(v) , true);
         } else {
           if ( key == 'resource') {
             return rdfaAttributes['resource'] == value || rdfaAttributes['about'] == value;
@@ -1248,7 +1247,7 @@ const RawEditor = EmberObject.extend({
       };
 
       const nonEmptyKeys = keys.filter( key => filter[key] && filter[key].length );
-      nonEmptyKeys.reduce( (isMatch, key) => isMatch && isMatchingValue(rdfaAttributes, key, filter[key]), true);
+      return nonEmptyKeys.reduce( (isMatch, key) => isMatch && isMatchingValue(rdfaAttributes, key, filter[key]), true);
     };
 
     // Validates if the RDFa context a block matches all filter criteria
@@ -1314,10 +1313,10 @@ const RawEditor = EmberObject.extend({
     const filterInner = function(blocks, filter, [start, end]) {
       // Add a selection to the list, but only keep selections for the highest nodes in the tree
       const updateSelections = function(selections, newSelection) {
-        const isChildOfExistingSelection = selections.find( selection => selection.isAncestorOf(newSelection) );
+        const isChildOfExistingSelection = selections.find( selection => selection.richNode.isAncestorOf(newSelection.richNode) );
 
         if ( !isChildOfExistingSelection ) {
-          const updatedSelections = selections.filter( selection => !selection.isDecendentOf(newSelection) );
+          const updatedSelections = selections.filter( selection => !selection.richNode.isDescendentOf(newSelection.richNode) );
           updatedSelections.push(newSelection);
           return updatedSelections;
         } else { // the newSelection is a child of an existing selection. Nothing should happen.
@@ -1327,11 +1326,19 @@ const RawEditor = EmberObject.extend({
 
       let selections = [];
 
-      blocks.filter( block => block.isInRegion([start, end]) ).forEach( function(block) {
-        if ( isMatchingContext(block, filter) ) {
-          selections = updateSelections( selections, { richNode: block.semanticNode, range: block.semanticNode.range } );
-        }
-      });
+      blocks
+        .filter(block => block.semanticNode.rdfaAttributes)
+        .filter(block => block.semanticNode.isInRegion(start, end))
+        .forEach( function(block) {
+          if ( isMatchingContext(block, filter) ) {
+            const selection = {
+              richNode: block.semanticNode,
+              region: block.semanticNode.region,
+              context: block.context
+            };
+            selections = updateSelections( selections, selection);
+          }
+        });
 
       return selections;
     };
@@ -1345,10 +1352,10 @@ const RawEditor = EmberObject.extend({
     const filterOuter = function(blocks, filter, [start, end]) {
       // Add a selection to the list, but only keep selections for the lowest nodes in the tree
       const updateSelections = function(selections, newSelection) {
-        const isAncestorOfExistingSelection = selections.find( selection => selection.isDescendentOf(newSelection) );
+        const isAncestorOfExistingSelection = selections.find( selection => selection.richNode.isDescendentOf(newSelection.richNode) );
 
         if ( !isAncestorOfExistingSelection ) {
-          const updatedSelections = selections.filter( selection => !selection.isAncestorOf(newSelection) );
+          const updatedSelections = selections.filter( selection => !selection.richNode.isAncestorOf(newSelection.richNode) );
           updatedSelections.push(newSelection);
           return updatedSelections;
         } else { // the newSelection is an ancestor of an existing selection. Nothing should happen.
@@ -1358,11 +1365,19 @@ const RawEditor = EmberObject.extend({
 
       let selections = [];
 
-      blocks.filter( block => block.containsRegion([start, end]) ).forEach( function(block) {
-        if ( isMatchingContext(block, filter) ) {
-          selections = updateSelections( selections, { richNode: block.semanticNode, range: block.semanticNode.range } );
-        }
-      });
+      blocks
+        .filter(block => block.semanticNode.rdfaAttributes)
+        .filter(block => block.semanticNode.containsRegion(start, end))
+        .forEach( function(block) {
+          if ( isMatchingContext(block, filter) ) {
+            const selection = {
+              richNode: block.semanticNode,
+              region: block.semanticNode.region,
+              context: block.context
+            };
+            selections = updateSelections( selections, selection);
+          }
+        });
 
       return selections;
     };

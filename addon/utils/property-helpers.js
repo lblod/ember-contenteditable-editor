@@ -129,89 +129,85 @@ function applyProperty(selection, doc, property) {
     return;
   }
 
+  cancelProperty(selection, doc, property);
   const nodesToApplyPropertyOn = findSuitableNodesToApplyOrCancelProperty(selection);
   for( let {richNode, range} of nodesToApplyPropertyOn) {
     const [start,end] = range;
-    if (!propertyIsEnabledOnLeafNodes(richNode, property)) {
-      if (richNode.type ===  "tag") {
-        if (richNode.start < start || richNode.end > end) {
-          warn(`applyProperty does not support applying a property to a tag that only partially matches the range`, {id: "content-editable.highlight"} );
-        }
-        else {
-          const domNode = richNode.domNode;
-          let node;
-          if (property.newContext) {
-            node = createWrapperForProperty(property);
-            domNode.prepend(node); // add node as child
-            while(node.nextSibling) { // move other children to wrapper
-              node.append(node.nextSibling);
-            }
-            wrapRichNode(richNode, node);
-          }
-          else {
-            rawApplyProperty(richNode.domNode, property);
-          }
-        }
-      }
-      else if (richNode.type === "text") {
-        const relativeStart = Math.max(start - richNode.start, 0);
-        const relativeEnd = Math.min(end - richNode.start, richNode.text.length);
-        const [preText, infixText, postText] =
-              [ richNode.text.slice( 0, relativeStart ),
-                richNode.text.slice( relativeStart, relativeEnd ),
-                richNode.text.slice( relativeEnd ) ];
-        const prefixNode = preText == "" ? null : document.createTextNode( preText );
-        const infixNode = createWrapperForProperty(property);
-        const infixTextNode = document.createTextNode( infixText );
-        infixNode.appendChild( infixTextNode );
-        const postfixNode = postText == "" ? null : document.createTextNode( postText );
-        const newDomNodes = [prefixNode,infixNode,postfixNode].filter( (x) => x );
-        // update the DOM tree
-        richNode.domNode.replaceWith( ...newDomNodes);
-        const preRichNode = ! prefixNode ? null : new RichNode({
-          domNode: prefixNode,
-          parent: richNode.parent,
-          start: richNode.start,
-          end: start,
-          text: preText,
-          type: "text"
-        });
-        const infixRichNode = ! infixNode ? null : new RichNode({
-          domNode: infixNode,
-          parent: richNode.parent,
-          start: start,
-          end: end,
-          text: infixText,
-          type: "tag"
-        });
-        infixRichNode.children = [ new RichNode({
-          domNode: infixTextNode,
-          parent: infixRichNode,
-          start: start,
-          end: end,
-          text: infixText, // TODO: remove if consuming code doesn't use the TextNodeWalker
-          type: "text"
-        }) ];
-        const postfixRichNode = ! postfixNode ? null : new RichNode({
-          domNode: postfixNode,
-          parent: richNode.parent,
-          start: end,
-          end: end + postText.length,
-          text: postText,
-          type: "text"
-        });
-        const newRichNodes = [];
-        if( preRichNode ) { newRichNodes.push( preRichNode ); }
-        newRichNodes.push( infixRichNode );
-        if( postfixRichNode ) { newRichNodes.push( postfixRichNode ); }
-        replaceRichNodeWith(richNode, newRichNodes);
+    if (richNode.type ===  "tag") {
+      if (richNode.start < start || richNode.end > end) {
+        warn(`applyProperty does not support applying a property to a tag that only partially matches the range`, {id: "content-editable.highlight"} );
       }
       else {
-          warn( "applying a property can only occur on text nodes or on tag nodes", {id: "content-editable.editor-property"} );
+        const domNode = richNode.domNode;
+        let node;
+        if (property.newContext) {
+          node = createWrapperForProperty(property);
+          domNode.prepend(node); // add node as child
+          while(node.nextSibling) { // move other children to wrapper
+            node.append(node.nextSibling);
+          }
+          wrapRichNode(richNode, node);
+        }
+        else {
+          rawApplyProperty(richNode.domNode, property);
+        }
       }
     }
+    else if (richNode.type === "text") {
+      const relativeStart = Math.max(start - richNode.start, 0);
+      const relativeEnd = Math.min(end - richNode.start, richNode.text.length);
+      const [preText, infixText, postText] =
+            [ richNode.text.slice( 0, relativeStart ),
+              richNode.text.slice( relativeStart, relativeEnd ),
+              richNode.text.slice( relativeEnd ) ];
+      const prefixNode = preText == "" ? null : document.createTextNode( preText );
+      const infixNode = createWrapperForProperty(property);
+      const infixTextNode = document.createTextNode( infixText );
+      infixNode.appendChild( infixTextNode );
+      const postfixNode = postText == "" ? null : document.createTextNode( postText );
+      const newDomNodes = [prefixNode,infixNode,postfixNode].filter( (x) => x );
+      // update the DOM tree
+      richNode.domNode.replaceWith( ...newDomNodes);
+      const preRichNode = ! prefixNode ? null : new RichNode({
+        domNode: prefixNode,
+        parent: richNode.parent,
+        start: richNode.start,
+        end: start,
+        text: preText,
+        type: "text"
+      });
+      const infixRichNode = ! infixNode ? null : new RichNode({
+        domNode: infixNode,
+        parent: richNode.parent,
+        start: start,
+        end: end,
+        text: infixText,
+        type: "tag"
+      });
+      infixRichNode.children = [ new RichNode({
+        domNode: infixTextNode,
+        parent: infixRichNode,
+        start: start,
+        end: end,
+        text: infixText, // TODO: remove if consuming code doesn't use the TextNodeWalker
+        type: "text"
+      }) ];
+      const postfixRichNode = ! postfixNode ? null : new RichNode({
+        domNode: postfixNode,
+        parent: richNode.parent,
+        start: end,
+        end: end + postText.length,
+        text: postText,
+        type: "text"
+      });
+        const newRichNodes = [];
+      if( preRichNode ) { newRichNodes.push( preRichNode ); }
+      newRichNodes.push( infixRichNode );
+      if( postfixRichNode ) { newRichNodes.push( postfixRichNode ); }
+      replaceRichNodeWith(richNode, newRichNodes);
+    }
     else {
-      // already applied
+      warn( "applying a property can only occur on text nodes or on tag nodes", {id: "content-editable.editor-property"} );
     }
   }
 }
@@ -261,7 +257,7 @@ function rawCancelProperty(richNode, property) {
         replaceRichNodeWith(richNode, newRichNode);
       }
     }
-    else if (richNode.children.length > 0) {
+    else if (richNode.children && richNode.children.length > 0) {
       // walk down, property was not defined here
       for (let child of richNode.children) {
         if (child.type === 'tag')

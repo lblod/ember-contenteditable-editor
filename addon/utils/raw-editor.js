@@ -117,9 +117,23 @@ const RawEditor = EmberObject.extend({
     return sel[0] === sel[1];
   }),
 
-  applyProperty,
-  cancelProperty,
+  applyProperty(selection, property) {
+    applyProperty(selection, this, property);
+  },
+  cancelProperty(selection, property) {
+    cancelProperty(selection, this, property);
+  },
 
+  toggleProperty(selection, property) {
+    const richNodes = selection.selections.map((s) => s.richNode);
+    const enabled = richNodes.some( (node) => property.enabledAt(node));
+    if (enabled) {
+      this.cancelProperty(selection, property);
+    }
+    else {
+      this.applyProperty(selection, property);
+    }
+  },
   init() {
     this.set('history', CappedHistory.create({ maxItems: 100}));
     this.set('components', A());

@@ -1,4 +1,8 @@
-import { invisibleSpace, isDisplayedAsBlock, isList } from './dom-helpers';
+import {
+  invisibleSpace,
+  isDisplayedAsBlock,
+  isList
+} from './dom-helpers';
 import { warn } from '@ember/debug';
 
 /**

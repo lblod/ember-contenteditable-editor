@@ -20,7 +20,9 @@ import flatMap from './flat-map';
 import { walk as walkDomNode } from '@lblod/marawa/node-walker';
 import { analyse as scanContexts } from '@lblod/marawa/rdfa-context-scanner';
 import { positionInRange } from '@lblod/marawa/range-helpers';
-import { processDomNode as walkDomNodeAsText } from './text-node-walker';
+import {
+  processDomNode as walkDomNodeAsText
+} from './text-node-walker';
 import previousTextNode from './previous-text-node';
 import { getTextContent } from './text-node-walker';
 import { debug, warn } from '@ember/debug';
@@ -29,7 +31,12 @@ import { A } from '@ember/array';
 import DiffMatchPatch from 'diff-match-patch';
 import { task, timeout } from 'ember-concurrency';
 import nextTextNode from './next-text-node';
-import { unorderedListAction, orderedListAction, indentAction, unindentAction } from './list-helpers';
+import {
+  unorderedListAction,
+  orderedListAction,
+  indentAction,
+  unindentAction
+} from './list-helpers';
 import { applyProperty, cancelProperty } from './property-helpers';
 import highlightProperty from './highlight-property';
 const NON_BREAKING_SPACE = '\u00A0';

@@ -2,7 +2,13 @@ import EmberObject from '@ember/object';
 import { reads } from '@ember/object/computed';
 import HandlerResponse from './handler-response';
 import { get } from '@ember/object';
-import { invisibleSpace, isEmptyList, isList, removeNode, isAllWhitespace } from './dom-helpers';
+import {
+  invisibleSpace,
+  isEmptyList,
+  isList,
+  removeNode,
+  isAllWhitespace
+} from './dom-helpers';
 import previousTextNode from './previous-text-node';
 import { warn, debug } from '@ember/debug';
 import { A } from '@ember/array';

@@ -1,10 +1,17 @@
 import { warn } from '@ember/debug';
 import flatMap from './flat-map';
-import { tagName, removeNodeFromTree as unwrapDOMNode } from './dom-helpers';
+import {
+  tagName,
+  removeNodeFromTree as unwrapDOMNode
+} from './dom-helpers';
 import ReplaceWithPolyfill from 'mdn-polyfills/Node.prototype.replaceWith';
 import RichNode from '@lblod/marawa/rich-node';
 import { DEFAULT_TAG_NAME } from './editor-property';
-import { replaceRichNodeWith, wrapRichNode, unwrapRichNode } from './rich-node-tree-modification';
+import {
+  replaceRichNodeWith,
+  wrapRichNode,
+  unwrapRichNode
+} from './rich-node-tree-modification';
 
 // TODO: find a clean spot for this polyfill
 if (!Element.prototype.replaceWith)

@@ -1188,7 +1188,6 @@ const RawEditor = EmberObject.extend({
       nextWalkedNodes = [];
       for( let node of currentNodes ){
         if( !node.children ) {
-          // if ( node.isPartiallyOrFullyInRegion([start,end]) ) {
           if (positionInRange(node.start, [start, end]) || positionInRange(node.end, [start,end])
               || positionInRange(start, node.region) || positionInRange(end, node.region) ) {
             // handle lowest level node
@@ -1197,6 +1196,7 @@ const RawEditor = EmberObject.extend({
               range: [ Math.max( node.start, start ), Math.min( node.end, end ) ] } );
           }
           else {
+            // do nothing, it's not overlapping
           }
         }
         else {
@@ -1455,7 +1455,7 @@ const RawEditor = EmberObject.extend({
    * - motivation: Obligatory statement explaining why you need
    *   replaceDomNode and cannot use one of the other methods.
    */
-  replaceDomNode( domNode, { callback, failedCallback, motivation, desc } ){
+  replaceDomNode( domNode, { callback, failedCallback, motivation } ){
     const richNode = this.getRichNodeFor(domNode);
     if (richNode) {
       const currentNode = this.currentNode;

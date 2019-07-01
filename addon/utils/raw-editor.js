@@ -131,9 +131,30 @@ const RawEditor = EmberObject.extend({
     cancelProperty(selection, this, property);
   },
 
+  togglePropertyAtCurrentPosition(property) {
+    const wasEnabled = property.enabledAt(this.getRichNodeFor(this.currentNode));
+    const selection = this.selectHighlight(this.currentSelection);
+    const textNodeAtCurrentPosition = (node) => node.type === 'text' && node.start <= this.currentPosition && node.end >= this.currentPosition;
+    if (wasEnabled) {
+      cancelProperty(selection, this, property);
+      const textnodesatcursor = (flatMap(this.richNode, (node) => textNodeAtCurrentPosition(node)));
+      const correctNode = flatMap(this.richNode, (node) => textNodeAtCurrentPosition(node) && ! property.enabledAt(node), true)[0];
+      this.setCarret(correctNode.domNode, this.currentPosition - correctNode.start);
+    }
+    else {
+      applyProperty(selection, this, property);
+      const correctNode = flatMap(this.richNode, (node) => textNodeAtCurrentPosition(node) && property.enabledAt(node), true)[0];
+      this.setCarret(correctNode.domNode, this.currentPosition - correctNode.start);
+    }
+  },
   toggleProperty(selection, property) {
     const richNodes = selection.selections.map((s) => s.richNode);
-    const enabled = richNodes.some( (node) => property.enabledAt(node));
+    const start = richNodes.map((n) => n.start).sort()[0];
+    const end = richNodes.map((n) => n.end).sort().reverse()[0];
+
+    // check if property is enabled on any non empty text node, these are the only visible nodes
+    const filteredNodes = richNodes.filter((node) => !(node.start === start && node.end === start)).filter((node) => !(node.start === end && node.end === end));
+    const enabled = filteredNodes.some( (node) => node.type === 'text' && property.enabledAt(node));
     if (enabled) {
       this.cancelProperty(selection, property);
     }

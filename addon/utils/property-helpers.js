@@ -136,9 +136,24 @@ function applyProperty(selection, doc, property, calledFromCancel) {
     return;
   }
 
-  if (!calledFromCancel)
+  let nodesToApplyPropertyOn = findSuitableNodesToApplyOrCancelProperty(selection);
+  if (!calledFromCancel) {
+    // cancel first to avoid duplicate tags
     cancelProperty(selection, doc, property);
-  const nodesToApplyPropertyOn = findSuitableNodesToApplyOrCancelProperty(selection);
+  }
+  else {
+    // clean up the selection to limit overlap with cancel
+    console.log('unfiltered:',nodesToApplyPropertyOn);
+    const start = nodesToApplyPropertyOn.map((n) => n.start).sort()[0];
+    const end = nodesToApplyPropertyOn.map((n) => n.end).sort().reverse()[0];
+    // clean up empty nodes at start and end
+    nodesToApplyPropertyOn = nodesToApplyPropertyOn.filter((node) => !(node.richNode.start === start && node.richNode.end === start)).filter((node) => node && !(node.richNode.start === end && node.richNode.end === end));
+    // selectHighlight can return the last position or first position of text nodes which are irrelevant here
+    // keeping them would cause the creation of empty tags that we just need to clean up afterwards
+
+    nodesToApplyPropertyOn = nodesToApplyPropertyOn.filter((s) => !(s.range[0] - s.range[1] === 0 && s.richNode.end - s.richNode.start > 0));
+    console.log('filtered:',nodesToApplyPropertyOn);
+  }
   for( let {richNode, range} of nodesToApplyPropertyOn) {
     const [start,end] = range;
     if (richNode.type ===  "tag") {

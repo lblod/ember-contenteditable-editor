@@ -145,7 +145,7 @@ function applyProperty(selection, doc, property, calledFromCancel) {
       if (richNode.start < start || richNode.end > end) {
         warn(`applyProperty does not support applying a property to a tag that only partially matches the range`, {id: "content-editable.highlight"} );
       }
-      else {
+      else if (!domNodeContainsProperty(richNode.domNode, property)) {
         const domNode = richNode.domNode;
         let node;
         if (property.newContext) {

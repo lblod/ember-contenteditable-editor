@@ -337,39 +337,33 @@ function cancelProperty(selection, doc, property) {
       }
     }
     else if (richNode.type === "text") {
-      if (start === richNode.start && end === richNode.end) {
-        // we should cancel the property on the entire string, if we land here there is no useful tag above us.
-        // Probably need a cancelling wrapper
+      // we should cancel the property on part of the string, we need to find a parent that is setting the property and cancel that
+      // then reapply the property to the pre and post fix nodes
+      let currentNode = richNode.parent;
+      while(currentNode.parent && !domNodeContainsProperty(currentNode.domNode, property)) {
+        currentNode = currentNode.parent;
+      }
+      if (domNodeContainsProperty(currentNode.domNode,property)) {
+        rawCancelProperty(currentNode, property);
+        if (currentNode.start < start) {
+          // reapply property on prefix
+          const sel = doc.selectHighlight([currentNode.start, start]);
+          applyProperty(sel, doc, property, true);
+        }
+        if (currentNode.end > end) {
+          // reapply property on postfix
+          const sel = doc.selectHighlight([ end, currentNode.end]);
+          applyProperty(sel, doc, property, true);
+        }
+      }
+      else if (propertyIsEnabledOnLeafNodes(currentNode, property)) {
+        // we didn't find where the property was applied, it could be that this property was enabled in a manner we don't yet understand
+        // probably need a cancelling wrapper
         // TODO
+        console.log("didnt find it");
       }
       else {
-        // we should cancel the property on part of the string, we need to find a parent that is setting the property and cancel that
-        // then reapply the property to the pre and post fix nodes
-        let currentNode = richNode.parent;
-        while(currentNode.parent && !domNodeContainsProperty(currentNode.domNode, property)) {
-          currentNode = currentNode.parent;
-        }
-        if (domNodeContainsProperty(currentNode.domNode,property)) {
-          rawCancelProperty(currentNode, property);
-          if (currentNode.start < start) {
-            // reapply property on prefix
-            const sel = doc.selectHighlight([currentNode.start, start]);
-            applyProperty(sel, doc, property, true);
-          }
-          if (currentNode.end > end) {
-            // reapply property on postfix
-            const sel = doc.selectHighlight([ end, currentNode.end]);
-            applyProperty(sel, doc, property, true);
-          }
-        }
-        else if (propertyIsEnabledOnLeafNodes(currentNode, property)) {
-          // we didn't find where the property was applied, it could be that this property was enabled in a manner we don't yet understand
-          // probably need a cancelling wrapper
-          // TODO
-        }
-        else {
-          // property doesn't seem to be enabled at all
-        }
+        // property doesn't seem to be enabled at all
       }
     }
     else {

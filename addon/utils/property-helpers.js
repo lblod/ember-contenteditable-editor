@@ -223,7 +223,7 @@ function applyProperty(selection, doc, property, calledFromCancel) {
         text: postText,
         type: "text"
       });
-        const newRichNodes = [];
+      const newRichNodes = [];
       if( preRichNode ) { newRichNodes.push( preRichNode ); }
       newRichNodes.push( infixRichNode );
       if( postfixRichNode ) { newRichNodes.push( postfixRichNode ); }
@@ -367,7 +367,7 @@ function cancelProperty(selection, doc, property) {
         }
         if (currentNode.end > end) {
           // reapply property on postfix
-          const sel = doc.selectHighlight([ end, currentNode.end]);
+          const sel = doc.selectHighlight([ end+1, currentNode.end]);
           applyProperty(sel, doc, property, true);
         }
       }
@@ -382,7 +382,7 @@ function cancelProperty(selection, doc, property) {
       }
     }
     else {
-      warn( "applying a property can only occur on text nodes or on tag nodes", {id: "content-editable.editor-property"} );
+      warn( "cancelling a property can only occur on text nodes or on tag nodes", {id: "content-editable.editor-property"} );
     }
   }
 }

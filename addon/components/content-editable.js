@@ -275,7 +275,16 @@ export default Component.extend({
   paste(event) {
     // TODO support clipboardData, we want to filter on type text/plain and use that
     // see https://www.w3.org/TR/clipboard-apis/#paste-action
-    alert('Plakken wordt nog niet ondersteund.');
+    const paste = (event.clipboardData || window.clipboardData).getData('text');
+    const [ start , end ] = this.rawEditor.currentSelection;
+    if ( start === end ) {
+      // it's a regular cursor, not a selection
+      this.rawEditor.insertText(paste, this.rawEditor.currentPosition);
+      this.rawEditor.setCurrentPosition(start + paste.length);
+    }
+    else {
+      alert('plakken over selecties wordt niet ondersteunt');
+    }
     event.preventDefault();
     return false;
   },

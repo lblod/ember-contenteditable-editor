@@ -44,14 +44,14 @@ export default EmberObject.extend({
    * @return {HandlerResponse} response
    */
   handleEvent() {
-    let currentNode = this.get('currentNode');
-    let node = getRichNodeMatchingDomNode(currentNode, this.get('richNode'));
-    let currentPosition = this.get('currentSelection')[0];
+    let currentNode = this.currentNode;
+    let node = getRichNodeMatchingDomNode(currentNode, this.richNode);
+    let currentPosition = this.currentSelection[0];
     let nodeForEnter = this.relevantNodeForEnter(node);
     let newCurrentNode;
-    if (tagName(get(nodeForEnter, 'domNode')) === "li") {
+    if (tagName(nodeForEnter.domNode) === "li") {
       debug('enter in li');
-      this.get('rawEditor').externalDomUpdate(
+      this.rawEditor.externalDomUpdate(
         'inserting enter in li',
         () => this.insertEnterInLi(node, nodeForEnter, currentPosition, currentNode)
       );
@@ -61,7 +61,7 @@ export default EmberObject.extend({
       if (currentNode.nodeType === Node.TEXT_NODE) {
         let insertBr = () => {
           debug('placing br');
-          let splitAt = currentPosition - get(node, 'start');
+          let splitAt = currentPosition - node.start;
           let above = document.createTextNode(currentNode.textContent.slice(0,splitAt));
           let content = currentNode.textContent.slice(splitAt);
           if (isBlank(content))
@@ -74,15 +74,14 @@ export default EmberObject.extend({
           currentNode.parentNode.removeChild(currentNode);
           newCurrentNode = below;
         };
-        this.get('rawEditor').externalDomUpdate('inserting enter in text', insertBr);
+        this.rawEditor.externalDomUpdate('inserting enter in text', insertBr);
       }
       else {
         debug('-------------- not handling this enter yet------------------');
         return HandlerResponse.create({allowPropagation: true, allowBrowserDefault: true});
       }
-      this.get('rawEditor').updateRichNode();
-      let richNode = getRichNodeMatchingDomNode(newCurrentNode, this.get('richNode'));
-      this.get('rawEditor').setCurrentPosition(get(richNode, 'start'));
+      this.rawEditor.updateRichNode();
+      this.rawEditor.setCarret(newCurrentNode, 0);
       return HandlerResponse.create({allowPropagation: false});
     }
   },
@@ -93,8 +92,8 @@ export default EmberObject.extend({
    * @private
    */
   relevantNodeForEnter(node) {
-    while(! isDisplayedAsBlock(get(node,'domNode')) && ! this.get('rootNode').isSameNode(get(node, 'domNode'))) {
-      node = get(node, 'parent');
+    while(! isDisplayedAsBlock(node.domNode) && ! this.rootNode.isSameNode(node.domNode)) {
+      node = node.parent;
     }
     return node;
   },
@@ -106,7 +105,7 @@ export default EmberObject.extend({
    */
   liIsEmpty(node) {
     let re = new RegExp(invisibleSpace,"g");
-    return isBlank(get(node, 'domNode').textContent.replace(re, ''));
+    return isBlank(node.domNode.textContent.replace(re, ''));
   },
 
   /**
@@ -119,26 +118,21 @@ export default EmberObject.extend({
    */
   insertEnterInLi(node, nodeForEnter, currentPosition/*, currentNode*/) {
     // it's an li
-    let ulOrOl = get(nodeForEnter, 'parent');
-    let domNode = get(ulOrOl, 'domNode');
-    let liDomNode = get(nodeForEnter, 'domNode');
+    let ulOrOl = nodeForEnter.parent;
+    let domNode = ulOrOl.domNode;
+    let liDomNode = nodeForEnter.domNode;
     let textNode;
-    if (! this.liIsEmpty(nodeForEnter) && (currentPosition === get(nodeForEnter, 'start'))) {
+    const newElement = document.createElement('li');
+    textNode = insertTextNodeWithSpace(newElement);
+    if (! this.liIsEmpty(nodeForEnter) && (currentPosition === nodeForEnter.start)) {
       // insert li before li
-      let newElement = document.createElement('li');
       domNode.insertBefore(newElement,liDomNode);
-      textNode = insertTextNodeWithSpace(newElement);
-      this.set('currentNode', textNode);
     }
     else {
       // insert li after li
-      let newElement = document.createElement('li');
       insertNodeBAfterNodeA(domNode, liDomNode, newElement);
-      textNode = insertTextNodeWithSpace(newElement);
-      this.set('currentNode', textNode);
     }
-    this.get('rawEditor').updateRichNode();
-    let richNode = getRichNodeMatchingDomNode(textNode, this.get('richNode'));
-    this.get('rawEditor').setCurrentPosition(get(richNode, 'start'));
+    this.rawEditor.updateRichNode();
+    this.rawEditor.setCarret(textNode, 0);
   }
 });

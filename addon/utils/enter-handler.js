@@ -9,7 +9,6 @@ import {
   insertTextNodeWithSpace
 } from './dom-helpers';
 import HandlerResponse from './handler-response';
-import { get } from '@ember/object';
 import { debug } from '@ember/debug';
 import { isBlank } from '@ember/utils';
 
@@ -131,6 +130,18 @@ export default EmberObject.extend({
     else {
       // insert li after li
       insertNodeBAfterNodeA(domNode, liDomNode, newElement);
+    }
+    if (currentPosition > node.start && currentPosition < node.end) {
+      if (node.type ==='text' && nodeForEnter.children.includes(node)) {
+        // the text node is a direct child of the li, we can split this
+        const index = currentPosition - node.start;
+        const text = node.domNode.textContent;
+        node.domNode.textContent = text.slice(0,index);
+        textNode.textContent = text.slice(index);
+        while (node.domNode.nextSibling) {
+          textNode.parent.append(node.domNode.nextSibling);
+        }
+      }
     }
     this.rawEditor.updateRichNode();
     this.rawEditor.setCarret(textNode, 0);

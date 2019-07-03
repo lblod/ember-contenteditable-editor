@@ -131,15 +131,17 @@ export default EmberObject.extend({
       // insert li after li
       insertNodeBAfterNodeA(domNode, liDomNode, newElement);
     }
-    if (currentPosition > node.start && currentPosition < node.end) {
-      if (node.type ==='text' && nodeForEnter.children.includes(node)) {
-        // the text node is a direct child of the li, we can split this
-        const index = currentPosition - node.start;
-        const text = node.domNode.textContent;
+    if (node.type ==='text' && nodeForEnter.children.includes(node)) {
+      // the text node is a direct child of the li, we can split this
+      const index = currentPosition - node.start;
+      const text = node.domNode.textContent;
+      if (currentPosition >= node.start && currentPosition <= node.end && currentPosition !== nodeForEnter.start) {
+        // cursor not at start of the li, so just move everything after the cursor to the next node
+        // if it is at the start an li was already inserted before it and we don't have to do anything
         node.domNode.textContent = text.slice(0,index);
         textNode.textContent = text.slice(index);
         while (node.domNode.nextSibling) {
-          textNode.parent.append(node.domNode.nextSibling);
+          textNode.parentNode.append(node.domNode.nextSibling);
         }
       }
     }

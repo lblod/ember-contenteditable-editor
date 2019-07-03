@@ -9,8 +9,8 @@ import IgnoreModifiersHandler from '../utils/ignore-modifiers-handler';
 import BackspaceHandler from '../utils/backspace-handler';
 import TextInputHandler from '../utils/text-input-handler';
 import HeaderMarkdownHandler from '../utils/header-markdown-handler';
-import EmphasisMarkdownHandler from '../utils/emphasis-markdown-handler';
-import ListInsertionMarkdownHandler from '../utils/list-insertion-markdown-handler';
+// import EmphasisMarkdownHandler from '../utils/emphasis-markdown-handler';
+// import ListInsertionMarkdownHandler from '../utils/list-insertion-markdown-handler';
 import ArrowHandler from '../utils/arrow-handler';
 import TabHandler from '../utils/tab-handler';
 import { normalizeEvent } from 'ember-jquery-legacy';
@@ -135,8 +135,8 @@ export default Component.extend({
 
     const defaultInputHandlers = [ ArrowHandler.create({rawEditor}),
                                    HeaderMarkdownHandler.create({rawEditor}),
-                                   EmphasisMarkdownHandler.create({rawEditor}),
-                                   ListInsertionMarkdownHandler.create({rawEditor}),
+                                   // EmphasisMarkdownHandler.create({rawEditor}),
+                                   // ListInsertionMarkdownHandler.create({rawEditor}),
                                    EnterHandler.create({rawEditor}),
                                    BackspaceHandler.create({rawEditor}),
                                    TextInputHandler.create({rawEditor}),
@@ -275,7 +275,7 @@ export default Component.extend({
   paste(event) {
     // TODO support clipboardData, we want to filter on type text/plain and use that
     // see https://www.w3.org/TR/clipboard-apis/#paste-action
-    const paste = (event.clipboardData || window.clipboardData).getData('text');
+    const paste = (event.clipboardData || window.clipboardData).getData('text'); // use 'text/html' later on for parseable content
     const [ start , end ] = this.rawEditor.currentSelection;
     if ( start === end ) {
       // it's a regular cursor, not a selection

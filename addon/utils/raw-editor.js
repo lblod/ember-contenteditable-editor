@@ -134,10 +134,9 @@ const RawEditor = EmberObject.extend({
   togglePropertyAtCurrentPosition(property) {
     const wasEnabled = property.enabledAt(this.getRichNodeFor(this.currentNode));
     const selection = this.selectHighlight(this.currentSelection);
-    const textNodeAtCurrentPosition = (node) => node.type === 'text' && node.start <= this.currentPosition && node.end >= this.currentPosition;
+    const textNodeAtCurrentPosition = (node) => node.type === 'text' && node.start <= this.currentPosition && node.end >= this.currentPosition && (!this.currentNode || node.domNode === this.currentNode);
     if (wasEnabled) {
       cancelProperty(selection, this, property);
-      const textnodesatcursor = (flatMap(this.richNode, (node) => textNodeAtCurrentPosition(node)));
       const correctNode = flatMap(this.richNode, (node) => textNodeAtCurrentPosition(node) && ! property.enabledAt(node), true)[0];
       this.setCarret(correctNode.domNode, this.currentPosition - correctNode.start);
     }

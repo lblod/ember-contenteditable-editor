@@ -947,6 +947,8 @@ const RawEditor = EmberObject.extend({
    */
   setCarret(node, offset, notify = true) {
     const richNode = this.getRichNodeFor(node);
+    if (!richNode)
+      return;
     if (richNode.type === 'tag' && richNode.children) {
       if (richNode.children.length < offset) {
         warn(`invalid offset ${offset} for node ${tagName(richNode.domNode)} with ${richNode.children } provided to setCarret`, {id: 'contenteditable.invalid-start'});

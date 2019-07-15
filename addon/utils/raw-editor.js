@@ -153,7 +153,7 @@ const RawEditor = EmberObject.extend({
   togglePropertyAtCurrentPosition(property) {
     const wasEnabled = property.enabledAt(this.getRichNodeFor(this.currentNode));
     const selection = this.selectHighlight(this.currentSelection);
-    const textNodeAtCurrentPosition = (node) => node.type === 'text' && node.start <= this.currentPosition && node.end >= this.currentPosition && (!this.currentNode || node.domNode === this.currentNode);
+    const textNodeAtCurrentPosition = (node) => node.type === 'text' && node.start <= this.currentPosition && node.end >= this.currentPosition;
     if (wasEnabled) {
       cancelProperty(selection, this, property);
       const correctNode = flatMap(this.richNode, (node) => textNodeAtCurrentPosition(node) && ! property.enabledAt(node), true)[0];
@@ -433,6 +433,17 @@ const RawEditor = EmberObject.extend({
     }
     const selection = this.selectHighlight([start,end]);
     applyProperty(selection, this, highlightProperty); // todo: replace 'this' with proper interface
+    if (this.currentPosition >= start && this.currentPosition <= end) {
+      // cursor was in highlight, reset cursor
+      const richNode = this.getRichNodeFor(this.currentNode);
+      if (richNode) {
+        this.setCarret(richNode.domNode, Math.max(0,this.currentPosition - richNode.start));
+      }
+      else {
+        this.set('currentNode', null);
+        this.setCurrentPosition(this.currentPosition);
+      }
+    }
   },
 
   /**
@@ -446,8 +457,8 @@ const RawEditor = EmberObject.extend({
    * @public
    */
   clearHighlightForRange(start,end) {
-    const selection = this.selectHighlight([start,end]);
-    cancelProperty(selection, this, highlightProperty); // todo: replace 'this' with proper interface
+    console.warn('deprecated call to clearHightlightForRange, use clearHighlightForLocations', console.trace());
+    this.clearHighlightForLocations([start, end]);
   },
 
   /**
@@ -460,79 +471,20 @@ const RawEditor = EmberObject.extend({
    * @public
    */
   clearHighlightForLocations(locations){
-    let highlights = this.findHighlights( (node) => {
-      return locations.find( location => {
-        return node.start >= location[0] && node.end <= location[1];
-      } ); } );
-
-    this.clearHighlights( highlights );
-  },
-
-  /**
-   *
-   * @method removeHighlight
-   * @param {RichNode} highlight
-   * @private
-   */
-  removeHighlight(highlight) {
-    if( highlight.domNode.nodeName === "MARK" ){
-      highlight.domNode.removeAttribute(HIGHLIGHT_DATA_ATTRIBUTE);
-      // unwrap mark
-      unwrapDOMNode(highlight.domNode);
-      const parent = highlight.parent;
-      parent.children.splice( parent.children.indexOf( highlight ), 1, ...highlight.children );
-    } else {
-      highlight.domNode.removeAttribute(HIGHLIGHT_DATA_ATTRIBUTE);
-    }
-  },
-
-  /**
-   * Clear all highlights in the editor
-   *
-   * @method clearAllHightlights
-   *
-   * @public
-   */
-  clearAllHighlights() {
-    let highlights = this.findHighlights();
-    if (highlights.length === 0) warn("no highlights found", {id: "content-editable.highlight-not-found"});
-    this.clearHighlights(highlights);
-  },
-
-  /**
-   * Clear list of  highlights in the editor
-   *
-   * @method clearHightlights
-   *
-   * @private
-   */
-  clearHighlights(highlights){
-    if( highlights.length === 0 )
-      return;
-
-    highlights.forEach(
-      highlight => {
-        this.removeHighlight(highlight);
+    for (let location of locations) {
+      cancelProperty(this.selectHighlight(location), this, highlightProperty); // todo: replace 'this' with proper interface
+      if (this.currentPosition >= location[0] && this.currentPosition <= location[1]) {
+        // cursor was in highlight, reset cursor
+        const richNode = this.getRichNodeFor(this.currentNode);
+        if (richNode) {
+          this.setCarret(richNode.domNode, Math.max(0,this.currentPosition - richNode.start));
+        }
+        else {
+          this.set('currentNode', null);
+          this.setCurrentPosition(this.currentPosition);
+        }
       }
-    );
-    this.setCurrentPosition(this.currentPosition, false); //ensure caret is still correct
-    this.updateRichNode();
-  },
-
-  /**
-   * retun all elements which are a highlight, matching the supplied
-   * predicate
-   *
-   * @method findHighlights
-   * @param {Function} predicate If no predicate is supplied all matches are returned
-   * @private
-   */
-  findHighlights(predicate = () => true) {
-    return flatMap(this.get('richNode'), (node) => {
-      return predicate( node )
-        && node.type === "tag"
-        && node.domNode.getAttribute(HIGHLIGHT_DATA_ATTRIBUTE) === "true";
-    } );
+    }
   },
 
 
@@ -1230,9 +1182,14 @@ const RawEditor = EmberObject.extend({
           if (positionInRange(node.start, [start, end]) || positionInRange(node.end, [start,end])
               || positionInRange(start, node.region) || positionInRange(end, node.region) ) {
             // handle lowest level node
-            selections.push( {
-              richNode: node,
-              range: [ Math.max( node.start, start ), Math.min( node.end, end ) ] } );
+            if (node.region[1] > end && node.type === 'tag') {
+              console.debug('dropping tag', node);
+            }
+            else {
+              selections.push( {
+                richNode: node,
+                range: [ Math.max( node.start, start ), Math.min( node.end, end ) ] } );
+            }
           }
           else {
             // do nothing, it's not overlapping

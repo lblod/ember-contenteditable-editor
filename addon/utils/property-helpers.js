@@ -143,7 +143,6 @@ function applyProperty(selection, doc, property, calledFromCancel) {
   }
   else {
     // clean up the selection to limit overlap with cancel
-    console.log('unfiltered:',nodesToApplyPropertyOn);
     const start = nodesToApplyPropertyOn.map((n) => n.start).sort()[0];
     const end = nodesToApplyPropertyOn.map((n) => n.end).sort().reverse()[0];
     // clean up empty nodes at start and end
@@ -152,7 +151,6 @@ function applyProperty(selection, doc, property, calledFromCancel) {
     // keeping them would cause the creation of empty tags that we just need to clean up afterwards
 
     nodesToApplyPropertyOn = nodesToApplyPropertyOn.filter((s) => !(s.range[0] - s.range[1] === 0 && s.richNode.end - s.richNode.start > 0));
-    console.log('filtered:',nodesToApplyPropertyOn);
   }
   for( let {richNode, range} of nodesToApplyPropertyOn) {
     const [start,end] = range;
@@ -375,10 +373,11 @@ function cancelProperty(selection, doc, property) {
         // we didn't find where the property was applied, it could be that this property was enabled in a manner we don't yet understand
         // probably need a cancelling wrapper
         // TODO
-        console.log("didnt find it");
+        warn(`did not find node that enabled property`, {id: 'contenteditable.property'});
       }
       else {
         // property doesn't seem to be enabled at all
+        warn(`request to cancel a property, but it wasn't enabled`, {id: 'contenteditable.property'});
       }
     }
     else {

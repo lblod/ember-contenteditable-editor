@@ -37,10 +37,11 @@ import {
   indentAction,
   unindentAction
 } from './list-helpers';
+import { update } from './pernet-api';
 import { applyProperty, cancelProperty } from './property-helpers';
 import highlightProperty from './highlight-property';
 const NON_BREAKING_SPACE = '\u00A0';
-const HIGHLIGHT_DATA_ATTRIBUTE = 'data-editor-highlight';
+
 /**
  * raw contenteditable editor, a utility class that shields editor internals from consuming applications.
  *
@@ -123,7 +124,25 @@ const RawEditor = EmberObject.extend({
     let sel = this.currentSelection;
     return sel[0] === sel[1];
   }),
-
+  update(selection, { remove, add, set, desc }) {
+    update(selection, {remove, add, set ,desc});
+    const start = Math.min(...selection.selections.map((element) => element.richNode.start));
+    const end = Math.max(...selection.selections.map((element) => element.richNode.end));
+    // TODO: cursor handling is suboptimal, should be incorporated in update itself.
+    // eg if we're clearing the node that contains our cursor, what would be a good strategy?
+    this.updateRichNode();
+    if (this.currentPosition >= start && this.currentPosition <= end) {
+      // cursor was in selection, reset cursor
+      const richNode = this.getRichNodeFor(this.currentNode);
+      if (richNode) {
+        this.setCarret(richNode.domNode, Math.max(0,this.currentPosition - richNode.start));
+      }
+      else {
+        this.set('currentNode', null);
+        this.setCurrentPosition(this.currentPosition);
+      }
+    }
+  },
   applyProperty(selection, property) {
     applyProperty(selection, this, property);
   },
@@ -1377,7 +1396,7 @@ const RawEditor = EmberObject.extend({
           if ( isMatchingContext(block, filter) ) {
             const selection = {
               richNode: block.semanticNode,
-              region: block.semanticNode.region,
+              region: block.semanticNode.region, // TODO: should be range?
               context: block.context
             };
             selections = updateSelections( selections, selection);
@@ -1416,7 +1435,7 @@ const RawEditor = EmberObject.extend({
           if ( isMatchingContext(block, filter) ) {
             const selection = {
               richNode: block.semanticNode,
-              region: block.semanticNode.region,
+              region: block.semanticNode.region, // TODO: should be range?
               context: block.context
             };
             selections = updateSelections( selections, selection);
@@ -1494,149 +1513,9 @@ const RawEditor = EmberObject.extend({
     else {
       failedCallback(domNode, 'node not found in richNode');
     }
-  },
-
-  /**
-   * Alters a selection from the API described above.
-   *
-   * Any selected range can be manipulated.  This method allows such
-   * changes to happen on following key terms: property, typeof,
-   * dataType, resource, content, (TODO: attribute), innerContent,
-   * innerHtml
-   *
-   * - selection: Object retrieved from #selectContext or
-   *   #selectHighlight.
-   * - options: Object specifying desired behaviour.
-   * - options.remove: Removes RDFa content that was already there.
-   *     Allows removing any of property, typeof, datatype, resource,
-   *     content, (TODO: attribute), innerContent, innerHtml
-   * - options.add: Adds specific content to the selection, pushing
-   *     nvalues on top of already existing values.  Allows adding any
-   *     of property, typeof, datatype, resource.  Set the
-   *     forceNewContext property to true to force a new context if a
-   *     full tag is selected.
-   * - options.set: Allows setting any of property, typeof, datatype,
-   *     resource content attribute innerContent innerHtml.  Set the
-   *     newContext property to true to force a new context if a full
-   *     tag is selected.
-   * - options.desc: You are oncouraged to write a brief description
-   *     of the desired manipulation here for debugging needs.
-   *
-   * The syntax for specifying items to remove works as follows:
-   * - true: Removes any value to be removed.
-   * - string: Removes the specific value as supplied.  If no value
-   *   matches, nothing is removed.  For semantic content, translation
-   *   is done based on the current context, eg: if there is a
-   *   foaf:name in the document, then suppling the string
-   *   "http://xmlns.com/foaf/0.1/name" will usually mean foaf:name is
-   *   matched.
-   * - [string]: An array of strings means all the matches will be
-   *   removed.  Matching works the same way as string.
-   * - regex: Considers the present value and executes a regular
-   *   expression on said value.  If the regular expression matches,
-   *   the value is removed.
-   * - [regex]: An array of regular experssions.  If any matches, the
-   *   value itself is matched.
-   *
-   * The syntax for specifying items to add works for all properties
-   * which can be set using "add".  Specification works as follows:
-   * - string: Specifies a single value to set or add.
-   * - [string]: Specifies a series of values to set or add.
-   *
-   * NOTE: The system is free to set or add
-   * properties based on a short form (derived from the prefixes
-   * available in the context) if it is possible and if it desires to
-   * do so.
-   *
-   * NOTE: newContext is set to undefined by default and behaves
-   * similar to false.  This is because we assume that when you don't
-   * care about the context there's a fair chance that we can merge
-   * the contexts.  In specific cases you may desire to have things
-   * merge (or not) explicitly.  You should set eithre true or false
-   * in that case.
-   *
-   * NOTE/TODO: In order to make plugins simpler, we should look into
-   * specifying namespaces in the plugin.  By sharing these namespaces
-   * with these setter methods, it becomes shorter te specify the URLs
-   * to match on.
-   *
-   * NOTE/TODO: It is our intention to allow for multiple operations
-   * to occur in series.  Altering the range in multiple steps.  This
-   * can currently be done by executing the alterSelection multiple
-   * times.  Connecting the changes this way does require you to make
-   * a new selection each time you want to execute a new change.  If
-   * this case occurs often *and* we can find sensible defaults on
-   * updating the selection, we could make this case simpler.  The
-   * options hash would also allow an array in that case.
-   */
-  update( selection, { remove, add, set, desc } ) {
-    const newContextHeuristic = newContextHeuristic( selection, { remove, add, set, desc } );
-
-    // This function needs to figure out how to best manipulate the
-    // DOM tree, and execute that manipulation.  This is complex.  We
-    // need to further reason on the received information, possibly
-    // walk back up the tree and possibly discard zero-width nodes.
-    // This requires knowledge of annotated context and of transient
-    // properties which can be split or merged.
-
-    // Indicates whether or not the tree can be manipulated in such a
-    // way that a single node is left.  Has an understanding of
-    // transient marks.  This should return two values: whether or not
-    // this is possible completely, and the set of predicted resulting
-    // nodes.  These mockNodes can be used to check whether or not we
-    // could 'fix' the mark manually or do a best-effort approach.
-
-    const [ canJoinSelection, mockNodes ] = canJoinSelection( selection );
   }
 });
 
-/**
- * Heuristically choose whether we should be creating a new context or
- * not.
- *
- * @method newContextHeuristic Object Returns whether or not we should
- * create a new context or not.  It is a heuristic and yields an
- * object containing force, yes, and no.  Force means we must make a
- * new context.  Yes means we should try to make a new context, and no
- * means we should try not to make a new context.
- */
-function newContextHeuristic( selection, { remove, add, set } ) {
-  // prefer overriding choice
-  if( add.newContext === true )
-    return { force: true, yes: true, no: false, forceNo: false };
-  else if( add.newContext === false )
-    return { force: false, yes: false, no: true, forceNo: true };
-
-  // no overriding choice, let's guess
-
-  // if we remove stuff, we probably want to overwrite stuff,
-  if( remove )
-    return { force: false, yes: false, no: true, forceNo: false };
-
-  // if we're selecting a slab of text, we probably want to create a
-  // new context
-  if( selection.selectedHighlightRange )
-    return { force: false, yes: true, no: false, forceNo: false };
-
-  // no other selection happened, we should try to merge the contexts
-  // if possible.
-  return { force: false, yes: false, no: true, forceNo: false };
-}
-
-
-/**
- * Indicates whether or not we should annotate a single node or if the
- * annotation can span multiple nodes.
- */
-function shouldJoinNodes( selection, { remove, add, set } ) {
-  if( add.typeof ) {
-    return { mustjoin: true, shouldjoin: true };
-  }
-
-  if( remove.typeof || add.property || add.content ) {
-
-  }
-}
 
 function uuidv4() {
   return ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, c => {

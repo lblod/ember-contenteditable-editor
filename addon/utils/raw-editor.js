@@ -4,7 +4,6 @@ import {
   insertTextNodeWithSpace,
   insertNodeBAfterNodeA,
   sliceTextIntoTextNode,
-  removeNodeFromTree as unwrapDOMNode,
   removeNode,
   isVoidElement,
   isIgnorableElement,

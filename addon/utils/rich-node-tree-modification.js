@@ -50,4 +50,4 @@ function unwrapRichNode(richNode) {
   replaceRichNodeWith(richNode, richNode.children);
 }
 
-export { replaceRichNodeWith, wrapRichNode, unwrapRichNode };
+export { replaceRichNodeWith, wrapRichNode, unwrapRichNode, mergeSiblings };

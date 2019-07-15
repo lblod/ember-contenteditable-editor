@@ -283,7 +283,7 @@ export default Component.extend({
       this.rawEditor.setCurrentPosition(start + paste.length);
     }
     else {
-      alert('plakken over selecties wordt niet ondersteunt');
+      alert('plakken over selecties wordt niet ondersteund');
     }
     event.preventDefault();
     return false;

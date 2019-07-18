@@ -1354,7 +1354,7 @@ const RawEditor = EmberObject.extend({
           if ( isMatchingContext(block, filter) ) {
             const selection = {
               richNode: block.semanticNode,
-              region: block.semanticNode.region, // TODO: should be range?
+              range: block.semanticNode.region,
               context: block.context
             };
             selections = updateSelections( selections, selection);
@@ -1393,7 +1393,7 @@ const RawEditor = EmberObject.extend({
           if ( isMatchingContext(block, filter) ) {
             const selection = {
               richNode: block.semanticNode,
-              region: block.semanticNode.region, // TODO: should be range?
+              range: block.semanticNode.region,
               context: block.context
             };
             selections = updateSelections( selections, selection);
@@ -1423,7 +1423,7 @@ const RawEditor = EmberObject.extend({
       selections = filterOuter(rdfaBlocks, filter, [start, end]);
     }
 
-    return selections;
+    return {selections};
   },
 
 

@@ -497,7 +497,7 @@ function isComplexSelection(selection) {
         for (let parent of cleanedParents) {
           for (let child of parent.children) {
             if (! children.map( (sel) => sel.richNode).includes(child)) {
-              console.warn('complex selection', selection);
+              console.warn('complex selection', selection); // eslint-disable-line no-console
               return true;
             }
           }
@@ -584,7 +584,8 @@ function updateRDFA(nodes, {remove, add, set } ) {
 
 function verifySpecification({ add, desc }) {
   runInDebug( () => {
-    console.info(desc);
+    if (desc)
+      console.info(`running update: ${desc}`); // eslint-disable-line no-console
     if (add) {
       if (add.content)
         console.warn('adding content is not supported, use set'); // eslint-disable-line no-console

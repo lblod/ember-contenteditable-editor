@@ -456,7 +456,7 @@ const RawEditor = EmberObject.extend({
    * @public
    */
   clearHighlightForRange(start,end) {
-    console.warn('deprecated call to clearHightlightForRange, use clearHighlightForLocations', console.trace());
+    console.warn('deprecated call to clearHightlightForRange, use clearHighlightForLocations', console.trace()); // eslint-disable-line no-console
     this.clearHighlightForLocations([start, end]);
   },
 
@@ -1184,7 +1184,7 @@ const RawEditor = EmberObject.extend({
               || positionInRange(start, node.region) || positionInRange(end, node.region) ) {
             // handle lowest level node
             if (node.region[1] > end && node.type === 'tag') {
-              console.debug('dropping tag', node);
+              console.debug('dropping tag', node); // eslint-disable-line no-console
             }
             else {
               selections.push( {

@@ -1,5 +1,6 @@
 import RichNode from '@lblod/marawa/rich-node';
 import wrapRichNode from './rich-node-tree-modification';
+import { runInDebug } from '@ember/debug';
 /**
  * @module pernetApi
  */
@@ -77,11 +78,10 @@ import wrapRichNode from './rich-node-tree-modification';
  * options hash would also allow an array in that case.
  */
 function update( selection, { remove, add, set, desc } ) {
-  verifySpecification({remove, add, set});
+  verifySpecification({remove, add, set, desc});
   if ( selection.selectedHighlightRange && isComplexSelection(selection)) {
-    // for now just logs
     // TODO: find a sensible region to apply the update to
-    console.warn('unhandled selection', selection);
+    console.warn('unhandled selection', selection); // eslint-disable-line no-console
   }
   else {
     const bestApproach = newContextHeuristic( selection, {remove, add, set , desc});
@@ -90,7 +90,7 @@ function update( selection, { remove, add, set, desc } ) {
       nodes = wrapSelection(selection);
     }
     else if (bestApproach === WRAPALL) {
-      console.warn('wrapp all is not support atm');
+      console.warn('wrapp all is not support atm'); // eslint-disable-line no-console
     }
     else if (bestApproach === NEST) {
       nodes = nestSelection(selection);
@@ -99,7 +99,7 @@ function update( selection, { remove, add, set, desc } ) {
       nodes = selection.selections.map((sel) => sel.richNode);
     }
     if (isRDFAUpdate({remove,add,set})) {
-      updateRDFA(nodes, {remove, add, set, desc});
+      updateRDFA(nodes, {remove, add, set});
     }
     if (isInnerContentUpdate({remove,add,set})) {
       updateInnerContent(nodes, {remove, add, set});
@@ -132,11 +132,11 @@ function isInnerContentUpdate({remove, set}) {
  */
 function updateInnerContent(nodes, {remove, set}) {
   for (let node of nodes) {
-    if (remove.innerHTML) {
-      node.innerHTML = '';
+    if (remove && remove.innerHTML) {
+      node.domNode.innerHTML = '';
     }
-    if (set.innerHTML) {
-      node.innerHTML = set.innerHTML;
+    if (set && set.innerHTML) {
+      node.domNode.innerHTML = set.innerHTML;
     }
   }
 }
@@ -146,7 +146,7 @@ function updateInnerContent(nodes, {remove, set}) {
  * @method newContextHeuristic
  * @private
  */
-function newContextHeuristic( selection, {remove, add, set, desc}) {
+function newContextHeuristic( selection, {remove, add, set}) {
   if (selection.selectedHighlightRange) {
     // always wrap a text selection for now
     // this could be overwritten in a smarter nodesToWrap method
@@ -195,7 +195,7 @@ function newContextHeuristic( selection, {remove, add, set, desc}) {
       return UPDATE;
     }
     else {
-      console.warn('you must specify either add, remove or set on an update operation');
+      console.warn('you must specify either add, remove or set on an update operation'); // eslint-disable-line no-console
     }
   }
 }
@@ -239,7 +239,7 @@ function nestSelection( selection ) {
   const nodes = [];
   for (let node of selection.selections.map((el) => el.richNode)) {
     if (node.type !== 'tag') {
-      console.warn('cant nest under node of type ' + node.type);
+      console.warn('cant nest under node of type ' + node.type); // eslint-disable-line no-console
     }
     else {
       const newElement = document.createElement('span'); // prefer spans for nesting TODO: configurable
@@ -259,7 +259,7 @@ function nestSelection( selection ) {
  * @private
  */
 function intersection(arr1, arr2) {
-  arr1.filter(function(value) {
+  return arr1.filter(function(value) {
     return arr2.indexOf(value) > -1;
   });
 }
@@ -270,7 +270,12 @@ function intersection(arr1, arr2) {
  * @private
  */
 function hasRDFAKeys(object) {
-  return intersection(RDFAKeys, Object.keys(object)).length > 0;
+  if (object) {
+    const inter =  intersection(RDFAKeys, Object.keys(object));
+    return inter.length > 0;
+  }
+  else
+    return false;
 }
 
 /**
@@ -278,7 +283,7 @@ function hasRDFAKeys(object) {
  * @method isRDFAUpdate
  * @private
  */
-function isRDFAUpdate(selection, {remove, add, set}) {
+function isRDFAUpdate({remove, add, set}) {
   return hasRDFAKeys(remove) || hasRDFAKeys(add) || hasRDFAKeys(set);
 }
 
@@ -551,40 +556,43 @@ function selectedAttributeValues(domNode, attribute, specification) {
  * @method updateRDFA
  * @private
  */
-function updateRDFA(nodes, {remove, add, set ,desc} ) {
+function updateRDFA(nodes, {remove, add, set } ) {
   for (let node of nodes) {
-    if (hasRDFAKeys(remove)) {
-      for (let attribute of RDFAKeys) {
-        if (remove[attribute]) {
-          if (remove[attribute] === true) {
-            node.domNode.removeAttribute(attribute);
-          }
-          else {
-            for (let value of selectedAttributeValues(node.domNode, attribute, remove[attribute])) {
-              removeDOMAttributeValue(node.domNode, attribute, value);
-            }
+    for (let attribute of RDFAKeys) {
+      if (remove && remove[attribute]) {
+        if (remove[attribute] === true) {
+          node.domNode.removeAttribute(attribute);
+        }
+        else {
+          for (let value of selectedAttributeValues(node.domNode, attribute, remove[attribute])) {
+            removeDOMAttributeValue(node.domNode, attribute, value);
           }
         }
-        if (add[attribute]) {
-          const values = add[attribute] instanceof Array ? add[attribute] : [add[attribute]];
-          for (let value of values) {
-            addDomAttributeValue(node.domNode, attribute, value);
-          }
+      }
+      if (add && add[attribute]) {
+        const values = add[attribute] instanceof Array ? add[attribute] : [add[attribute]];
+        for (let value of values) {
+          addDomAttributeValue(node.domNode, attribute, value);
         }
-        if (set[attribute]) {
-          node.domNode.setAttribute(attribute, set[attribute]);
-        }
+      }
+      if (set && set[attribute]) {
+        node.domNode.setAttribute(attribute, set[attribute]);
       }
     }
   }
 }
 
-function verifySpecification({ add }) {
-  if (add.content)
-    console.warn('adding content is not supported, use set');
-  if (add.datatype)
-    console.warn('adding datatype is not supported, use set');
-  if (add.innerHTML)
-    console.warn('adding innerHTML is not supported, use set');
+function verifySpecification({ add, desc }) {
+  runInDebug( () => {
+    console.info(desc);
+    if (add) {
+      if (add.content)
+        console.warn('adding content is not supported, use set'); // eslint-disable-line no-console
+      if (add.datatype)
+        console.warn('adding datatype is not supported, use set'); // eslint-disable-line no-console
+      if (add.innerHTML)
+        console.warn('adding innerHTML is not supported, use set'); // eslint-disable-line no-console
+    }
+  });
 }
 export { update };

@@ -487,7 +487,7 @@ function isComplexSelection(selection) {
     return false;
   else {
     const verifyParents = function(parents, children) {
-      const cleanedParents = parents.filter((element) => element);
+      const cleanedParents = (Array.from(parents)).filter((element) => element);
       if (cleanedParents.length === 1)
         return false;
       else if (cleanedParents.length === 0) {

@@ -90,13 +90,13 @@ function update( selection, { remove, add, set, desc } ) {
       nodes = wrapSelection(selection);
     }
     else if (bestApproach === WRAPALL) {
-      console.warn('wrapp all is not support atm'); // eslint-disable-line no-console
+      console.warn('wrap all is not support atm'); // eslint-disable-line no-console
     }
     else if (bestApproach === NEST) {
       nodes = nestSelection(selection);
     }
     else {
-      nodes = selection.selections.map((sel) => sel.richNode);
+      nodes = selection.selections.map((sel) => sel.richNode.domNode );
     }
     if (isRDFAUpdate({remove,add,set})) {
       updateRDFA(nodes, {remove, add, set});
@@ -130,13 +130,13 @@ function isInnerContentUpdate({remove, set}) {
  * updates the inner content of the provided nodes according to the specification
  * @method updateInnerContent
  */
-function updateInnerContent(nodes, {remove, set}) {
-  for (let node of nodes) {
+function updateInnerContent(domNodes, {remove, set}) {
+  for (let domNode of domNodes) {
     if (remove && remove.innerHTML) {
-      node.domNode.innerHTML = '';
+      domNode.innerHTML = '';
     }
     if (set && set.innerHTML) {
-      node.domNode.innerHTML = set.innerHTML;
+      domNode.innerHTML = set.innerHTML;
     }
   }
 }
@@ -239,7 +239,7 @@ function nestSelection( selection ) {
   const nodes = [];
   for (let node of selection.selections.map((el) => el.richNode)) {
     if (node.type !== 'tag') {
-      console.warn('cant nest under node of type ' + node.type); // eslint-disable-line no-console
+      console.warn('Cannot nest under node of type ' + node.type); // eslint-disable-line no-console
     }
     else {
       const newElement = document.createElement('span'); // prefer spans for nesting TODO: configurable
@@ -349,13 +349,11 @@ function wrapSelection(selection) {
     if (firstSelection.richNode.start < firstSelection.range[0]) {
       // not the entire node was selected, will need to split
       const richNode = firstSelection.richNode;
-      const node = richNode.domNode;
-      const relativeStart = Math.min( firstSelection.range[0] -firstSelection.richNode.start, 0);
-      const [preText, infixText] = [ node.text.slice( 0, relativeStart ),
-                                     node.text.slice( relativeStart, node.text.length ) ];
-      node.text = infixText;
+      const relativeStart = Math.min( firstSelection.range[0] - richNode.start, 0);
+      const [preText, infixText] = [ richNode.text.slice( 0, relativeStart ),
+                                     richNode.text.slice( relativeStart, richNode.text.length ) ];
       const prefixNode = document.createTextNode(preText);
-      node.before(prefixNode);
+      richNode.domNode.before(prefixNode);
       const preRichNode = new RichNode({
         domNode: prefixNode,
         parent: richNode.parent,
@@ -371,15 +369,13 @@ function wrapSelection(selection) {
       richNode.text = infixText;
     }
     if (lastSelection.richNode.end > lastSelection.range[1]) {
-      // not the entire node was selected will need to split
+      // not the entire node was selected, will need to split
       const richNode = lastSelection.richNode;
-      const node = richNode.domNode;
-      const relativeEnd = Math.max( lastSelection.range[1] - lastSelection.richNode.end, node.text.length);
-      const [infixText, postText] = [ node.text.slice( 0, relativeEnd ),
-                                      node.text.slice( relativeEnd, node.text.length ) ];
-      node.text = infixText;
+      const relativeEnd = Math.max( lastSelection.range[1] - richNode.end, richNode.text.length);
+      const [infixText, postText] = [ richNode.text.slice( 0, relativeEnd ),
+                                      richNode.text.slice( relativeEnd, richNode.text.length ) ];
       const postfixNode = document.createTextNode(postText);
-      node.after(postfixNode);
+      richNode.domNode.after(postfixNode);
       const postfixRichNode = new RichNode({
         domNode: postfixNode,
         parent: richNode.parent,
@@ -396,9 +392,9 @@ function wrapSelection(selection) {
     }
     // find the actual nodes to move, these might be higher up in the tree.
     // can assume the nodes in selections can be completely wrapped
-    //(infix and postfix is taken care off above this comment)
+    // (prefix and postfix is taken care of above this comment)
     const nodesToWrap = findNodesToWrap(selections.map((sel) => sel.richNode));
-    nodesToWrap[0].before(newContext);
+    nodesToWrap[0].domNode.before(newContext);
     // move selected nodes to new context
     for (const node of nodesToWrap) {
       newContext.appendChild(node.domNode);
@@ -556,27 +552,27 @@ function selectedAttributeValues(domNode, attribute, specification) {
  * @method updateRDFA
  * @private
  */
-function updateRDFA(nodes, {remove, add, set } ) {
-  for (let node of nodes) {
+function updateRDFA(domNodes, {remove, add, set } ) {
+  for (let domNode of domNodes) {
     for (let attribute of RDFAKeys) {
       if (remove && remove[attribute]) {
         if (remove[attribute] === true) {
-          node.domNode.removeAttribute(attribute);
+          domNode.removeAttribute(attribute);
         }
         else {
-          for (let value of selectedAttributeValues(node.domNode, attribute, remove[attribute])) {
-            removeDOMAttributeValue(node.domNode, attribute, value);
+          for (let value of selectedAttributeValues(domNode, attribute, remove[attribute])) {
+            removeDOMAttributeValue(domNode, attribute, value);
           }
         }
       }
       if (add && add[attribute]) {
         const values = add[attribute] instanceof Array ? add[attribute] : [add[attribute]];
         for (let value of values) {
-          addDomAttributeValue(node.domNode, attribute, value);
+          addDomAttributeValue(domNode, attribute, value);
         }
       }
       if (set && set[attribute]) {
-        node.domNode.setAttribute(attribute, set[attribute]);
+        domNode.setAttribute(attribute, set[attribute]);
       }
     }
   }

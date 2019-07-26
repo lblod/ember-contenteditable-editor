@@ -344,7 +344,7 @@ function wrapSelection(selection) {
     });
     // selections are now ordered
     const firstSelection = selections[0];
-    const lastSelection = selections[selections.length];
+    const lastSelection = selections[selections.length - 1];
     const newContext = document.createElement('div');
     if (firstSelection.richNode.start < firstSelection.range[0]) {
       // not the entire node was selected, will need to split

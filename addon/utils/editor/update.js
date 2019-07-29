@@ -104,7 +104,7 @@ function updateDomNodes( selection, { remove, add, set, desc } ) {
   verifySpecification({remove, add, set, desc});
   if ( selection.selectedHighlightRange && isComplexSelection(selection)) {
     // TODO: find a sensible region to apply the update to
-    console.warn('unhandled selection', selection); // eslint-disable-line no-console
+    console.warn('Handling of complex selection not yet implemented. Nothing will be updated at the moment.', selection); // eslint-disable-line no-console
   }
   else {
     const bestApproach = newContextHeuristic( selection, {remove, add, set , desc});
@@ -516,7 +516,7 @@ function isComplexSelection(selection) {
         for (let parent of cleanedParents) {
           for (let child of parent.children) {
             if (! children.map( (sel) => sel.richNode).includes(child)) {
-              console.warn('complex selection', selection); // eslint-disable-line no-console
+              console.warn('Complex selection (spanning multiple nodes with different parents)', selection); // eslint-disable-line no-console
               return true;
             }
           }

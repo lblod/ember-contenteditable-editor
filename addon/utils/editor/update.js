@@ -540,7 +540,7 @@ function isComplexSelection(selection) {
  * @private
  */
 function selectedAttributeValues(domNode, attribute, specification) {
-  if (specification instanceof String) {
+  if (specification instanceof String || typeof(specification) == "string") {
     return [specification];
   }
   else if (specification instanceof RegExp) {
@@ -550,15 +550,15 @@ function selectedAttributeValues(domNode, attribute, specification) {
     const matches = specification.map((spec) => {
       if (spec instanceof RegExp)
         return [...domNode.getAttribute(attribute).matchAll(spec)];
-      else if (spec instanceof String)
+      else if (spec instanceof String || typeof(spec) == "string")
         return [spec];
       else
         return [];
     });
-    return Array.prototype.concat.apply([], matches); //flattens array
+    return Array.prototype.concat.apply([], matches); // flattens array
   }
   else {
-    throw new Error('unsupported specification for ' + attribute);
+    throw new Error(`Unsupported specification for attribute ${attribute} with value ${specification}.`);
   }
 }
 

@@ -101,19 +101,22 @@ function update(selection, { remove, add, set, desc }) {
 // HELPERS
 
 function updateDomNodes( selection, { remove, add, set, desc } ) {
+  if (selection.selections.length == 0)
+    console.warn(`Received empty selection set on update. Nothing will be updated.`); // eslint-disable-line no-console
+
   verifySpecification({remove, add, set, desc});
   if ( selection.selectedHighlightRange && isComplexSelection(selection)) {
     // TODO: find a sensible region to apply the update to
     console.warn('Handling of complex selection not yet implemented. Nothing will be updated at the moment.', selection); // eslint-disable-line no-console
   }
   else {
-    const bestApproach = newContextHeuristic( selection, {remove, add, set , desc});
+    const bestApproach = newContextHeuristic( selection, {remove, add, set, desc});
     let nodes = [];
     if (bestApproach === WRAP) {
       nodes = wrapSelection(selection);
     }
     else if (bestApproach === WRAPALL) {
-      console.warn('wrap all is not support atm'); // eslint-disable-line no-console
+      console.warn(`New context approach ${WRAPALL} is currently not supported.`); // eslint-disable-line no-console
     }
     else if (bestApproach === NEST) {
       nodes = nestSelection(selection);
@@ -211,14 +214,15 @@ function newContextHeuristic( selection, {remove, add, set}) {
         }
       }
       else {
-        // don't do anything on empty selections?
+        return null; // don't do anything on empty selections?
       }
     }
     else if (set) {
       return UPDATE;
     }
     else {
-      console.warn('you must specify either add, remove or set on an update operation'); // eslint-disable-line no-console
+      console.warn("You must specify either 'add', 'remove' or 'set' on an update operation"); // eslint-disable-line no-console
+      return null;
     }
   }
 }
@@ -245,7 +249,7 @@ function wrapOrNest(node, specification) {
       return WRAP;
   }
   else if (domNode.hasAttribute('content') || domNode.hasAttribute('datatype')) {
-    // current domnode specifies a triple with a literal
+    return null; // current domnode specifies a triple with a literal
   }
   else {
     // fallback to WRAP
@@ -355,10 +359,10 @@ function wrapSelection(selection) {
     // we assume all selections are text nodes (current implementation of selectHighlightRange)
     // the text nodes should form a consecutive range, but do not have to be in order
     const selections = selection.selections.sort((a,b) => {
-      if (a.start < b.start && a.end <= b.start) {
+      if (a.range[0] <= b.range[0] && a.range[1] <= b.range[0]) {
         return -1;
       }
-      else if (a.start === b.start && a.end === b.end) {
+      else if (a.range[0] === b.range[0] && a.range[1] === b.range[1]) {
         return 0; // TODO: not really correct, use DOM to define actual position?
       }
       else {
@@ -369,12 +373,13 @@ function wrapSelection(selection) {
     const firstSelection = selections[0];
     const lastSelection = selections[selections.length - 1];
     const newContext = document.createElement('div');
+
     if (firstSelection.richNode.start < firstSelection.range[0]) {
       // not the entire node was selected, will need to split
       const richNode = firstSelection.richNode;
-      const relativeStart = Math.min( firstSelection.range[0] - richNode.start, 0);
+      const relativeStart = Math.min( firstSelection.range[0] - richNode.start, richNode.text.length);
       const [preText, infixText] = [ richNode.text.slice( 0, relativeStart ),
-                                     richNode.text.slice( relativeStart, richNode.text.length ) ];
+                                     richNode.text.slice( relativeStart ) ];
       const prefixNode = document.createTextNode(preText);
       richNode.domNode.before(prefixNode);
       const preRichNode = new RichNode({
@@ -394,9 +399,9 @@ function wrapSelection(selection) {
     if (lastSelection.richNode.end > lastSelection.range[1]) {
       // not the entire node was selected, will need to split
       const richNode = lastSelection.richNode;
-      const relativeEnd = Math.max( lastSelection.range[1] - richNode.end, richNode.text.length);
+      const relativeEnd = Math.min( lastSelection.range[1] - richNode.start, richNode.text.length);
       const [infixText, postText] = [ richNode.text.slice( 0, relativeEnd ),
-                                      richNode.text.slice( relativeEnd, richNode.text.length ) ];
+                                      richNode.text.slice( relativeEnd ) ];
       const postfixNode = document.createTextNode(postText);
       richNode.domNode.after(postfixNode);
       const postfixRichNode = new RichNode({
@@ -502,6 +507,7 @@ function isComplexSelection(selection) {
   //   /  \     / \
   // t1   t2   t3  t4
   // where t2, t3 and t4 are selected
+
   if (selection.selections.length == 1)
     return false;
   else {
@@ -525,11 +531,29 @@ function isComplexSelection(selection) {
         return verifyParents(newParents, cleanedParents);
       }
     };
+
+    // don't take empty boundary selections into account to determine complexity of the selection
+    let selections = [];
+    if (selection.selectedHighlightRange) {
+      selections = selection.selections.filter( function(sel) {
+        // TODO move to marawa range-helpers
+        function isAdjacentRange(neighbour, region) {
+          return neighbour[1] == region[0] || neighbour[0] == region[1];
+        };
+        function isEmptyRange([start, end]) {
+          return end - start <= 0;
+        }
+        return !isEmptyRange(sel.range) || !isAdjacentRange(sel.range, selection.selectedHighlightRange);
+      });
+    } else {
+      selections = selection.selections;
+    }
+
     const directParents = new Set();
-    for (let sel of selection.selections) {
+    for (let sel of selections) {
       directParents.add(sel.richNode.parent);
     }
-    const children = selection.selections.map( (sel) => sel.richNode);
+    const children = selections.map( (sel) => sel.richNode);
     return verifyParents(directParents, children);
   }
 }

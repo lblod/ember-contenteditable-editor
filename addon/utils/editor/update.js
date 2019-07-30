@@ -1,4 +1,5 @@
 import RichNode from '@lblod/marawa/rich-node';
+import { isAdjacentRange, isEmptyRange } from '@lblod/marawa/range-helpers';
 import wrapRichNode from '../rich-node-tree-modification';
 import { runInDebug } from '@ember/debug';
 
@@ -536,13 +537,6 @@ function isComplexSelection(selection) {
     let selections = [];
     if (selection.selectedHighlightRange) {
       selections = selection.selections.filter( function(sel) {
-        // TODO move to marawa range-helpers
-        function isAdjacentRange(neighbour, region) {
-          return neighbour[1] == region[0] || neighbour[0] == region[1];
-        };
-        function isEmptyRange([start, end]) {
-          return end - start <= 0;
-        }
         return !isEmptyRange(sel.range) || !isAdjacentRange(sel.range, selection.selectedHighlightRange);
       });
     } else {

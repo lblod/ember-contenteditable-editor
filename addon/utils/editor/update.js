@@ -509,21 +509,24 @@ function isComplexSelection(selection) {
   // t1   t2   t3  t4
   // where t2, t3 and t4 are selected
 
-  if (selection.selections.length == 1)
+  if (selection.selections.length == 1) {
     return false;
-  else {
+  } else if (selection.selectedHighlightRange && isEmptyRange(selection.selectedHighlightRange)) {
+    return false;
+  } else {
     const verifyParents = function(parents, children) {
-      const cleanedParents = (Array.from(parents)).filter((element) => element);
+      const cleanedParents = (Array.from(parents)).filter((element) => element); // remove null values
       if (cleanedParents.length === 1)
         return false;
       else if (cleanedParents.length === 0) {
+        console.warn('Complex selection detected: no common parent found. Selections belong to different ancestor nodes.'); // eslint-disable-line no-console
         return true;
       }
       else {
         for (let parent of cleanedParents) {
           for (let child of parent.children) {
-            if (! children.map( (sel) => sel.richNode).includes(child)) {
-              console.warn('Complex selection (spanning multiple nodes with different parents)', selection); // eslint-disable-line no-console
+            if (! children.includes(child) ) {
+              console.warn('Complex selection detected: not all children of a parent are included.', selection); // eslint-disable-line no-console
               return true;
             }
           }
@@ -533,7 +536,7 @@ function isComplexSelection(selection) {
       }
     };
 
-    // don't take empty boundary selections into account to determine complexity of the selection
+    // don't take empty selections at the boundary of the selected range into account to determine the complexity of the selection
     let selections = [];
     if (selection.selectedHighlightRange) {
       selections = selection.selections.filter( function(sel) {

@@ -145,7 +145,30 @@ class RawEditor extends EmberObject.extend({
    * @type DomNode
    * @public
    */
-  currentNode = null
+  _currentNode = null
+
+  get currentNode() {
+    return this._currentNode;
+  }
+
+  set currentNode( node ) {
+    // clean old marks
+    for( let oldNode of document.querySelectorAll("[data-editor-position-level]") ) {
+      oldNode.removeAttribute("data-editor-position-level");
+    }
+
+    // set current node
+    this._currentNode = node;
+
+    // add new marks
+    let counter=0;
+    let walkedNode = node;
+    while( walkedNode ) {
+      if( tagName( walkedNode ) )
+        walkedNode.setAttribute("data-editor-position-level", counter++);
+      walkedNode = walkedNode.parentNode;
+    }
+  }
 
   /**
    * current textContent from editor

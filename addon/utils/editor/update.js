@@ -596,7 +596,7 @@ function selectedAttributeValues(domNode, attribute, specification) {
  * @method updateRDFA
  * @private
  */
-function updateRDFA(domNodes, {remove, add, set } ) {
+function updateRDFA(domNodes, { remove, add, set } ) {
   for (let domNode of domNodes) {
     for (let attribute of RDFAKeys) {
       if (remove && remove[attribute]) {

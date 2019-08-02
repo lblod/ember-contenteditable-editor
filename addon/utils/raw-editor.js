@@ -35,6 +35,7 @@ import {
 } from './list-helpers';
 import { applyProperty, cancelProperty } from './property-helpers';
 import highlightProperty from './highlight-property';
+import { analyse as scanContexts } from '@lblod/marawa/rdfa-context-scanner';
 import {
   selectCurrentSelection,
   selectHighlight,
@@ -1044,6 +1045,15 @@ const RawEditor = EmberObject.extend({
     unindentAction(this);
   },
 
+  /* Potential methods for the new API */
+  getContexts(options) {
+    const {region} = options || {};
+    if( region )
+      return scanContexts( this.rootNode, region );
+    else
+      return scanContexts( this.rootNode );
+  },
+
   /**
    * Pernet API
    * TODO: remove these methods once plugins switched to the new editor
@@ -1064,7 +1074,6 @@ const RawEditor = EmberObject.extend({
     return replaceDomNode.bind(this)(...arguments);
   }
 });
-
 
 function uuidv4() {
   return ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, c => {

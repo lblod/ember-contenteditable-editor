@@ -54,14 +54,59 @@ const NON_BREAKING_SPACE = '\u00A0';
  * @constructor
  * @extends EmberObject
  */
-const RawEditor = EmberObject.extend({
+class RawEditor extends EmberObject.extend({
+  /**
+   * Called after relevant input. Checks content and calls closureActions when changes detected
+   * handleTextInsert, handleTextRemove, handleFullContentUpdate
+   * @method generateDiffEvents
+   *
+   * @param {Array} Optional argument pass info to event consumers.
+   * @public !!
+   */
+  generateDiffEvents: task(function* (extraInfo = []){
+    yield timeout(320);
+
+    let newText = getTextContent(this.get('rootNode'));
+    let oldText = this.get('currentTextContent');
+    const dmp = new DiffMatchPatch();
+    let differences = dmp.diff_main(oldText, newText);
+    let pos = 0;
+    let textHasChanges = false;
+
+    differences.forEach( ([mode, text]) => {
+      if (mode === 1) {
+        textHasChanges = true;
+        this.set('currentTextContent', oldText.slice(0, pos) + text + oldText.slice(pos, oldText.length));
+        this.textInsert(pos, text, extraInfo);
+        pos = pos + text.length;
+      }
+      else if (mode === -1) {
+        textHasChanges = true;
+        this.set('currentTextContent', oldText.slice(0,pos) + oldText.slice(pos + text.length, oldText.length));
+        forgivingAction('textRemove', this)(pos, pos + text.length, extraInfo);
+      }
+      else {
+        pos = pos + text.length;
+      }
+      oldText = this.get('currentTextContent');
+    }, this);
+
+    if(textHasChanges){
+      if ( ! extraInfo.some( (x) => x.noSnapshot)) {
+        this.createSnapshot();
+      }
+      forgivingAction('handleFullContentUpdate', this)(extraInfo);
+    }
+  }).restartable()
+}) {
+
   /**
    * root node of the editor
    * @property rootNode
    * @type DOMNode
    * @public
    */
-  rootNode: null,
+  rootNode =  null
 
   /**
    * richNode, a rich representation of the dom tree created with NodeWalker
@@ -69,7 +114,7 @@ const RawEditor = EmberObject.extend({
    * @type RichNode
    * @public
    */
-  richNode: null,
+  richNode = null
 
   /**
    * the current selection in the editor
@@ -79,7 +124,7 @@ const RawEditor = EmberObject.extend({
    *
    * NOTE: don't change this in place
    */
-  currentSelection: null,
+  currentSelection = null
 
   /**
    * the start of the current range
@@ -87,9 +132,10 @@ const RawEditor = EmberObject.extend({
    * NOTE: this is correctly bound because currentSelection is never
    * changed in place
    */
-  currentPosition: computed( 'currentSelection', function() {
+  @computed('currentSelection')
+  get currentPosition() {
     return this.currentSelection[0];
-  }),
+  }
 
   /**
    * the domNode containing our caret
@@ -99,7 +145,7 @@ const RawEditor = EmberObject.extend({
    * @type DomNode
    * @public
    */
-  currentNode: null,
+  currentNode = null
 
   /**
    * current textContent from editor
@@ -108,7 +154,7 @@ const RawEditor = EmberObject.extend({
    * @type String
    * @public
    */
-  currentTextContent: null,
+  currentTextContent = null
 
   /**
    * components present in the editor
@@ -116,7 +162,7 @@ const RawEditor = EmberObject.extend({
    * @type {Object}
    * @public
    */
-  components: null,
+  components = null
 
   /**
    * is current selection a cursor
@@ -124,16 +170,17 @@ const RawEditor = EmberObject.extend({
    * @type boolean
    * @public
    */
-  currentSelectionIsACursor: computed('currentSelection', function() {
+  @computed('currentSelection')
+  get currentSelectionIsACursor() {
     let sel = this.currentSelection;
     return sel[0] === sel[1];
-  }),
+  }
   applyProperty(selection, property) {
     applyProperty(selection, this, property);
-  },
+  }
   cancelProperty(selection, property) {
     cancelProperty(selection, this, property);
-  },
+  }
 
   togglePropertyAtCurrentPosition(property) {
     const wasEnabled = property.enabledAt(this.getRichNodeFor(this.currentNode));
@@ -149,7 +196,7 @@ const RawEditor = EmberObject.extend({
       const correctNode = flatMap(this.richNode, (node) => textNodeAtCurrentPosition(node) && property.enabledAt(node), true)[0];
       this.setCarret(correctNode.domNode, this.currentPosition - correctNode.start);
     }
-  },
+  }
   toggleProperty(selection, property) {
     const richNodes = selection.selections.map((s) => s.richNode);
     const start = richNodes.map((n) => n.start).sort()[0];
@@ -164,11 +211,13 @@ const RawEditor = EmberObject.extend({
     else {
       this.applyProperty(selection, property);
     }
-  },
-  init() {
+  }
+
+  constructor(){
+    super(...arguments);
     this.set('history', CappedHistory.create({ maxItems: 100}));
     this.set('components', A());
-  },
+  }
 
   /**
    *
@@ -194,7 +243,7 @@ const RawEditor = EmberObject.extend({
     this.generateDiffEvents.perform(extraInfo);
     forgivingAction('elementUpdate', this)();
     return newNodes;
-  },
+  }
 
   /**
    * replaces dom node with html string.
@@ -250,7 +299,7 @@ const RawEditor = EmberObject.extend({
     if(lastInsertedRichElement.domNode.isSameNode(domNodesToInsert.slice(-1)[0]))
       return domNodesToInsert;
     return [...domNodesToInsert, lastInsertedRichElement.domNode];
-  },
+  }
 
   /**
    * removes a node. If node to be removed is contains current cursor position. The cursor
@@ -286,7 +335,7 @@ const RawEditor = EmberObject.extend({
     this.setCarret(nodeToEndIn, carretPositionToEndIn);
 
     return nodeToEndIn;
-  },
+  }
 
   /**
    * Prepends the children of a node with an html block
@@ -333,7 +382,7 @@ const RawEditor = EmberObject.extend({
     if(lastInsertedRichElement.domNode.isSameNode(domNodesToInsert.slice(-1)[0]))
       return domNodesToInsert;
     return [...domNodesToInsert, lastInsertedRichElement.domNode];
-  },
+  }
 
   /**
    * inserts an emtpy textnode after richnode, if non existant.
@@ -353,7 +402,7 @@ const RawEditor = EmberObject.extend({
       return this.insertElementsAfterRichNode(richParent, richNode, [newNode]);
     }
     return walkDomNodeAsText(richNode.domNode.nextSibling, richParent.domNode, richNode.end);
-  },
+  }
 
   /**
    * Prepends a list of elements to children
@@ -375,7 +424,7 @@ const RawEditor = EmberObject.extend({
 
     let newFirstRichChild = walkDomNodeAsText(newFirstChild, richParent.domNode, richParent.start);
     return this.insertElementsAfterRichNode(richParent, newFirstRichChild, elements.slice(1));
-  },
+  }
 
   /**
    * Inserts an array of elements into the editor.
@@ -400,7 +449,7 @@ const RawEditor = EmberObject.extend({
     let richNodeToInsert = walkDomNodeAsText(nodeToInsert, richParent.domNode, richNode.end);
 
     return this.insertElementsAfterRichNode(richParent, richNodeToInsert, remainingElements.slice(1));
-  },
+  }
 
   /**
    * Higlight a section of the editor text
@@ -429,7 +478,7 @@ const RawEditor = EmberObject.extend({
         this.setCurrentPosition(this.currentPosition);
       }
     }
-  },
+  }
 
   /**
    * Clear the highlights contained in a specified range
@@ -444,7 +493,7 @@ const RawEditor = EmberObject.extend({
   clearHighlightForRange(start,end) {
     console.warn('deprecated call to clearHightlightForRange, use clearHighlightForLocations', console.trace()); // eslint-disable-line no-console
     this.clearHighlightForLocations([start, end]);
-  },
+  }
 
   /**
    * Given a list of locations, clear the linked highlight
@@ -470,7 +519,7 @@ const RawEditor = EmberObject.extend({
         }
       }
     }
-  },
+  }
 
 
   /**
@@ -486,7 +535,7 @@ const RawEditor = EmberObject.extend({
    */
   isDisplayedAsBlock(richNode) {
     isDisplayedAsBlock(get(richNode, 'domNode'));
-  },
+  }
 
   /**
    * Informs the consumer that the text was inserted at the given
@@ -500,7 +549,7 @@ const RawEditor = EmberObject.extend({
    */
   textInsert( /*position, text*/ ) {
     warn("textInsert was called on raw-editor without listeners being set.", { id: 'content-editable.invalid-state'});
-  },
+  }
 
   /**
    * Insert text at provided position,
@@ -553,7 +602,7 @@ const RawEditor = EmberObject.extend({
     }
     this.updateRichNode();
     return domNode;
-  },
+  }
 
   /**
    * insert a component at the provided position
@@ -575,7 +624,7 @@ const RawEditor = EmberObject.extend({
     this.updateRichNode();
     this.updateSelectionAfterComplexInput();
     return id;
-  },
+  }
 
   /**
    * remove a component
@@ -588,7 +637,7 @@ const RawEditor = EmberObject.extend({
     this.components.removeObject(item);
     this.updateRichNode();
     this.updateSelectionAfterComplexInput();
-  },
+  }
 
   isTagWithOnlyABreakAsChild(node) {
     let type = node.domNode.nodeType;
@@ -598,7 +647,7 @@ const RawEditor = EmberObject.extend({
             get(children[0], 'type') === 'tag' &&
             tagName(get(children[0], 'domNode')) === 'br'
            );
-  },
+  }
 
   insertTextNodeWithSpace(parent, relativeToSibling = null, after = false) {
     let parentDomNode = get(parent, 'domNode');
@@ -606,7 +655,7 @@ const RawEditor = EmberObject.extend({
     this.updateRichNode();
     this.generateDiffEvents.perform([{noSnapshot: true}]);
     return this.getRichNodeFor(textNode);
-  },
+  }
 
 
   /**
@@ -676,7 +725,7 @@ const RawEditor = EmberObject.extend({
       }
     }
     throw new Error(`unsupported node type ${type} for richNode`);
-  },
+  }
 
   /**
    * select a node based on the provided caret position, taking into account the current active node
@@ -701,7 +750,7 @@ const RawEditor = EmberObject.extend({
       warn(`position ${position} is not in range of document ${get(richNode, 'start')} ${get(richNode, 'end')}`, {id: 'content-editable:not-a-suitable-position'});
       return this.findSuitableNodeForPosition(get(richNode, 'end'));
     }
-  },
+  }
 
   /**
    * create a snapshot for undo history
@@ -714,7 +763,7 @@ const RawEditor = EmberObject.extend({
       currentSelection: this.currentSelection
     };
     this.get('history').push(document);
-  },
+  }
 
   /**
    * @method updateRichNode
@@ -723,7 +772,7 @@ const RawEditor = EmberObject.extend({
   updateRichNode() {
     const richNode = walkDomNode( this.rootNode );
     this.set('richNode', richNode);
-  },
+  }
 
   /**
    * restore a snapshot from undo history
@@ -742,7 +791,7 @@ const RawEditor = EmberObject.extend({
     else {
       warn('no more history to undo', {id: 'contenteditable-editor:history-empty'});
     }
-  },
+  }
 
   /**
    * @method moveCaretInTextNode
@@ -758,7 +807,7 @@ const RawEditor = EmberObject.extend({
     currentSelection.removeAllRanges();
     currentSelection.addRange(docRange);
     this.get('rootNode').focus();
-  },
+  }
 
    /**
    * get richnode matching a DOMNode
@@ -773,7 +822,7 @@ const RawEditor = EmberObject.extend({
    */
   getRichNodeFor(domNode, tree = this.get('richNode')) {
     return getRichNodeMatchingDomNode(domNode, tree);
-  },
+  }
 
   /**
    * execute a DOM transformation on the editor content, ensures a consistent editor state
@@ -810,7 +859,7 @@ const RawEditor = EmberObject.extend({
       forgivingAction('elementUpdate', this)();
       this.generateDiffEvents.perform();
     }
-  },
+  }
 
   /**
    * update the selection based on dom window selection
@@ -845,7 +894,7 @@ const RawEditor = EmberObject.extend({
     else {
       warn('no selection found on window',{ id: 'content-editable.unsupported-browser'});
     }
-  },
+  }
 
   /**
    * calculate the cursor position based on a richNode and an offset from a domRANGE
@@ -876,7 +925,7 @@ const RawEditor = EmberObject.extend({
     else {
       throw new Error(`can't calculate position for richNode of type ${type}`);
     }
-  },
+  }
 
   /**
    * set the carret position in the editor
@@ -898,7 +947,7 @@ const RawEditor = EmberObject.extend({
     this.set('currentSelection', [ position, position ]);
     if (notify)
       forgivingAction('selectionUpdate', this)(this.currentSelection);
-  },
+  }
 
   getRelativeCursorPosition(){
     let currentRichNode = this.getRichNodeFor(this.currentNode);
@@ -907,11 +956,11 @@ const RawEditor = EmberObject.extend({
       return absolutePos - currentRichNode.start;
     }
     return null;
-  },
+  }
 
   getRelativeCursorPostion() {
     return this.getRelativeCursorPosition();
-  },
+  }
 
 
   /**
@@ -983,67 +1032,23 @@ const RawEditor = EmberObject.extend({
     }
     if (notify)
       forgivingAction('selectionUpdate', this)(this.currentSelection);
-  },
-
-  /**
-   * Called after relevant input. Checks content and calls closureActions when changes detected
-   * handleTextInsert, handleTextRemove, handleFullContentUpdate
-   * @method generateDiffEvents
-   *
-   * @param {Array} Optional argument pass info to event consumers.
-   * @public !!
-   */
-  generateDiffEvents: task(function* (extraInfo = []){
-    yield timeout(320);
-
-    let newText = getTextContent(this.get('rootNode'));
-    let oldText = this.get('currentTextContent');
-    const dmp = new DiffMatchPatch();
-    let differences = dmp.diff_main(oldText, newText);
-    let pos = 0;
-    let textHasChanges = false;
-
-    differences.forEach( ([mode, text]) => {
-      if (mode === 1) {
-        textHasChanges = true;
-        this.set('currentTextContent', oldText.slice(0, pos) + text + oldText.slice(pos, oldText.length));
-        this.textInsert(pos, text, extraInfo);
-        pos = pos + text.length;
-      }
-      else if (mode === -1) {
-        textHasChanges = true;
-        this.set('currentTextContent', oldText.slice(0,pos) + oldText.slice(pos + text.length, oldText.length));
-        forgivingAction('textRemove', this)(pos, pos + text.length, extraInfo);
-      }
-      else {
-        pos = pos + text.length;
-      }
-      oldText = this.get('currentTextContent');
-    }, this);
-
-    if(textHasChanges){
-      if ( ! extraInfo.some( (x) => x.noSnapshot)) {
-        this.createSnapshot();
-      }
-      forgivingAction('handleFullContentUpdate', this)(extraInfo);
-    }
-  }).restartable(),
+  }
 
   insertUL() {
     unorderedListAction(this);
-  },
+  }
 
   insertOL() {
     orderedListAction(this);
-  },
+  }
 
   insertIndent() {
     indentAction(this);
-  },
+  }
 
   insertUnindent() {
     unindentAction(this);
-  },
+  }
 
   /* Potential methods for the new API */
   getContexts(options) {
@@ -1052,7 +1057,7 @@ const RawEditor = EmberObject.extend({
       return scanContexts( this.rootNode, region );
     else
       return scanContexts( this.rootNode );
-  },
+  }
 
   /**
    * Pernet API
@@ -1060,20 +1065,20 @@ const RawEditor = EmberObject.extend({
    */
   selectCurrentSelection() {
     return selectCurrentSelection.bind(this)(...arguments);
-  },
+  }
   selectHighlight() {
     return selectHighlight.bind(this)(...arguments);
-  },
+  }
   selectContext() {
     return selectContext.bind(this)(...arguments);
-  },
+  }
   update() {
     return update.bind(this)(...arguments);
-  },
+  }
   replaceDomNode() {
     return replaceDomNode.bind(this)(...arguments);
   }
-});
+}
 
 function uuidv4() {
   return ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, c => {

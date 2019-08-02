@@ -156,6 +156,10 @@ class RawEditor extends EmberObject.extend({
     for( let oldNode of document.querySelectorAll("[data-editor-position-level]") ) {
       oldNode.removeAttribute("data-editor-position-level");
     }
+    // clean old RDFa marks
+    for( let oldNode of document.querySelectorAll("[data-editor-rdfa-position-level]") ) {
+      oldNode.removeAttribute("data-editor-rdfa-position-level");
+    }
 
     // set current node
     this._currentNode = node;
@@ -166,6 +170,19 @@ class RawEditor extends EmberObject.extend({
     while( walkedNode ) {
       if( tagName( walkedNode ) )
         walkedNode.setAttribute("data-editor-position-level", counter++);
+      walkedNode = walkedNode.parentNode;
+    }
+    // add new rdfa marks
+    let rdfaCounter=0;
+    walkedNode = node;
+    while( walkedNode ) {
+      if( tagName( walkedNode ) ) {
+        let isSemanticNode =
+            ["about","content","datatype","property","rel","resource","rev","typeof"]
+            .find( (name) => walkedNode.hasAttribute(name) );
+        if( isSemanticNode )
+          walkedNode.setAttribute("data-editor-rdfa-position-level", rdfaCounter++);
+      }
       walkedNode = walkedNode.parentNode;
     }
   }

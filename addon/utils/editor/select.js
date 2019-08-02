@@ -95,7 +95,7 @@ function selectHighlight([start,end], options = {}) {
   }
 
   return {
-    selectedHighlightRange: true,
+    selectedHighlightRange: [start, end],
     selections: selections
   };
 }

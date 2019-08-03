@@ -47,7 +47,6 @@ export default EmberObject.extend({
     let node = getRichNodeMatchingDomNode(currentNode, this.richNode);
     let currentPosition = this.currentSelection[0];
     let nodeForEnter = this.relevantNodeForEnter(node);
-    let newCurrentNode;
     if (tagName(nodeForEnter.domNode) === "li") {
       debug('enter in li');
       this.rawEditor.externalDomUpdate(
@@ -180,7 +179,6 @@ export default EmberObject.extend({
     }
 
     // it's a text node
-    let newTextNode;
     this.rawEditor.externalDomUpdate(
       'inserting enter in paragraph',
       () => {

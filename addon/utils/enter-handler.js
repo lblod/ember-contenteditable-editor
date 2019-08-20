@@ -42,12 +42,11 @@ export default EmberObject.extend({
    * @param {DOMEvent} event
    * @return {HandlerResponse} response
    */
-  handleEvent() {
+  handleEvent( event ) {
     let currentNode = this.currentNode;
     let node = getRichNodeMatchingDomNode(currentNode, this.richNode);
     let currentPosition = this.currentSelection[0];
     let nodeForEnter = this.relevantNodeForEnter(node);
-    let newCurrentNode;
     if (tagName(nodeForEnter.domNode) === "li") {
       debug('enter in li');
       this.rawEditor.externalDomUpdate(
@@ -56,33 +55,49 @@ export default EmberObject.extend({
       );
       return HandlerResponse.create({allowPropagation: false});
     }
+    else if (tagName(nodeForEnter.domNode) === "p" && !event.shiftKey) {
+      debug('enter in p');
+      this.rawEditor.externalDomUpdate(
+        'splitting p',
+        () => this.insertNewParagraph(node, nodeForEnter, currentPosition, currentNode) );
+      return HandlerResponse.create({allowPropagation: false});
+    }
     else {
       if (currentNode.nodeType === Node.TEXT_NODE) {
-        let insertBr = () => {
-          debug('placing br');
-          let splitAt = currentPosition - node.start;
-          let above = document.createTextNode(currentNode.textContent.slice(0,splitAt));
-          let content = currentNode.textContent.slice(splitAt);
-          if (isBlank(content))
-            content = invisibleSpace;
-          let below = document.createTextNode(content);
-          let br = document.createElement('br');
-          currentNode.parentNode.insertBefore(above, currentNode);
-          currentNode.parentNode.insertBefore(br, currentNode);
-          currentNode.parentNode.insertBefore(below, currentNode);
-          currentNode.parentNode.removeChild(currentNode);
-          newCurrentNode = below;
-        };
-        this.rawEditor.externalDomUpdate('inserting enter in text', insertBr);
+        this.rawEditor.externalDomUpdate(
+          'inserting enter in text',
+          () => this.insertBr());
+        return HandlerResponse.create({allowPropagation: false});
       }
       else {
         debug('-------------- not handling this enter yet------------------');
         return HandlerResponse.create({allowPropagation: true, allowBrowserDefault: true});
       }
-      this.rawEditor.updateRichNode();
-      this.rawEditor.setCarret(newCurrentNode, 0);
-      return HandlerResponse.create({allowPropagation: false});
     }
+  },
+
+  insertBr() {
+    debug('placing br');
+    let currentNode = this.currentNode;
+    let richNode = getRichNodeMatchingDomNode(currentNode, this.richNode);
+    let currentPosition = this.currentSelection[0];
+    let nodeForEnter = this.relevantNodeForEnter(richNode);
+
+    let splitAt = currentPosition - richNode.start;
+    let above = document.createTextNode(currentNode.textContent.slice(0,splitAt));
+    let content = currentNode.textContent.slice(splitAt);
+    if (isBlank(content))
+      content = invisibleSpace;
+    let below = document.createTextNode(content);
+    let br = document.createElement('br');
+
+    currentNode.parentNode.insertBefore(above, currentNode);
+    currentNode.parentNode.insertBefore(br, currentNode);
+    currentNode.parentNode.insertBefore(below, currentNode);
+    currentNode.parentNode.removeChild(currentNode);
+
+    this.rawEditor.updateRichNode();
+    this.rawEditor.setCarret(below, 0);
   },
 
   /**
@@ -147,5 +162,44 @@ export default EmberObject.extend({
     }
     this.rawEditor.updateRichNode();
     this.rawEditor.setCarret(textNode, 0);
+  },
+
+  /**
+   * @method insertEnterInP
+   * @param {RichNode} node
+   * @param {RichNode} nodeForEnter First block node above our cursor
+   * @param {number} currentPosition
+   * @param {DOMNode} currentNode Node where the cursor is currently at
+   * @private
+   */
+  insertNewParagraph(richNode, nodeForEnter, currentPosition, currentNode) {
+    if (currentNode.nodeType !== Node.TEXT_NODE) {
+      debug('-------------- not handling this enter yet (p)------------------');
+      return HandlerResponse.create({allowPropagation: true, allowBrowserDefault: true});
+    }
+
+    // it's a text node
+    this.rawEditor.externalDomUpdate(
+      'inserting enter in paragraph',
+      () => {
+        let splitAt = currentPosition - richNode.start;
+        let above = document.createTextNode(currentNode.textContent.slice(0,splitAt));
+        let content = currentNode.textContent.slice(splitAt);
+        if (isBlank(content))
+          content = invisibleSpace;
+        let newTextNode = document.createTextNode(content);
+
+        currentNode.parentNode.insertBefore(above, currentNode); // insert new text node
+        currentNode.parentNode.removeChild(currentNode); // remove old text node
+
+        // Insert the new paragraph right after the current paragraph
+        const newParagraph = document.createElement( "p" );
+        newParagraph.appendChild( newTextNode );
+        nodeForEnter.domNode.insertAdjacentElement('afterend', newParagraph);
+        this.rawEditor.updateRichNode();
+        this.rawEditor.setCarret(newTextNode, 0);
+      });
+
+    return undefined;
   }
 });

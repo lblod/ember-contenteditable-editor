@@ -1,6 +1,6 @@
 {
   "name": "@lblod/ember-contenteditable-editor",
-  "version": "0.23.1",
+  "version": "0.24.0",
   "description": "An ember addon that provides an editor based on contenteditable.",
   "keywords": [
     "ember-addon"
@@ -24,7 +24,7 @@
     "test:all": "ember try:each"
   },
   "dependencies": {
-    "@lblod/marawa": "^0.3.3",
+    "@lblod/marawa": "^0.4.1",
     "diff-match-patch": "^1.0.4",
     "ember-auto-import": "^1.3.0",
     "ember-cli-babel": "^7.7.3",

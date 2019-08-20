@@ -18,7 +18,7 @@ export default Controller.extend({
       this.toggleProperty('showContent');
     },
     selectionUpdate() {
-      this.set('currentSelection',this.get('rawEditor.currentSelection'));
+      this.set('currentSelection',this.rawEditor.currentSelection);
     },
     handleTextInsert(start, content) {
       debug('text insert');
@@ -29,25 +29,25 @@ export default Controller.extend({
       debug(start + ' ' +  end);
     },
     elementUpdate() {
-      debug(this.get('rawEditor.rootNode'));
+      debug(this.rawEditor.rootNode);
     },
     highlightText() {
-      let sel = this.get('currentSelection');
-      this.get('rawEditor').highlightRange(...sel, {typeof: "schema:CreativeWork"});
+      let sel = this.currentSelection;
+      this.rawEditor.highlightRange(...sel, {typeof: "schema:CreativeWork"});
     },
     insertComponentOnCursor() {
-      let [start ] = this.get('currentSelection');
-      this.get('rawEditor').insertComponent(start, "a-test-component", {aanwezigen: { joris: false, niels: true, jan: true, piet:false}});
+      let [start] = this.currentSelection;
+      this.rawEditor.insertComponent(start, "a-test-component", {aanwezigen: { joris: false, niels: true, jan: true, piet:false}});
     },
     removeHighlight() {
-      let sel = this.get('currentSelection');
-      this.get('rawEditor').clearHighlightForRange(...sel, {typeof: "schema:CreativeWork"});
+      let sel = this.currentSelection;
+      this.rawEditor.clearHighlightForLocations([sel]);
     },
     clearAll() {
-      this.get('rawEditor').clearAllHighlights();
+      this.rawEditor.clearHighlightForLocations([this.rawEditor.richNode.region]);
     },
     insertUL(){
-      this.get('rawEditor').insertUL();
+      this.rawEditor.insertUL();
     }
   }
 });

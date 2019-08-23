@@ -1,5 +1,5 @@
 # @lblod/ember-contenteditable-editor
-Emberjs addon that provides a content editable component. This component is the core of [https://github.com/lblod/ember-rdfa-editor](ember-rdfa-editor), a more feature complete component providing a toolbar and support for plugins.
+Emberjs addon that provides a content editable component. This component is the core of [ember-rdfa-editor](https://github.com/lblod/ember-rdfa-editor), a more feature complete component providing a toolbar and support for plugins.
 
 ember-contenteditable-editor features:
  - it's fast
@@ -73,7 +73,7 @@ A short summary of the object is listed here:
  * `rawEditor.toggleProperty(selection, property)` `function` toggles an `EditorProperty` on the selection
  * `rawEditor.togglePropertyAtCurrentPosition(property)` `function` toggles an `EditorProperty` on the current position, assumes a collapsed selection.
 
-Other methods and attributes are available but should be considered internal or deprecated. A more complete description of this object is available in the (documented) code: [https://github.com/lblod/ember-contenteditable-editor/blob/master/addon/utils/raw-editor.js](raw-editor.js).
+Other methods and attributes are available but should be considered internal or deprecated. A more complete description of this object is available in the (documented) code: [raw-editor.js](https://github.com/lblod/ember-contenteditable-editor/blob/master/addon/utils/raw-editor.js).
 
 ### Responding to input using handlers
 All keyboard and mouse input is captured in the content-editable component. These events are then passed on to inputHandlers.

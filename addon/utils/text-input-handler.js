@@ -5,10 +5,10 @@ import { get } from '@ember/object';
 
 const supportedInputCharacters = /[a-zA-Z0-9.,!@#$%^&*={};'"+-?_()/\\ ]/;
 /**
- * Input Text Handler, a event handler to handle text input
+ * Text Input Handler, a event handler to handle text input
  *
  * @module contenteditable-editor
- * @class InputTextHandler
+ * @class TextInputHandler
  * @constructor
  * @extends EmberObject
  */

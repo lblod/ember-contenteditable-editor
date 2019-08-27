@@ -13,7 +13,7 @@ let HEADERMARKDOWN = /(#+)(.*)/;
  * handles header markdown i.e. ## title + hitting 'enter'
  *
  * @module contenteditable-editor
- * @class EnterHandler
+ * @class HeaderMarkdownHandler
  * @constructor
  * @extends EmberObject
  */

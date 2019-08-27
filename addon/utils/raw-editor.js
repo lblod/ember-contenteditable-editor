@@ -61,7 +61,7 @@ class RawEditor extends EmberObject.extend({
    * @method generateDiffEvents
    *
    * @param {Array} Optional argument pass info to event consumers.
-   * @public !!
+   * @public
    */
   generateDiffEvents: task(function* (extraInfo = []){
     yield timeout(320);
@@ -104,33 +104,36 @@ class RawEditor extends EmberObject.extend({
    * root node of the editor
    * @property rootNode
    * @type DOMNode
-   * @public
+   * @protected
    */
   rootNode =  null
 
   /**
-   * richNode, a rich representation of the dom tree created with NodeWalker
+   * a rich representation of the dom tree created with {{#crossLink "NodeWalker"}}NodeWalker{{/crossLink}}
    * @property richNode
    * @type RichNode
-   * @public
+   * @protected
    */
   richNode = null
 
   /**
    * the current selection in the editor
+   *
+   * __NOTE__: don't change this in place
    * @property currentSelection
    * @type Array
-   * @public
-   *
-   * NOTE: don't change this in place
+   * @protected
    */
   currentSelection = null
 
   /**
    * the start of the current range
    *
-   * NOTE: this is correctly bound because currentSelection is never
+   * __NOTE__: this is correctly bound because currentSelection is never
    * changed in place
+   * @property currentPosition
+   * @type number
+   * @protected
    */
   @computed('currentSelection')
   get currentPosition() {
@@ -140,10 +143,10 @@ class RawEditor extends EmberObject.extend({
   /**
    * the domNode containing our caret
    *
-   * NOTE: is set to null on a selection that spans nodes
+   * __NOTE__: is set to null on a selection that spans nodes
    * @property currentNode
-   * @type DomNode
-   * @public
+   * @type DOMNode
+   * @protected
    */
   _currentNode = null
 
@@ -198,6 +201,8 @@ class RawEditor extends EmberObject.extend({
 
   /**
    * components present in the editor
+   *
+   * __NOTE__: this is an experimental feature that might be removed
    * @property components
    * @type {Object}
    * @public
@@ -215,13 +220,32 @@ class RawEditor extends EmberObject.extend({
     let sel = this.currentSelection;
     return sel[0] === sel[1];
   }
+
+  /**
+   * apply a property on the provided selection
+   * @method applyProperty
+   * @param {Object} selection a selection created using selectHighlight or selectContext
+   * @param {EditorProperty} property
+   */
   applyProperty(selection, property) {
     applyProperty(selection, this, property);
   }
+
+  /**
+   * cancel a property on the provided selection
+   * @method cancelProperty
+   * @param {Object} selection a selection created using selectHighlight or selectContext
+   * @param {EditorProperty} property
+   */
   cancelProperty(selection, property) {
     cancelProperty(selection, this, property);
   }
 
+  /**
+   * toggle a property at the current cursor position, this method ensure the cursor is correctly placed after toggling
+   * @method togglePropertyAtCurrentPosition
+   * @param {Object} selection a selection created using selectHighlight or selectContext
+   */
   togglePropertyAtCurrentPosition(property) {
     const wasEnabled = property.enabledAt(this.getRichNodeFor(this.currentNode));
     const selection = this.selectHighlight(this.currentSelection);
@@ -237,6 +261,12 @@ class RawEditor extends EmberObject.extend({
       this.setCarret(correctNode.domNode, this.currentPosition - correctNode.start);
     }
   }
+  /**
+   * toggle a property on the provided selection
+   * @method toggleProperty
+   * @param {Object} selection a selection created using selectHighlight or selectContext
+   * @param {EditorProperty} property
+   */
   toggleProperty(selection, property) {
     const richNodes = selection.selections.map((s) => s.richNode);
     const start = richNodes.map((n) => n.start).sort()[0];
@@ -266,6 +296,7 @@ class RawEditor extends EmberObject.extend({
    * @param {Number} end index absolute
    * @param {String} html string
    * @param {Array} Optional extra info, which will be passed around when triggering update events.
+   * @deprecated please use RawEditor.update
    * @public
    */
   replaceTextWithHTML(start, end, html, extraInfo = []) {
@@ -295,6 +326,7 @@ class RawEditor extends EmberObject.extend({
    *
    * @return returns inserted domNodes (with possibly an extra trailing textNode).
    * @public
+   * @deprecated please use RawEditor.update
    */
   replaceNodeWithHTML(node, html, placeCursorAfterInsertedHtml = false, extraInfo = []){
     //TODO: make sure the elements to insert are non empty when not allowed, e.g. <div></div>
@@ -350,6 +382,7 @@ class RawEditor extends EmberObject.extend({
    *
    * @return returns node we ended up in.
    * @public
+   * @deprecated please use RawEditor.update
    */
   removeNode(node, extraInfo = []){
     //keeps track of current node.

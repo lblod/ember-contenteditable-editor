@@ -1,6 +1,10 @@
 import { tagName }  from './dom-helpers';
 /**
  * default tag name for creating a property
+ * @for EditorProperty
+ * @static
+ * @public
+ * @final
  */
 const DEFAULT_TAG_NAME = Object.freeze('span');
 
@@ -14,7 +18,8 @@ const DEFAULT_TAG_NAME = Object.freeze('span');
  * Create an instance of this class to define simple properties or extend it for more advanced ones.
  *
  * @class EditorProperty
- *
+ * @module contenteditable-editor
+ * @constructor
  */
 export default class EditorProperty {
   /**
@@ -48,7 +53,7 @@ export default class EditorProperty {
   /**
    * verify if the provided node is has this property enabled
    * @method enabledAt
-   * @param DomNode richNode
+   * @param {RichNode} richNode to check
    * @return Boolean
    */
   enabledAt(richNode) {

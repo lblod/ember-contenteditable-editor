@@ -13,6 +13,14 @@ import previousTextNode from './previous-text-node';
 import { warn, debug } from '@ember/debug';
 import { A } from '@ember/array';
 
+/**
+ * Backspace Handler, a event handler to handle the generic backspace case
+ *
+ * @module contenteditable-editor
+ * @class BackspaceHandler
+ * @constructor
+ * @extends EmberObject
+ */
 export default EmberObject.extend({
   rootNode: reads('rawEditor.rootNode'),
   currentSelection: reads('rawEditor.currentSelection'),
@@ -71,7 +79,7 @@ export default EmberObject.extend({
   },
   /**
    * removes invisibleSpaces and compacts consecutive spaces to 1 space
-   * @method visibleText
+   * @method stringToVisibleText
    * @param {String} text
    * @return {String}
    * @public

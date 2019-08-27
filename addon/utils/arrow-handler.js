@@ -5,6 +5,15 @@ import previousTextNode from './previous-text-node';
 import nextTextNode from './next-text-node';
 import { warn } from '@ember/debug';
 
+/**
+ * Arrow Handler, a event handler to handle arrow keys.
+ * __Note__: Currently only left and right arrow keys are supported
+ *
+ * @module contenteditable-editor
+ * @class ArrowHandler
+ * @constructor
+ * @extends EmberObject
+ */
 export default EmberObject.extend({
   currentSelection: reads('rawEditor.currentSelection'),
 

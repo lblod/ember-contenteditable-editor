@@ -17,7 +17,7 @@ let MARKDOWNS = [
  * handles new creation markdown
  *
  * @module contenteditable-editor
- * @class EnterHandler
+ * @class ListInsertionMarkdownHandler
  * @constructor
  * @extends EmberObject
  */

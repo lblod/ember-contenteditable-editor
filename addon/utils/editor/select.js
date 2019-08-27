@@ -33,7 +33,7 @@ import { analyse as scanContexts } from '@lblod/marawa/rdfa-context-scanner';
 /**
  * Selects the current selection, for applying operations to.
  * Current selection may be a cursor or a range.
-*/
+ */
 function selectCurrentSelection() {
   return selectHighlight.bind(this)(this.currentSelection);
 }

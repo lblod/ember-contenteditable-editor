@@ -20,6 +20,18 @@ import { isEmpty } from '@ember/utils';
 import { next } from '@ember/runloop';
 
 /**
+ * content-editable is the core of {{#crossLinkModule "rdfa-editor"}}rdfa-editor{{/crossLinkModule}}.
+ * It provides handlers for input events, a component to display a contenteditable element and an api for interaction with the document and its internal document representation.
+ *
+ * rdfa-editor embeds the {{#crossLink "ContentEditableCompoment"}}{{/crossLink}} and interacts with the document through the {{#crossLink "RawEditor"}}{{/crossLink}} interface.
+ *
+ * input is handled by input handlers such as the {{#crossLink "TextInputHandler"}}{{/crossLink}}, {{#crossLink "BackspaceHandler"}}{{/crossLink}},
+ * {{#crossLink "ArrowHandler"}}{{/crossLink}} and {{#crossLink "EnterHandler"}}{{/crossLink}}.
+ * @module contenteditable-editor
+ * @main contenteditable-editor
+ */
+
+/**
  * Content editable editor component
  * @module contenteditable-editor
  * @class ContentEditableComponent

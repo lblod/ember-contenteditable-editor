@@ -25,6 +25,8 @@ if (!DocumentType.prototype.replaceWith)
  * verifies if a property is enabled on all leaf nodes of the supplied richNode
  * @method propertyIsEnabledOnLeafNodes
  * @return boolean
+ * @for PropertyHelpers
+ * @private
  */
 function propertyIsEnabledOnLeafNodes(richnode, property) {
   const hasChildren = child => { return ( child && ((! child.children) ||  child.children.length === 0))};
@@ -47,6 +49,7 @@ function propertyIsEnabledOnLeafNodes(richnode, property) {
  *
  * @method findSuitableNodesToApplyOrCancelProperty
  * @param Selection selection
+ * @for PropertyHelpers
  * @return Array array of selections
  */
 function findSuitableNodesToApplyOrCancelProperty(selection) {
@@ -129,6 +132,7 @@ function createWrapperForProperty(property) {
  * @param selection
  * @param document, should provide a pernet api
  * @param property an editor property
+ * @for PropertyHelpers
  */
 function applyProperty(selection, doc, property, calledFromCancel) {
   if (selection.selections.length === 0) {
@@ -331,6 +335,7 @@ function domNodeContainsProperty(domNode, property) {
  * @param selection
  * @param document, should provide a pernet api
  * @param property an editor property
+ * @for PropertyHelpers
  */
 function cancelProperty(selection, doc, property) {
   if (selection.selections.length === 0) {

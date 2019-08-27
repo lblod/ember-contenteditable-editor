@@ -1,7 +1,7 @@
 import EmberObject from '@ember/object';
+
 /**
  * response object for event handlers
- *
  * @module contenteditable-editor
  * @class HandlerResponse
  * @constructor

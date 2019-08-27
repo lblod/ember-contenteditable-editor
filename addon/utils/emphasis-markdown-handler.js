@@ -21,7 +21,7 @@ let MARKDOWNS = [
  * handles emphasis markdown
  *
  * @module contenteditable-editor
- * @class EnterHandler
+ * @class EmphasisMarkdownHandler
  * @constructor
  * @extends EmberObject
  */

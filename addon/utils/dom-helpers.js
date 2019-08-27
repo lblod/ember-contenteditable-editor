@@ -1,12 +1,17 @@
 import { A } from '@ember/array';
 /**
- * @module contenteditable-editor/dom
+ * Fake class to list helper functions
+ * these functions can be included using
+ *
+ *`import { function } from @lblod/ember-contenteditable/utils/dom-helpers;` 
+ * @module contenteditable-editor
+ * @class DomHelpers
+ * @constructor
  */
 
 /**
  * @property invisibleSpace
  * @type string
- * @for contenteditable-editor/dom
  * @static
  * @final
  */
@@ -16,14 +21,12 @@ const invisibleSpace = '\u200B';
  * dom helper to insert extra text into a text node at the provided position
  *
  * @method sliceTextIntoTextNode
- * @static
- * @for contenteditable-editor/dom
  * @param {TextNode} textNode
  * @param {String} text
  * @param {number} start
  * @public
  */
-const sliceTextIntoTextNode =  function sliceTextIntoTextNode(textNode, text, start) {
+function sliceTextIntoTextNode(textNode, text, start) {
   let textContent = textNode.textContent;
   let content = [];
   content.push(textContent.slice(0, start));
@@ -32,7 +35,16 @@ const sliceTextIntoTextNode =  function sliceTextIntoTextNode(textNode, text, st
   textNode.textContent = content.join('');
 };
 
-const insertTextNodeWithSpace = function(parentDomNode, relativeToSibling = null, after = false) {
+/**
+ * dom helper to insert a text node with an invisible space into a DOMElement.
+ *
+ * @method insertTextNodeWithSpace
+ * @param {DOMElement} parentDomNode
+ * @param {DOMNode} relativeToSibling
+ * @param {boolean} after
+ * @public
+ */
+function insertTextNodeWithSpace(parentDomNode, relativeToSibling = null, after = false) {
   let textNode = document.createTextNode(invisibleSpace);
   if (relativeToSibling) {
     if (after) {
@@ -52,11 +64,10 @@ const insertTextNodeWithSpace = function(parentDomNode, relativeToSibling = null
  * this inserts replaces the node with its child nodes
  *
  * @method removeNodeFromTree
- * @static
  * @param {DOMNode} node
  * @public
  */
-const removeNodeFromTree = function removeNodeFromTree(node) {
+function removeNodeFromTree(node) {
   let parent = node.parentNode;
   let baseNode = node;
   while (node.childNodes && node.childNodes.length > 0) {
@@ -71,11 +82,10 @@ const removeNodeFromTree = function removeNodeFromTree(node) {
  * polyfill for ChildNode.remove. Removes node and children from tree.
  *
  * @method removeNodeFrom
- * @static
  * @param {DOMNode} node
  * @public
  */
-const removeNode = function removeNode(node){
+function removeNode(node){
   let parent = node.parentNode;
   if(parent)
     parent.removeChild(node);
@@ -86,12 +96,11 @@ const removeNode = function removeNode(node){
  * https://www.w3.org/TR/html/syntax.html#void-elements
  *
  * @method isVoidElement
- * @static
  * @param {DOMNode} node
  * @return {boolean}
  * @public
  */
-const isVoidElement = function isVoidElement(node) {
+function isVoidElement(node) {
   return node.nodeType === Node.ELEMENT_NODE && /^(AREA|BASE|BR|COL|COMMAND|EMBED|HR|IMG|INPUT|KEYGEN|LINK|META|PARAM|SOURCE|TRACK|WBR|I)$/i.test(node.tagName);
 };
 
@@ -109,7 +118,15 @@ function isAllWhitespace( nod ) {
   return !(/[^\t\n\r ]/.test(nod.textContent));
 }
 
-const isDisplayedAsBlock = function(domNode) {
+
+/**
+ * Determine whether a node is displayed as a block or is a list item
+ * @method isDisplayedAsBlock
+ * @param {DOMNode}  node to check
+ * @return {boolean}
+ */
+
+function isDisplayedAsBlock(domNode) {
   if (domNode.nodeType !== Node.ELEMENT_NODE)
     return false;
   const displayStyle = window.getComputedStyle(domNode)['display'];
@@ -119,7 +136,9 @@ const isDisplayedAsBlock = function(domNode) {
 /**
  * agressive splitting specifically for content in an li
  * @method smartSplitTextNode
- * @static
+ * @param {DOMNode} textNode
+ * @param {number} splitAt index to split at
+ * @return Array the new dom elements that were inserted [parent, siblingParent]
  * @public
  */
 const smartSplitTextNode = function(textNode, splitAt) {
@@ -135,10 +154,25 @@ const smartSplitTextNode = function(textNode, splitAt) {
 };
 
 /** list helpers **/
+
+/**
+ * check if the provided node is a list (e.g ol or ul)
+ * @method isList
+ * @param {DOMNode} node
+ * @return {boolean}
+ * @public
+ */
 function isList(node) {
   return node.nodeType === node.ELEMENT_NODE && ['ul','ol'].includes(node.tagName.toLowerCase());
 }
 
+/**
+ * returns all sibling that are an li
+ * @method siblingLis
+ * @param {DOMNode} node
+ * @return {Array}
+ * @public
+ */
 function siblingLis(node) {
   const lis = A();
   if (node.parentNode) {
@@ -150,6 +184,13 @@ function siblingLis(node) {
   return lis;
 }
 
+/**
+ * check if the provided node is an empty list (e.g ol or ul without li's)
+ * @method isEmptyList
+ * @param {DOMNode} node
+ * @return {boolean}
+ * @public
+ */
 function isEmptyList(node) {
   if( ! isList ) {
     return false;
@@ -167,11 +208,27 @@ const isIgnorableElement = function isIgnorableElement(node) {
   return node.nodeType === Node.TEXT_NODE && node.parentNode && tagName(node.parentNode) === "ul";
 };
 
+/**
+ * check if the provided node is a list (e.g ol or ul)
+ * @method insertNodeBAfterNodeA
+ * @param {DOMNode} parent
+ * @param {DOMNode} nodeA
+ * @param {DomNode} nodeB
+ * @return {boolean}
+ * @public
+ */
 const insertNodeBAfterNodeA = function(parent, nodeA, nodeB) {
   parent.replaceChild(nodeB, nodeA);
   parent.insertBefore(nodeA, nodeB);
 };
 
+/**
+ * return lowercased tagname of a provided node or an empty string for non element nodes
+ * @method tagName
+ * @param {DOMNode} node
+ * @return {boolean}
+ * @public
+ */
 const tagName = function(node) {
   if(!node) return '';
   return node.nodeType === node.ELEMENT_NODE ? node.tagName.toLowerCase() : '';
@@ -181,7 +238,6 @@ const tagName = function(node) {
  * given html string, convert it into DomElements
  * @function createElementsFromHtml
  * @param {String} string containing html
- * @static
  * @public
  */
 const createElementsFromHTML = function(htmlString){

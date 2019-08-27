@@ -14,7 +14,6 @@ import { isBlank } from '@ember/utils';
 
 /**
  * Enter Handler, a event handler to handle the generic enter case
- *
  * @module contenteditable-editor
  * @class EnterHandler
  * @constructor

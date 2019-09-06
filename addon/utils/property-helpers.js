@@ -6,6 +6,7 @@ import {
 } from './dom-helpers';
 import ReplaceWithPolyfill from 'mdn-polyfills/Node.prototype.replaceWith';
 import RichNode from '@lblod/marawa/rich-node';
+import { isAdjacentRange, isEmptyRange } from '@lblod/marawa/range-helpers';
 import { DEFAULT_TAG_NAME } from './editor-property';
 import {
   replaceRichNodeWith,
@@ -60,14 +61,13 @@ function findSuitableNodesToApplyOrCancelProperty(selection) {
   }
   const nodes = [];
   const domNodes = [];
-  const start = Math.min(...selection.selections.map( x => x.range[0]));
-  const end = Math.max(...selection.selections.map( x => x.range[1]));
+  const [start, end] = selection.selectedHighlightRange;
   for (let {richNode, range} of selection.selections) {
     if (richNode.start < start || richNode.end > end) {
       // this node only partially matches the selected range
       // so it needs to be split up later and we can't walk up the tree.
       if (!domNodes.includes(richNode.domNode)) {
-        nodes.push({richNode, range});
+        nodes.push({richNode, range, split:true});
         domNodes.push(richNode.domNode);
       }
     }
@@ -86,12 +86,25 @@ function findSuitableNodesToApplyOrCancelProperty(selection) {
         current = current.parent;
       }
       if (!domNodes.includes(current.domNode)) {
-        nodes.push({richNode: current, range: [current.start, current.end]});
+        nodes.push({richNode: current, range: [current.start, current.end], split:false});
         domNodes.push(current.domNode);
       }
     }
   }
-  return nodes;
+  // clean up empty nodes at start and end
+  let actualNodes = [];
+  if (start === end) {
+    // it's a position, just take the first element
+    // TODO: this could be smarter
+    actualNodes=[nodes[0]];
+  }
+  else {
+    //adjacent check here
+    actualNodes = nodes.filter( function(sel) {
+      return !isEmptyRange(sel.range) || !isAdjacentRange(sel.range, selection.selectedHighlightRange);
+    });
+  }
+  return actualNodes;
 }
 
 /**
@@ -146,15 +159,6 @@ function applyProperty(selection, doc, property, calledFromCancel) {
     cancelProperty(selection, doc, property);
   }
   // clean up the selection to limit overlap with cancel
-  const start = nodesToApplyPropertyOn.map((n) => n.start).sort()[0];
-  const end = nodesToApplyPropertyOn.map((n) => n.end).sort().reverse()[0];
-  // clean up empty nodes at start and end
-  nodesToApplyPropertyOn = nodesToApplyPropertyOn.filter((node) => !(node.richNode.start === start && node.richNode.end === start)).filter((node) => node && !(node.richNode.start === end && node.richNode.end === end));
-  // selectHighlight can return the last position or first position of text nodes which are irrelevant here
-  // keeping them would cause the creation of empty tags that we just need to clean up afterwards
-
-  nodesToApplyPropertyOn = nodesToApplyPropertyOn.filter((s) => !(s.range[0] - s.range[1] === 0 && s.richNode.end - s.richNode.start > 0));
-
   for( let {richNode, range} of nodesToApplyPropertyOn) {
     const [start,end] = range;
     if (richNode.type ===  "tag" ) {
@@ -278,7 +282,7 @@ function rawCancelProperty(richNode, property) {
           children: richNode.children,
           parent: richNode.parent
         });
-        replaceRichNodeWith(richNode, newRichNode);
+        replaceRichNodeWith(richNode, [newRichNode]);
       }
     }
     else if (richNode.children && richNode.children.length > 0) {

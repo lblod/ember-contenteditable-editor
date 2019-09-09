@@ -2,7 +2,7 @@ import RichNode from '@lblod/marawa/rich-node';
 import { isAdjacentRange, isEmptyRange } from '@lblod/marawa/range-helpers';
 import { wrapRichNode, replaceRichNodeWith } from '../rich-node-tree-modification';
 import { runInDebug } from '@ember/debug';
-
+import { parsePrefixString } from '@lblod/marawa/rdfa-attributes';
 /**
  * Alters a selection from the API described above.
  *
@@ -136,7 +136,7 @@ function updateDomNodes( selection, { remove, add, set, desc } ) {
 
 
 // rdfa attributes we understand, currently ignoring src and href
-const RDFAKeys = ['about', 'property','datatype','typeof','resource', 'rel', 'rev', 'content'];
+const RDFAKeys = ['about', 'property','datatype','typeof','resource', 'rel', 'rev', 'content', 'vocab', 'prefix'];
 const WRAP = "wrap";
 const UPDATE = "update";
 const NEST = "nest";
@@ -338,7 +338,13 @@ function removeDOMAttributeValue(domNode, attribute, value) {
 function addDomAttributeValue(domNode, attribute, value) {
   if (domNode.hasAttribute(attribute)) {
     const previousValue = domNode.getAttribute(attribute);
-    if (!previousValue.includes(value)); {
+
+    if(attribute == 'prefix'){
+      let updatedPrefix = mergePrefixValue(previousValue, value);
+      domNode.setAttribute(attribute, updatedPrefix);
+    }
+
+    else if (!previousValue.includes(value)); {
       const updatedValue = previousValue.split(" ").reject((s) => s.length === 0).concat([value]).join(" ");
       domNode.setAttribute(attribute, updatedValue);
     }
@@ -348,6 +354,28 @@ function addDomAttributeValue(domNode, attribute, value) {
   }
 }
 
+function mergePrefixValue(previousValue, newValue){
+  let previousPrefixes = parsePrefixString(previousValue);
+  let newPrefixes = parsePrefixString(newValue);
+
+  let updatedPrefixes = Object.keys(newPrefixes).reduce((acc, key) => {
+    acc[key] = newPrefixes[key];
+    return acc;
+  }, previousPrefixes);
+
+  updatedPrefixes = cleanPrefixObject(updatedPrefixes);
+
+  return Object.keys(updatedPrefixes).map(k => `${k}: ${updatedPrefixes[k]}`).join(' ');
+}
+
+function cleanPrefixObject(prefixes){
+  delete prefixes[""];
+  let updatedHash = {};
+  return Object.keys(prefixes).reduce((acc, k) => {
+    if(prefixes[k]) acc[k] = prefixes[k];
+    return acc;
+  }, {});
+}
 /**
  * creates a wrapper element around the selection, currently always a div (newContext)
  * @method wrapSelection

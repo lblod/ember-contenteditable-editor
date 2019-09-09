@@ -209,8 +209,7 @@ function newContextHeuristic( selection, {remove, add, set}) {
             return UPDATE;
           }
           else {
-            // wrap or nest
-            return wrapOrNest(selection.selection.richNodes[0], add);
+            return UPDATE;
           }
         }
       }

@@ -253,12 +253,16 @@ class RawEditor extends EmberObject.extend({
     if (wasEnabled) {
       cancelProperty(selection, this, property);
       const correctNode = flatMap(this.richNode, (node) => textNodeAtCurrentPosition(node) && ! property.enabledAt(node), true)[0];
-      this.setCarret(correctNode.domNode, this.currentPosition - correctNode.start);
+      if (correctNode) {
+        this.setCarret(correctNode.domNode, this.currentPosition - correctNode.start);
+      }
     }
     else {
       applyProperty(selection, this, property);
       const correctNode = flatMap(this.richNode, (node) => textNodeAtCurrentPosition(node) && property.enabledAt(node), true)[0];
-      this.setCarret(correctNode.domNode, this.currentPosition - correctNode.start);
+      if (correctNode) {
+        this.setCarret(correctNode.domNode, this.currentPosition - correctNode.start);
+      }
     }
   }
   /**

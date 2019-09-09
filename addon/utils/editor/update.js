@@ -1,6 +1,6 @@
 import RichNode from '@lblod/marawa/rich-node';
 import { isAdjacentRange, isEmptyRange } from '@lblod/marawa/range-helpers';
-import wrapRichNode from '../rich-node-tree-modification';
+import { wrapRichNode, replaceRichNodeWith } from '../rich-node-tree-modification';
 import { runInDebug } from '@ember/debug';
 
 /**
@@ -200,7 +200,7 @@ function newContextHeuristic( selection, {remove, add, set}) {
             return add.forceNewContext;
           }
           else {
-            return wrapOrNest(selection.selections.richNodes[0], add);
+            return wrapOrNest(selection.selections[0].richNode, add);
           }
         }
         else {
@@ -439,7 +439,7 @@ function wrapSelection(selection) {
     for (let richNode of nodes) {
       const newContext = document.createElement('div');
       const domNode = richNode.domNode;
-      domNode.replace(newContext);
+      domNode.replaceWith(newContext);
       newContext.appendChild(domNode);
       wrapRichNode(richNode, newContext);
       newContexts.push(newContext);

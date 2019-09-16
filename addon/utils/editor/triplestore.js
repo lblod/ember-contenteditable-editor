@@ -1,8 +1,8 @@
 import { analyse as scanContexts } from '@lblod/marawa/rdfa-context-scanner';
 
 function triplesDefinedInResource( resourceUri ){
-  let selector = `[resource='${resourceUri}']`;
-  let domNodes = Array.from(this.rootNode.querySelectorAll(selector));
+  let domNodes = scanContexts(this.rootNode).filter( c => c.context.slice(-1)[0].subject === resourceUri ).map( c => c.semanticNode.domNode );
+
   let contexts = domNodes.reduce((acc, d) => {
     return [...acc, ...scanContexts(d)];
   }, []);
@@ -11,7 +11,7 @@ function triplesDefinedInResource( resourceUri ){
     return [...acc, ...d.context];
   }, []);
 
-  //Get unique values, this is O(n) right? :-)
+  //Get unique values
   let triplesHash = triples.reduce( (acc, t) => {
     acc[JSON.stringify(sortedTripleObject(t))] = t;
     return acc;

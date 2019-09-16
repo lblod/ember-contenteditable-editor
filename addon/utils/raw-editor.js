@@ -41,7 +41,8 @@ import {
   selectHighlight,
   selectContext,
   update,
-  replaceDomNode
+  replaceDomNode,
+  triplesDefinedInResource
 } from './editor';
 
 const NON_BREAKING_SPACE = '\u00A0';
@@ -1154,6 +1155,9 @@ class RawEditor extends EmberObject.extend({
   }
   replaceDomNode() {
     return replaceDomNode.bind(this)(...arguments);
+  }
+  triplesDefinedInResource() {
+    return triplesDefinedInResource.bind(this)(...arguments);
   }
 }
 

@@ -76,8 +76,8 @@ import { parsePrefixString } from '@lblod/marawa/rdfa-attributes';
  * updating the selection, we could make this case simpler.  The
  * options hash would also allow an array in that case.
  */
-function update(selection, { remove, add, set, desc }) {
-  updateDomNodes(selection, {remove, add, set ,desc});
+function update(selection, { remove, add, set, before, after, desc }) {
+  updateDomNodes(selection, {remove, add, set ,before, after, desc});
   const start = Math.min(...selection.selections.map((element) => element.richNode.start));
   const end = Math.max(...selection.selections.map((element) => element.richNode.end));
   // TODO: cursor handling is suboptimal, should be incorporated in update itself.
@@ -101,11 +101,11 @@ function update(selection, { remove, add, set, desc }) {
 
 // HELPERS
 
-function updateDomNodes( selection, { remove, add, set, desc } ) {
+function updateDomNodes( selection, { remove, add, set, before, after, desc } ) {
   if (selection.selections.length == 0)
     console.warn(`Received empty selection set on update. Nothing will be updated.`); // eslint-disable-line no-console
 
-  verifySpecification({remove, add, set, desc});
+  verifySpecification({remove, add, set, before, after, desc});
   if ( selection.selectedHighlightRange && isComplexSelection(selection)) {
     // TODO: find a sensible region to apply the update to
     console.warn('Handling of complex selection not yet implemented. Nothing will be updated at the moment.', selection); // eslint-disable-line no-console

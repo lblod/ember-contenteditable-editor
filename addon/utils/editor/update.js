@@ -145,7 +145,21 @@ function updateDomNodes( selection, { remove, add, set, before, after, desc } ) 
         }
       }
       else if(isInnerContentUpdate({before, after})){
-        console.log('TODO: on innerContent only');
+        let currDomNode = selection.selections[0].richNode.domNode;
+        let parent = currDomNode.parentNode;
+        let newDomNode = document.createElement('div'); //TODO: now only div, but this must be determined in a smart way.
+        updateInnerContent([ newDomNode ], { set: (before || after) });
+        let childNodes = Array.from(newDomNode.childNodes);
+        let baseNode = currDomNode;
+        for(let newDomNode of before ? childNodes.reverse() : childNodes ){
+          if(before){
+            parent.insertBefore(newDomNode, baseNode);
+          }
+          else if(after){
+            parent.insertBefore(newDomNode, baseNode.nextSibling); //TODO: do I need to make sure nextSibling makes sense (e.g what if you have commentNode)
+          }
+          baseNode = newDomNode;
+        }
       }
     }
   }

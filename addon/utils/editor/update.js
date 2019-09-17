@@ -77,7 +77,7 @@ import { parsePrefixString } from '@lblod/marawa/rdfa-attributes';
  * options hash would also allow an array in that case.
  */
 function update(selection, { remove, add, set, before, after, desc }) {
-  updateDomNodes(selection, {remove, add, set ,before, after, desc});
+  updateDomNodes(selection, this.rootNode, {remove, add, set ,before, after, desc});
   const start = Math.min(...selection.selections.map((element) => element.richNode.start));
   const end = Math.max(...selection.selections.map((element) => element.richNode.end));
   // TODO: cursor handling is suboptimal, should be incorporated in update itself.
@@ -101,7 +101,7 @@ function update(selection, { remove, add, set, before, after, desc }) {
 
 // HELPERS
 
-function updateDomNodes( selection, { remove, add, set, before, after, desc } ) {
+function updateDomNodes( selection, rootNode, { remove, add, set, before, after, desc } ) {
   if (selection.selections.length == 0)
     console.warn(`Received empty selection set on update. Nothing will be updated.`); // eslint-disable-line no-console
 
@@ -117,49 +117,30 @@ function updateDomNodes( selection, { remove, add, set, before, after, desc } ) 
     else if(selection.selections.length > 1){
       console.log('TODO: on multi selections');
     }
-    //Assumes here: a result from a selectContext, and wil always contain tags
+    //Assumes here: a result from a selectContext, and will always contain tags
     else {
       if(isRDFAUpdate({before, after}) && isInnerContentUpdate({before, after})){
-        let currDomNode = selection.selections[0].richNode.domNode;
-        let parent = currDomNode.parentNode;
+        let referenceNode = selection.selections[0].richNode.domNode;
+        let parent = referenceNode.parentNode;
         let newDomNode = document.createElement('div'); //TODO: now only div, but this must be determined in a smart way.
         updateRDFA([ newDomNode ], { set: (before || after) });
         updateInnerContent([ newDomNode ], { set: (before || after) });
-        if(before){
-          parent.insertBefore(newDomNode, currDomNode);
-        }
-        else if(after){
-          parent.insertBefore(newDomNode, currDomNode.nextSibling); //TODO: do I need to make sure nextSibling makes sense (e.g what if you have commentNode)
-        }
+        insertNodes(rootNode, referenceNode, [ newDomNode ], { before, after });
       }
       else if(isRDFAUpdate({before, after})){
-        let currDomNode = selection.selections[0].richNode.domNode;
-        let parent = currDomNode.parentNode;
+        let referenceNode = selection.selections[0].richNode.domNode;
+        let parent = referenceNode.parentNode;
         let newDomNode = document.createElement('div'); //TODO: now only div, but this must be determined in a smart way.
         updateRDFA([ newDomNode ], { set: (before || after) });
-        if(before){
-          parent.insertBefore(newDomNode, currDomNode);
-        }
-        else if(after){
-          parent.insertBefore(newDomNode, currDomNode.nextSibling); //TODO: do I need to make sure nextSibling makes sense (e.g what if you have commentNode)
-        }
+        insertNodes(rootNode, referenceNode, [ newDomNode ], { before, after });
       }
       else if(isInnerContentUpdate({before, after})){
-        let currDomNode = selection.selections[0].richNode.domNode;
-        let parent = currDomNode.parentNode;
-        let newDomNode = document.createElement('div'); //TODO: now only div, but this must be determined in a smart way.
-        updateInnerContent([ newDomNode ], { set: (before || after) });
-        let childNodes = Array.from(newDomNode.childNodes);
-        let baseNode = currDomNode;
-        for(let newDomNode of before ? childNodes.reverse() : childNodes ){
-          if(before){
-            parent.insertBefore(newDomNode, baseNode);
-          }
-          else if(after){
-            parent.insertBefore(newDomNode, baseNode.nextSibling); //TODO: do I need to make sure nextSibling makes sense (e.g what if you have commentNode)
-          }
-          baseNode = newDomNode;
-        }
+        let referenceNode = selection.selections[0].richNode.domNode;
+        let parent = referenceNode.parentNode;
+        let dummyNode = document.createElement('div'); //TODO: now only div, but this must be determined in a smart way.
+        updateInnerContent([ dummyNode ], { set: (before || after) });
+        let childNodes = Array.from(dummyNode.childNodes);
+        insertNodes(rootNode, referenceNode, childNodes, { before, after });
       }
     }
   }
@@ -218,6 +199,24 @@ function updateInnerContent(domNodes, {remove, set}) {
     if (set && set.innerHTML) {
       domNode.innerHTML = set.innerHTML;
     }
+  }
+}
+
+function insertNodes(rootNode, referenceNode, newNodes, { before, after }){
+  let parent = referenceNode.parentNode;
+  if(!rootNode.contains(parent)){
+    console.warn('Reference node is not contained by parent. Skipping');
+    return;
+  }
+  let baseNode = referenceNode;
+  for(let newDomNode of before ? newNodes.reverse() : newNodes ){
+    if(before){
+      parent.insertBefore(newDomNode, baseNode);
+    }
+    else if(after){
+      parent.insertBefore(newDomNode, baseNode.nextSibling); //TODO: do I need to make sure nextSibling makes sense (e.g what if you have commentNode)
+    }
+    baseNode = newDomNode;
   }
 }
 

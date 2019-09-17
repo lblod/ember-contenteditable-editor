@@ -102,6 +102,22 @@ export default Controller.extend({
                                                <span property='test:helloNewResourceProp' style='background-color: yellow'> hello new prop instance 2</span>
                                                and other content last in list`
                                             } });
+    },
+    case11(){
+      let selection = this.editor.selectContext([58, 58], {property: 'http://test/editor/update-before-after/property1'});
+      this.editor.update(selection,  {before: {innerHTML: `
+                                               <span property='test:helloNewResourceProp' style='background-color: yellow'> hello new prop instance 1</span>
+                                               <span property='test:helloNewResourceProp' style='background-color: yellow'> hello new prop instance 2</span>
+                                               and other content last in list`
+                                            } });
+    },
+    case12(){
+      let selection = this.editor.selectContext([58, 58], {property: 'http://test/editor/update-before-after/property1'});
+      this.editor.update(selection,  {after: {innerHTML: `
+                                               <span property='test:helloNewResourceProp' style='background-color: yellow'> hello new prop instance 1</span>
+                                               <span property='test:helloNewResourceProp' style='background-color: yellow'> hello new prop instance 2</span>
+                                               and other content last in list`
+                                            } });
     }
   }
 });

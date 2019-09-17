@@ -110,6 +110,35 @@ function updateDomNodes( selection, { remove, add, set, before, after, desc } ) 
     // TODO: find a sensible region to apply the update to
     console.warn('Handling of complex selection not yet implemented. Nothing will be updated at the moment.', selection); // eslint-disable-line no-console
   }
+  else if(before || after){
+    if(selection.selectedHighlightRange){
+      console.log('TODO: nest on range');
+    }
+    else if(selection.selections.length > 1){
+      console.log('TODO: on multi selections');
+    }
+    //Assumes here: a result from a selectContext, and wil always contain tags
+    else {
+      if(isRDFAUpdate({before, after}) && isInnerContentUpdate({before, after})){
+        console.log('TODO: isRDFAUpdate and isInnerContentUpdate');
+      }
+      else if(isRDFAUpdate({before, after})){
+        let currDomNode = selection.selections[0].richNode.domNode;
+        let parent = currDomNode.parentNode;
+        let newDomNode = document.createElement('div'); //TODO: now only div, but this must be determined in a smart way.
+        updateRDFA([ newDomNode ], { set: (before || after) });
+        if(before){
+          parent.insertBefore(newDomNode, currDomNode);
+        }
+        else if(after){
+          parent.insertBefore(newDomNode, currDomNode.nextSibling); //TODO: do I need to make sure nextSibling makes sense (e.g what if you have commentNode)
+        }
+      }
+      else if(isInnerContentUpdate({before, after})){
+        console.log('TODO: on innerContent only');
+      }
+    }
+  }
   else {
     const bestApproach = newContextHeuristic( selection, {remove, add, set, desc});
     let nodes = [];

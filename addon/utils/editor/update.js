@@ -148,9 +148,9 @@ const WRAPALL = "wrap-all"; // only sensible for contextSelection
  * verifies if the inner content should be updated according to the provided specification
  * @method isInnerContentUpdate
  */
-function isInnerContentUpdate({remove, set}) {
+function isInnerContentUpdate({remove, set, before, after}) {
   // TODO: figure out what aad means with innerContent :)
-  return ((remove && remove.innerHTML) || (set && set.innerHTML));
+  return ((remove && remove.innerHTML) || (set && set.innerHTML) || (before && before.innerHTML) || (after && after.innerHTML));
 }
 
 /**
@@ -298,7 +298,7 @@ function intersection(arr1, arr2) {
  */
 function hasRDFAKeys(object) {
   if (object) {
-    const inter =  intersection(RDFAKeys, Object.keys(object));
+    const inter = intersection(RDFAKeys, Object.keys(object));
     return inter.length > 0;
   }
   else
@@ -310,8 +310,8 @@ function hasRDFAKeys(object) {
  * @method isRDFAUpdate
  * @private
  */
-function isRDFAUpdate({remove, add, set}) {
-  return hasRDFAKeys(remove) || hasRDFAKeys(add) || hasRDFAKeys(set);
+function isRDFAUpdate({remove, add, set, before, after}) {
+  return hasRDFAKeys(remove) || hasRDFAKeys(add) || hasRDFAKeys(set) || hasRDFAKeys(before) || hasRDFAKeys(after);
 }
 
 /**

@@ -52,6 +52,30 @@ export default Controller.extend({
       let selection = this.editor.selectContext([0, 10000], {resource: 'http://test/editor/update-before-after/Resource1'});
       this.editor.update(selection, {after: {property: 'test:aPropertyFoaf test:anotherPropertyOfFoaf', content: 'some content', typeof: ['test:aShinyNewThing'],
                                              resource:'http://new/resource' } });
+    },
+    case6(){
+      let selection = this.editor.selectContext([0, 10000], {resource: 'http://test/editor/update-before-after/Resource1'});
+      this.editor.update(selection, {before: {property: 'test:aPropertyFoaf test:anotherPropertyOfFoaf',
+                                             typeof: ['test:aShinyNewThing'],
+                                             resource: 'http://new/resource',
+                                             innerHTML: `<span property='test:helloNewResourceProp' style='background-color: yellow'> hello new prop instance 1</span>
+                                                         <span property='test:helloNewResourceProp' style='background-color: yellow'> hello new prop instance 2</span>
+                                                         <div style='background-color: pink'> and other content </div>`
+                                            } });
+    },
+    case7(){
+      let selection = this.editor.selectContext([0, 10000], {resource: 'http://test/editor/update-before-after/Resource1'});
+      this.editor.update(selection, {after: {property: 'test:aPropertyFoaf test:anotherPropertyOfFoaf',
+                                             typeof: ['test:aShinyNewThing'],
+                                             resource: 'http://new/resource',
+                                             innerHTML: `
+                                             <div style='background-color: red'>
+                                               <span property='test:helloNewResourceProp' style='background-color: yellow'> hello new prop instance 1</span>
+                                               <span property='test:helloNewResourceProp' style='background-color: yellow'> hello new prop instance 2</span>
+                                               <div style='background-color: pink'> and other content </div>
+                                                &nbsp;
+                                             </div>`
+                                            } });
     }
   }
 });

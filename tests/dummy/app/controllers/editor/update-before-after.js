@@ -76,6 +76,32 @@ export default Controller.extend({
                                                 &nbsp;
                                              </div>`
                                             } });
+    },
+    case8(){
+      let selection = this.editor.selectContext([0, 10000], {resource: 'http://test/editor/update-before-after/Resource1'});
+      this.editor.update(selection, {after: {innerHTML: `
+                                             <div style='background-color: red'>
+                                               <span property='test:helloNewResourceProp' style='background-color: yellow'> hello new prop instance 1</span>
+                                               <span property='test:helloNewResourceProp' style='background-color: yellow'> hello new prop instance 2</span>
+                                               and other content last in list
+                                             </div>`
+                                            } });
+    },
+    case9(){
+      let selection = this.editor.selectContext([0, 10000], {resource: 'http://test/editor/update-before-after/Resource1'});
+      this.editor.update(selection, {after: {innerHTML: `
+                                               <span property='test:helloNewResourceProp' style='background-color: yellow'> hello new prop instance 1</span>
+                                               <span property='test:helloNewResourceProp' style='background-color: yellow'> hello new prop instance 2</span>
+                                               and other content last in list`
+                                            } });
+    },
+    case10(){
+      let selection = this.editor.selectContext([0, 10000], {resource: 'http://test/editor/update-before-after/Resource1'});
+      this.editor.update(selection, {before: {innerHTML: `
+                                               <span property='test:helloNewResourceProp' style='background-color: yellow'> hello new prop instance 1</span>
+                                               <span property='test:helloNewResourceProp' style='background-color: yellow'> hello new prop instance 2</span>
+                                               and other content last in list`
+                                            } });
     }
   }
 });

@@ -1,0 +1,35 @@
+<h2 id="title">Testing update before after</h2>
+<button {{action 'reload'}}> reload </button>
+{{#content-editable editable=true focused=true yieldHTML=true
+   textInsert=(action 'handleTextInsert')
+   textRemove=(action 'handleTextRemove')
+   selectionUpdate=(action 'selectionUpdate')
+   elementUpdate=(action 'elementUpdate')
+   rawEditorInit=(action 'rawEditorInit')
+}}
+  <h3>data</h3>
+  <div style="background-color: grey"
+    vocab="http://test/editor/update-before-after/"
+    prefix="test: http://test/editor/update-before-after/ foaf: http://xmlns.com/foaf/0.1/"
+    resource="#"
+    typeof="foaf:Document">
+
+    <div resource="test:Resource1" typeof="test:ATestResource">
+      Some content
+
+      <span property="test:property1" style="background-color: green"> property 1 instance 1</span>
+      some content between properties
+      <div property="test:property2" style="background-color: green"> property 2 instance 1</div>
+      some other content
+      <div property="test:property1" style="background-color: green"> property 2 instance 2</div>
+    </div>
+
+
+  </div>
+  <h3>end data</h3>
+{{/content-editable}}
+<button {{action 'case1'}}> case 1 </button>
+<button {{action 'case2'}}> case 2 </button>
+<button {{action 'case3'}}> case 3 </button>
+<button {{action 'case4'}}> case 4 </button>
+<button {{action 'case5'}}> case 5 </button>

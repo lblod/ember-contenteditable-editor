@@ -120,7 +120,17 @@ function updateDomNodes( selection, { remove, add, set, before, after, desc } ) 
     //Assumes here: a result from a selectContext, and wil always contain tags
     else {
       if(isRDFAUpdate({before, after}) && isInnerContentUpdate({before, after})){
-        console.log('TODO: isRDFAUpdate and isInnerContentUpdate');
+        let currDomNode = selection.selections[0].richNode.domNode;
+        let parent = currDomNode.parentNode;
+        let newDomNode = document.createElement('div'); //TODO: now only div, but this must be determined in a smart way.
+        updateRDFA([ newDomNode ], { set: (before || after) });
+        updateInnerContent([ newDomNode ], { set: (before || after) });
+        if(before){
+          parent.insertBefore(newDomNode, currDomNode);
+        }
+        else if(after){
+          parent.insertBefore(newDomNode, currDomNode.nextSibling); //TODO: do I need to make sure nextSibling makes sense (e.g what if you have commentNode)
+        }
       }
       else if(isRDFAUpdate({before, after})){
         let currDomNode = selection.selections[0].richNode.domNode;

@@ -547,7 +547,7 @@ function splitSelectionsToPotentiallyFitInRange(range, providedSelections){
       text: preText,
       type: "text"
     });
-    const prefixSelection = { range: [ range[0], preRichNode.end ], richNode: preRichNode };
+    const prefixSelection = { range: [ preRichNode.start, range[0] ], richNode: preRichNode };
     const parent = richNode.parent;
     const index = parent.children.indexOf(richNode);
     parent.children.splice(index, 0, preRichNode);
@@ -574,7 +574,7 @@ function splitSelectionsToPotentiallyFitInRange(range, providedSelections){
       type: "text"
     });
 
-    const postfixSelection = { range: [ postfixRichNode.start, range[1] ], richNode: postfixRichNode };
+    const postfixSelection = { range: [ range[1], postfixRichNode.end ], richNode: postfixRichNode };
     const parent = richNode.parent;
     const index = parent.children.indexOf(richNode);
     parent.children.splice(index+1, 0, postfixRichNode);

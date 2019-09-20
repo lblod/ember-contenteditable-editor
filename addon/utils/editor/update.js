@@ -116,7 +116,7 @@ function updateDomNodes( selection, rootNode, { remove, add, set, before, after,
     if(selection.selectedHighlightRange){
       let cleanedSelections = splitSelectionsToPotentiallyFitInRange(selection.selectedHighlightRange, selection.selections);
       if(before){
-        selectionOfInterest = cleanedSelections.find(s => s.range[0] >= selection.selectedHighlightRange[0] );
+        selectionOfInterest = cleanedSelections.find(s => s.range[0] >= selection.selectedHighlightRange[0] ); //TODO: make sure textnode is sensible
       }
       else if(after){
         selectionOfInterest = cleanedSelections.find(s => selection.selectedHighlightRange[1] <= s.range[1]);

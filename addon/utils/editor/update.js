@@ -513,7 +513,7 @@ function wrapSelection(selection) {
     // find the actual nodes to move, these might be higher up in the tree.
     // can assume the nodes in selections can be completely wrapped
     // (prefix and postfix is taken care of above this comment)
-    const nodesToWrap = findNodesToWrap(selections.map((sel) => sel.richNode));
+    const nodesToWrap = findNodesToWrap(selections.map((sel) => sel.richNode), selection.selectedHighlightRange);
     nodesToWrap[0].domNode.before(newContext);
     // move selected nodes to new context
     for (const node of nodesToWrap) {
@@ -547,9 +547,7 @@ function wrapSelection(selection) {
  * @method findNodesToWrap
  * @private
  */
-function findNodesToWrap(richNodes) {
-  const start = Math.min(...richNodes.map((node) => node.start));
-  const end = Math.max(...richNodes.map((node) => node.end));
+function findNodesToWrap(richNodes, [start, end] ) {
   const nodesToWrap = [];
   for (let node of richNodes) {
     let current = node;
@@ -558,7 +556,7 @@ function findNodesToWrap(richNodes) {
       // this assumes the richnode tree never includes the editor element itself!
       current = current.parent;
     }
-    if (!nodesToWrap.includes(current)) {
+    if (!nodesToWrap.includes(current) && current.start >= start && current.end <= end) {
       nodesToWrap.push(current);
     }
   }

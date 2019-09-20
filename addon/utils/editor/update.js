@@ -478,6 +478,7 @@ function wrapSelection(selection) {
       parent.children.splice(index, 0, preRichNode);
       richNode.start = richNode.start + relativeStart;
       richNode.text = infixText;
+      richNode.domNode.textContent = infixText;
     }
     if (lastSelection.richNode.end > lastSelection.range[1]) {
       // not the entire node was selected, will need to split
@@ -500,6 +501,7 @@ function wrapSelection(selection) {
       parent.children.splice(index+1, 0, postfixRichNode);
       richNode.end = richNode.start + relativeEnd;
       richNode.text = infixText;
+      richNode.domNode.textContent = infixText;
     }
     // find the actual nodes to move, these might be higher up in the tree.
     // can assume the nodes in selections can be completely wrapped

@@ -3,6 +3,7 @@ import { isAdjacentRange, isEmptyRange } from '@lblod/marawa/range-helpers';
 import { wrapRichNode, replaceRichNodeWith } from '../rich-node-tree-modification';
 import { runInDebug } from '@ember/debug';
 import { parsePrefixString } from '@lblod/marawa/rdfa-attributes';
+import { isVoidElement } from '../dom-helpers';
 /**
  * Alters a selection from the API described above.
  *
@@ -114,13 +115,13 @@ function updateDomNodes( selection, rootNode, { remove, add, set, before, after,
     if(selection.selectedHighlightRange){
       console.log('TODO: nest on range');
     }
-    else if(selection.selections.length > 1){
-      console.log('TODO: on multi selections');
-    }
     //Assumes here: a result from a selectContext, and will always contain tags
     else {
+      let selectionOfInterest = selection.selections.find(s => !isVoidElement(s.richNode.domNode));
+      if(!selectionOfInterest) return;
+
       if(isRDFAUpdate({before, after}) && isInnerContentUpdate({before, after})){
-        let referenceNode = selection.selections[0].richNode.domNode;
+        let referenceNode = selectionOfInterest.richNode.domNode;
         let parent = referenceNode.parentNode;
         let newDomNode = document.createElement('div'); //TODO: now only div, but this must be determined in a smart way.
         updateRDFA([ newDomNode ], { set: (before || after) });
@@ -128,14 +129,14 @@ function updateDomNodes( selection, rootNode, { remove, add, set, before, after,
         insertNodes(rootNode, referenceNode, [ newDomNode ], { before, after });
       }
       else if(isRDFAUpdate({before, after})){
-        let referenceNode = selection.selections[0].richNode.domNode;
+        let referenceNode = selectionOfInterest.richNode.domNode;
         let parent = referenceNode.parentNode;
         let newDomNode = document.createElement('div'); //TODO: now only div, but this must be determined in a smart way.
         updateRDFA([ newDomNode ], { set: (before || after) });
         insertNodes(rootNode, referenceNode, [ newDomNode ], { before, after });
       }
       else if(isInnerContentUpdate({before, after})){
-        let referenceNode = selection.selections[0].richNode.domNode;
+        let referenceNode = selectionOfInterest.richNode.domNode;
         let parent = referenceNode.parentNode;
         let dummyNode = document.createElement('div'); //TODO: now only div, but this must be determined in a smart way.
         updateInnerContent([ dummyNode ], { set: (before || after) });

@@ -118,6 +118,18 @@ export default Controller.extend({
                                                <span property='test:helloNewResourceProp' style='background-color: yellow'> hello new prop instance 2</span>
                                                and other content last in list`
                                             } });
+    },
+    case13(){
+      let selection = this.editor.selectContext([0, 10000], {property: 'http://test/editor/update-before-after/property1'});
+      this.editor.update(selection,  {after: {innerHTML: `
+                                               <span property='test:helloNewResourceProp' style='background-color: yellow'>
+                                                 I am added after the first property 1 (1)
+                                               </span>
+                                               <span property='test:helloNewResourceProp' style='background-color: yellow'>
+                                                I am added after the first property 1 (2)
+                                               </span>
+                                               and I am the last semanticless (meaningless, so you will) bit`
+                                            } });
     }
   }
 });

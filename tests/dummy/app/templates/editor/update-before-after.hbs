@@ -8,7 +8,7 @@
    rawEditorInit=(action 'rawEditorInit')
 }}
   <h3>data</h3>
-  <div style="background-color: grey"
+  <div style="background-color: grey; font-family: 'Comic Sans MS', cursive, sans-serif;"
     vocab="http://test/editor/update-before-after/"
     prefix="test: http://test/editor/update-before-after/ foaf: http://xmlns.com/foaf/0.1/"
     resource="#"
@@ -17,6 +17,7 @@
     <div resource="test:Resource1" typeof="test:ATestResource">
       Some content
 
+      <link property="test:property1"   rel="stylesheet">
       <span property="test:property1" style="background-color: green"> property 1 instance 1</span>
       some content between properties
       <div property="test:property2" style="background-color: green"> property 2 instance 1</div>
@@ -40,3 +41,4 @@
 <button {{action 'case10'}}> case 10 </button>
 <button {{action 'case11'}}> case 11 </button>
 <button {{action 'case12'}}> case 12 </button>
+<button {{action 'case13'}}> case 13 </button>

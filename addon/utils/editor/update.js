@@ -441,7 +441,7 @@ function wrapSelection(selection) {
     // this is a non complex text selection so a useful common parent exists/can be created
     // we assume all selections are text nodes (current implementation of selectHighlightRange)
     // the text nodes should form a consecutive range, but do not have to be in order
-    const selections = selection.selections.sort((a,b) => {
+    let selections = selection.selections.sort((a,b) => {
       if (a.range[0] <= b.range[0] && a.range[1] <= b.range[0]) {
         return -1;
       }
@@ -473,12 +473,15 @@ function wrapSelection(selection) {
         text: preText,
         type: "text"
       });
+      const prefixSelection = { range: [ preRichNode.start, preRichNode.end ], richNode: preRichNode };
       const parent = richNode.parent;
       const index = parent.children.indexOf(richNode);
       parent.children.splice(index, 0, preRichNode);
       richNode.start = richNode.start + relativeStart;
       richNode.text = infixText;
       richNode.domNode.textContent = infixText;
+
+      selections = [ prefixSelection, ...selections ];
     }
     if (lastSelection.richNode.end > lastSelection.range[1]) {
       // not the entire node was selected, will need to split
@@ -496,12 +499,16 @@ function wrapSelection(selection) {
         text: postText,
         type: "text"
       });
+
+      const postfixSelection = { range: [ postfixRichNode.start, postfixRichNode.end ], richNode: postfixRichNode };
       const parent = richNode.parent;
       const index = parent.children.indexOf(richNode);
       parent.children.splice(index+1, 0, postfixRichNode);
       richNode.end = richNode.start + relativeEnd;
       richNode.text = infixText;
       richNode.domNode.textContent = infixText;
+
+      selections = [ ...selections, postfixSelection ];
     }
     // find the actual nodes to move, these might be higher up in the tree.
     // can assume the nodes in selections can be completely wrapped

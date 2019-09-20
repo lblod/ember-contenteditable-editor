@@ -48,6 +48,10 @@ export default Controller.extend({
     },
     insertUL(){
       this.rawEditor.insertUL();
+    },
+    addContextOnCurrentSelection() {
+      let selection = this.rawEditor.selectCurrentSelection();
+      this.rawEditor.update(selection, { set: { property: 'http://foo/testProperty' } });
     }
   }
 });

@@ -130,6 +130,22 @@ export default Controller.extend({
                                                </span>
                                                and I am the last semanticless (meaningless, so you will) bit`
                                             } });
+    },
+    case14(){
+      let selection = this.editor.selectHighlight([ 55, 70 ]);
+      this.editor.update(selection,  { before: {innerHTML: `
+                                               <span property='test:helloNewResourceProp' style='background-color: yellow'>
+                                                 I will come after 'PR'
+                                               </span>`
+                                            } });
+    },
+    case15(){
+      let selection = this.editor.selectHighlight([ 55, 70 ]);
+      this.editor.update(selection,  { after: {innerHTML: `
+                                               <span property='test:helloNewResourceProp' style='background-color: yellow'>
+                                                 I will come after 'property 1 instan'
+                                               </span>`
+                                            } });
     }
   }
 });

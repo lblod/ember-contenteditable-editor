@@ -112,39 +112,47 @@ function updateDomNodes( selection, rootNode, { remove, add, set, before, after,
     console.warn('Handling of complex selection not yet implemented. Nothing will be updated at the moment.', selection); // eslint-disable-line no-console
   }
   else if(before || after){
+    let selectionOfInterest = null;
     if(selection.selectedHighlightRange){
-      console.log('TODO: nest on range');
+      let cleanedSelections = splitSelectionsToPotentiallyFitInRange(selection.selectedHighlightRange, selection.selections);
+      if(before){
+        selectionOfInterest = cleanedSelections.find(s => s.range[0] >= selection.selectedHighlightRange[0] );
+      }
+      else if(after){
+        selectionOfInterest = cleanedSelections.find(s => selection.selectedHighlightRange[1] <= s.range[1]);
+      }
     }
     //Assumes: a result from a selectContext, and will always contain tags
     //Assumes: if multiple selections are returned, probably the clients wants only to apply on the first one
-    //         e.g. you probably don't want to insert a new resource or other identical inforamtion on two places.
+    //         e.g. you probably don't want to insert a new resource or other identical information on two places.
     else {
-      let selectionOfInterest = selection.selections.find(s => !isVoidElement(s.richNode.domNode));
-      if(!selectionOfInterest) return;
+      selectionOfInterest = selection.selections.find(s => !isVoidElement(s.richNode.domNode));
+    }
 
-      if(isRDFAUpdate({before, after}) && isInnerContentUpdate({before, after})){
-        let referenceNode = selectionOfInterest.richNode.domNode;
-        let parent = referenceNode.parentNode;
-        let newDomNode = document.createElement('div'); //TODO: now only div, but this must be determined in a smart way.
-        updateRDFA([ newDomNode ], { set: (before || after) });
-        updateInnerContent([ newDomNode ], { set: (before || after) });
-        insertNodes(rootNode, referenceNode, [ newDomNode ], { before, after });
-      }
-      else if(isRDFAUpdate({before, after})){
-        let referenceNode = selectionOfInterest.richNode.domNode;
-        let parent = referenceNode.parentNode;
-        let newDomNode = document.createElement('div'); //TODO: now only div, but this must be determined in a smart way.
-        updateRDFA([ newDomNode ], { set: (before || after) });
-        insertNodes(rootNode, referenceNode, [ newDomNode ], { before, after });
-      }
-      else if(isInnerContentUpdate({before, after})){
-        let referenceNode = selectionOfInterest.richNode.domNode;
-        let parent = referenceNode.parentNode;
-        let dummyNode = document.createElement('div'); //TODO: now only div, but this must be determined in a smart way.
-        updateInnerContent([ dummyNode ], { set: (before || after) });
-        let childNodes = Array.from(dummyNode.childNodes);
-        insertNodes(rootNode, referenceNode, childNodes, { before, after });
-      }
+    if(!selectionOfInterest) return;
+
+    if(isRDFAUpdate({before, after}) && isInnerContentUpdate({before, after})){
+      let referenceNode = selectionOfInterest.richNode.domNode;
+      let parent = referenceNode.parentNode;
+      let newDomNode = document.createElement('div'); //TODO: now only div, but this must be determined in a smart way.
+      updateRDFA([ newDomNode ], { set: (before || after) });
+      updateInnerContent([ newDomNode ], { set: (before || after) });
+      insertNodes(rootNode, referenceNode, [ newDomNode ], { before, after });
+    }
+    else if(isRDFAUpdate({before, after})){
+      let referenceNode = selectionOfInterest.richNode.domNode;
+      let parent = referenceNode.parentNode;
+      let newDomNode = document.createElement('div'); //TODO: now only div, but this must be determined in a smart way.
+      updateRDFA([ newDomNode ], { set: (before || after) });
+      insertNodes(rootNode, referenceNode, [ newDomNode ], { before, after });
+    }
+    else if(isInnerContentUpdate({before, after})){
+      let referenceNode = selectionOfInterest.richNode.domNode;
+      let parent = referenceNode.parentNode;
+      let dummyNode = document.createElement('div'); //TODO: now only div, but this must be determined in a smart way.
+      updateInnerContent([ dummyNode ], { set: (before || after) });
+      let childNodes = Array.from(dummyNode.childNodes);
+      insertNodes(rootNode, referenceNode, childNodes, { before, after });
     }
   }
   else {

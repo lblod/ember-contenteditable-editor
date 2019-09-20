@@ -563,24 +563,6 @@ function findNodesToWrap(richNodes, [start, end] ) {
   return nodesToWrap;
 }
 
-
-// function parentContains(parent, richNodes) {
-//   return richNodes.some((richNode) => !parent.domNode.contains(richNode.domNode));
-// }
-
-// function findNodesToWrap(richNodes) {
-//   var rootParent = richNodes[0].parent;
-//   while (!parentContains(rootParent,richNodes) && rootParent) {
-//     rootParent = rootParent.parent;
-//   }
-//   return richNodes.map( (richNode) => {
-//     var nodeToWrap = richNode;
-//     while(nodeToWrap.parent !== rootParent) {
-//       nodeToWrap = nodeToWrap.parent;
-//     }
-//   });
-// }
-
 /**
  * verifies if the provided selection is a selection we support
  * @method isComplexSelection

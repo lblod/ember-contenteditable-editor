@@ -112,6 +112,46 @@ function updateDomNodes( selection, rootNode, { remove, add, set, before, after,
     console.warn('Handling of complex selection not yet implemented. Nothing will be updated at the moment.', selection); // eslint-disable-line no-console
   }
   else if(before || after){
+    setBeforeAfter(rootNode, selection, { before, after });
+  }
+  else {
+    const bestApproach = newContextHeuristic( selection, {remove, add, set, desc});
+    let nodes = [];
+    if (bestApproach === WRAP) {
+      nodes = wrapSelection(selection);
+    }
+    else if (bestApproach === WRAPALL) {
+      console.warn(`New context approach ${WRAPALL} is currently not supported.`); // eslint-disable-line no-console
+    }
+    else if (bestApproach === NEST) {
+      nodes = nestSelection(selection);
+    }
+    else {
+      nodes = selection.selections.map((sel) => sel.richNode.domNode );
+    }
+    if (isRDFAUpdate({remove,add,set})) {
+      updateRDFA(nodes, {remove, add, set});
+    }
+    if (isInnerContentUpdate({remove,add,set})) {
+      updateInnerContent(nodes, {remove, add, set});
+    }
+  }
+}
+
+
+// rdfa attributes we understand, currently ignoring src and href
+const RDFAKeys = ['about', 'property','datatype','typeof','resource', 'rel', 'rev', 'content', 'vocab', 'prefix'];
+const WRAP = "wrap";
+const UPDATE = "update";
+const NEST = "nest";
+const WRAPALL = "wrap-all"; // only sensible for contextSelection
+
+/*** private HELPERS ***/
+
+/*
+ * Flow to update a selection with before or after selection.
+ */
+function setBeforeAfter(rootNode, selection, { before, after }){
     let selectionOfInterest = null;
     if(selection.selectedHighlightRange){
       let cleanedSelections = splitSelectionsToPotentiallyFitInRange(selection.selectedHighlightRange, selection.selections);
@@ -154,40 +194,7 @@ function updateDomNodes( selection, rootNode, { remove, add, set, before, after,
       let childNodes = Array.from(dummyNode.childNodes);
       insertNodes(rootNode, referenceNode, childNodes, { before, after });
     }
-  }
-  else {
-    const bestApproach = newContextHeuristic( selection, {remove, add, set, desc});
-    let nodes = [];
-    if (bestApproach === WRAP) {
-      nodes = wrapSelection(selection);
-    }
-    else if (bestApproach === WRAPALL) {
-      console.warn(`New context approach ${WRAPALL} is currently not supported.`); // eslint-disable-line no-console
-    }
-    else if (bestApproach === NEST) {
-      nodes = nestSelection(selection);
-    }
-    else {
-      nodes = selection.selections.map((sel) => sel.richNode.domNode );
-    }
-    if (isRDFAUpdate({remove,add,set})) {
-      updateRDFA(nodes, {remove, add, set});
-    }
-    if (isInnerContentUpdate({remove,add,set})) {
-      updateInnerContent(nodes, {remove, add, set});
-    }
-  }
 }
-
-
-// rdfa attributes we understand, currently ignoring src and href
-const RDFAKeys = ['about', 'property','datatype','typeof','resource', 'rel', 'rev', 'content', 'vocab', 'prefix'];
-const WRAP = "wrap";
-const UPDATE = "update";
-const NEST = "nest";
-const WRAPALL = "wrap-all"; // only sensible for contextSelection
-
-/*** private HELPERS ***/
 
 /**
  * verifies if the inner content should be updated according to the provided specification

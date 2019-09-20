@@ -115,7 +115,9 @@ function updateDomNodes( selection, rootNode, { remove, add, set, before, after,
     if(selection.selectedHighlightRange){
       console.log('TODO: nest on range');
     }
-    //Assumes here: a result from a selectContext, and will always contain tags
+    //Assumes: a result from a selectContext, and will always contain tags
+    //Assumes: if multiple selections are returned, probably the clients wants only to apply on the first one
+    //         e.g. you probably don't want to insert a new resource or other identical inforamtion on two places.
     else {
       let selectionOfInterest = selection.selections.find(s => !isVoidElement(s.richNode.domNode));
       if(!selectionOfInterest) return;

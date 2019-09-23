@@ -77,8 +77,8 @@ import { isVoidElement } from '../dom-helpers';
  * updating the selection, we could make this case simpler.  The
  * options hash would also allow an array in that case.
  */
-function update(selection, { remove, add, set, before, after, desc }) {
-  updateDomNodes(selection, this.rootNode, {remove, add, set ,before, after, desc});
+function update(selection, { remove, add, set, before, after, append, prepend, desc }) {
+  updateDomNodes(selection, this.rootNode, { remove, add, set ,before, after, append, prepend, desc });
   const start = Math.min(...selection.selections.map((element) => element.richNode.start));
   const end = Math.max(...selection.selections.map((element) => element.richNode.end));
   // TODO: cursor handling is suboptimal, should be incorporated in update itself.
@@ -102,17 +102,17 @@ function update(selection, { remove, add, set, before, after, desc }) {
 
 // HELPERS
 
-function updateDomNodes( selection, rootNode, { remove, add, set, before, after, desc } ) {
+function updateDomNodes( selection, rootNode, { remove, add, set, before, after, append, prepend, desc } ) {
   if (selection.selections.length == 0)
     console.warn(`Received empty selection set on update. Nothing will be updated.`); // eslint-disable-line no-console
 
-  verifySpecification({remove, add, set, before, after, desc});
+  verifySpecification({ remove, add, set ,before, after, append, prepend, desc });
   if ( selection.selectedHighlightRange && isComplexSelection(selection)) {
     // TODO: find a sensible region to apply the update to
     console.warn('Handling of complex selection not yet implemented. Nothing will be updated at the moment.', selection); // eslint-disable-line no-console
   }
-  else if(before || after){
-    setBeforeAfter(rootNode, selection, { before, after });
+  else if(before || after || append || prepend){
+    insertNodeOnSelection(rootNode, selection, { before, after, append, prepend });
   }
   else {
     const bestApproach = newContextHeuristic( selection, {remove, add, set, desc});
@@ -148,61 +148,83 @@ const WRAPALL = "wrap-all"; // only sensible for contextSelection
 
 /*** private HELPERS ***/
 
-/*
- * Flow to update a selection with before or after selection.
+/**
+ * Helper to organise selections (and underlying domNodes) so they can fit as a complete entity in the 'box' of the range.
+ *
+ * @param {Object} domNode of container editor
+ * @param {Object} selection object to work on
+ * @param {Object} { before, after, prepend, append } Options object, only one operation allowed
+ *
+ * @method insertNodeOnSelection
+ * @private
  */
-function setBeforeAfter(rootNode, selection, { before, after }){
-    let selectionOfInterest = null;
-    if(selection.selectedHighlightRange){
-      let cleanedSelections = splitSelectionsToPotentiallyFitInRange(selection.selectedHighlightRange, selection.selections);
-      if(before){
-        selectionOfInterest = cleanedSelections.find(s => s.range[0] >= selection.selectedHighlightRange[0] ); //TODO: make sure textnode is sensible
-      }
-      else if(after){
-        selectionOfInterest = cleanedSelections.find(s => selection.selectedHighlightRange[1] <= s.range[1]);
-      }
+function insertNodeOnSelection(rootNode, selection, domPosition){
+  if( (new Set(Object.values(domPosition))).delete(undefined).size > 1 ){
+    console.warn('We currently support only one operation at the time. Returning');
+    return;
+  }
+  let { before, after, prepend, append } = domPosition;
+  if(selection.selectedHighlightRange && (prepend || append)){
+    console.warn('Currently we assume if highlight is selected, only textNodes will be selected. Prepend/Append not possible');
+    return;
+  }
+  let selectionOfInterest = null;
+  if(selection.selectedHighlightRange){
+    let cleanedSelections = splitSelectionsToPotentiallyFitInRange(selection.selectedHighlightRange, selection.selections);
+    if(before){
+      //TODO: now only the first part of selection is taken blindly, but this should probably be smarter.
+      selectionOfInterest = cleanedSelections.find(s => s.range[0] >= selection.selectedHighlightRange[0] );
     }
-    //Assumes: a result from a selectContext, and will always contain tags
-    //Assumes: if multiple selections are returned, probably the clients wants only to apply on the first one
-    //         e.g. you probably don't want to insert a new resource or other identical information on two places.
-    else {
-      selectionOfInterest = selection.selections.find(s => !isVoidElement(s.richNode.domNode));
+    else if(after){
+      selectionOfInterest = cleanedSelections.find(s => selection.selectedHighlightRange[1] <= s.range[1]);
     }
+  }
+  //Assumes: a result from a selectContext, and will always contain tags
+  //Assumes: if multiple selections are returned, probably the clients wants only to apply on the first one
+  //         e.g. you probably don't want to insert a new resource or other identical information on two places.
+  else {
+    selectionOfInterest = selection.selections.find(s => !isVoidElement(s.richNode.domNode));
+  }
 
-    if(!selectionOfInterest) return;
+  if(!selectionOfInterest) return;
 
-    if(isRDFAUpdate({before, after}) && isInnerContentUpdate({before, after})){
-      let referenceNode = selectionOfInterest.richNode.domNode;
-      let parent = referenceNode.parentNode;
-      let newDomNode = document.createElement('div'); //TODO: now only div, but this must be determined in a smart way.
-      updateRDFA([ newDomNode ], { set: (before || after) });
-      updateInnerContent([ newDomNode ], { set: (before || after) });
-      insertNodes(rootNode, referenceNode, [ newDomNode ], { before, after });
-    }
-    else if(isRDFAUpdate({before, after})){
-      let referenceNode = selectionOfInterest.richNode.domNode;
-      let parent = referenceNode.parentNode;
-      let newDomNode = document.createElement('div'); //TODO: now only div, but this must be determined in a smart way.
-      updateRDFA([ newDomNode ], { set: (before || after) });
-      insertNodes(rootNode, referenceNode, [ newDomNode ], { before, after });
-    }
-    else if(isInnerContentUpdate({before, after})){
-      let referenceNode = selectionOfInterest.richNode.domNode;
-      let parent = referenceNode.parentNode;
-      let dummyNode = document.createElement('div'); //TODO: now only div, but this must be determined in a smart way.
-      updateInnerContent([ dummyNode ], { set: (before || after) });
-      let childNodes = Array.from(dummyNode.childNodes);
-      insertNodes(rootNode, referenceNode, childNodes, { before, after });
-    }
+  if(isRDFAUpdate({ before, after, prepend, append }) && isInnerContentUpdate({ before, after, prepend, append })){
+    let referenceNode = selectionOfInterest.richNode.domNode;
+    let parent = referenceNode.parentNode;
+    let newDomNode = document.createElement('div'); //TODO: now only div, but this must be determined in a smart way.
+    updateRDFA([ newDomNode ], { set: (before || after || prepend || append) });
+    updateInnerContent([ newDomNode ], { set: (before || after || prepend || append) });
+    insertNodes(rootNode, referenceNode, [ newDomNode ], { before, after, prepend, append });
+  }
+  else if(isRDFAUpdate({ before, after, prepend, append })){
+    let referenceNode = selectionOfInterest.richNode.domNode;
+    let parent = referenceNode.parentNode;
+    let newDomNode = document.createElement('div'); //TODO: now only div, but this must be determined in a smart way.
+    updateRDFA([ newDomNode ], { set: (before || after || prepend || append) });
+    insertNodes(rootNode, referenceNode, [ newDomNode ], { before, after, prepend, append });
+  }
+  else if(isInnerContentUpdate({ before, after, prepend, append })){
+    let referenceNode = selectionOfInterest.richNode.domNode;
+    let parent = referenceNode.parentNode;
+    let dummyNode = document.createElement('div'); //TODO: now only div, but this must be determined in a smart way.
+    updateInnerContent([ dummyNode ], { set: (before || after || prepend || append) });
+    let childNodes = Array.from(dummyNode.childNodes);
+    insertNodes(rootNode, referenceNode, childNodes, { before, after, prepend, append });
+  }
 }
 
 /**
  * verifies if the inner content should be updated according to the provided specification
  * @method isInnerContentUpdate
  */
-function isInnerContentUpdate({remove, set, before, after}) {
+function isInnerContentUpdate({remove, set, before, after, append, prepend}) {
   // TODO: figure out what aad means with innerContent :)
-  return ((remove && remove.innerHTML) || (set && set.innerHTML) || (before && before.innerHTML) || (after && after.innerHTML));
+  return ((remove && remove.innerHTML)
+          || (set && set.innerHTML)
+          || (before && before.innerHTML)
+          || (after && after.innerHTML)
+          || (append && append.innerHTML)
+          || (prepend && prepend.innerHTML));
 }
 
 /**
@@ -220,21 +242,27 @@ function updateInnerContent(domNodes, {remove, set}) {
   }
 }
 
-function insertNodes(rootNode, referenceNode, newNodes, { before, after }){
+function insertNodes(rootNode, referenceNode, newNodes, { before, after, prepend, append }){
   let parent = referenceNode.parentNode;
   if(!rootNode.contains(parent)){
     console.warn('Reference node is not contained by parent. Skipping');
     return;
   }
   let baseNode = referenceNode;
-  for(let newDomNode of before ? newNodes.reverse() : newNodes ){
-    if(before){
-      parent.insertBefore(newDomNode, baseNode);
+  if(before || after){
+    for(let newDomNode of before ? newNodes.reverse() : newNodes ){
+      if(before){
+        parent.insertBefore(newDomNode, baseNode);
+      }
+      else if(after){
+        parent.insertBefore(newDomNode, baseNode.nextSibling); //TODO: do I need to make sure nextSibling makes sense (e.g what if you have commentNode)
+      }
+      baseNode = newDomNode;
     }
-    else if(after){
-      parent.insertBefore(newDomNode, baseNode.nextSibling); //TODO: do I need to make sure nextSibling makes sense (e.g what if you have commentNode)
-    }
-    baseNode = newDomNode;
+  }
+  else if(prepend || append){
+    if(prepend) referenceNode.prepend(...newNodes);
+    if(append) referenceNode.append(...newNodes);
   }
 }
 

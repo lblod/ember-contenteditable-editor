@@ -7,6 +7,7 @@
   <button {{action 'removeHighlight'}}>remove highlight on selection</button>
   <button {{action 'clearAll'}}>clear highlights</button>
   <button {{action 'insertUL'}}> insert ul </button>
+  <button {{action 'addContextOnCurrentSelection'}}> addContextOnCurrentSelection </button>
 </div>
 {{#content-editable editable=true focused=true yieldHTML=true
    textInsert=(action 'handleTextInsert')

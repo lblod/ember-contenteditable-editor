@@ -146,6 +146,22 @@ export default Controller.extend({
                                                  I will come after 'property 1 instan'
                                                </span>`
                                             } });
+    },
+    case16(){
+      let selection = this.editor.selectContext([ 29, 219 ], {property: 'http://test/editor/update-before-after/property1'});
+      this.editor.update(selection,  { append: {innerHTML: `
+                                               <span property='test:helloNewResourceProp' style='background-color: yellow'>
+                                                 I will be nested in first instance property on, last child.
+                                               </span>`
+                                            } });
+    },
+    case17(){
+      let selection = this.editor.selectContext([ 29, 219 ], {property: 'http://test/editor/update-before-after/property1'});
+      this.editor.update(selection,  { prepend: {innerHTML: `
+                                               <span property='test:helloNewResourceProp' style='background-color: yellow'>
+                                                 I will be nested in first instance property on, first child.
+                                               </span>`
+                                            } });
     }
   }
 });

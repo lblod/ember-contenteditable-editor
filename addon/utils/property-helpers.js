@@ -153,12 +153,11 @@ function applyProperty(selection, doc, property, calledFromCancel) {
     return;
   }
 
-  let nodesToApplyPropertyOn = findSuitableNodesToApplyOrCancelProperty(selection);
   if (!calledFromCancel) {
     // cancel first to avoid duplicate tags
     cancelProperty(selection, doc, property);
   }
-  // clean up the selection to limit overlap with cancel
+  let nodesToApplyPropertyOn = findSuitableNodesToApplyOrCancelProperty(selection);
   for( let {richNode, range} of nodesToApplyPropertyOn) {
     const [start,end] = range;
     if (richNode.type ===  "tag" ) {

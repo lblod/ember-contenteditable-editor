@@ -408,8 +408,15 @@ function hasRDFAKeys(object) {
  * @method isRDFAUpdate
  * @private
  */
-function isRDFAUpdate({remove, add, set, before, after}) {
-  return hasRDFAKeys(remove) || hasRDFAKeys(add) || hasRDFAKeys(set) || hasRDFAKeys(before) || hasRDFAKeys(after);
+function isRDFAUpdate(specification) {
+  // note we currently don't expand specification, and loop over the keys for ease of use.
+  // this seemed more readible versus a big list of ors and seemed safer:
+  // writting like this no key can be forgotten in the list
+  const rdfaUpdates = Object.keys(specification).filter((key) => hasRDFAKeys(specification[key]));
+  if (rdfaUpdates.length > 0)
+    return true;
+  else
+    return false;
 }
 
 /**

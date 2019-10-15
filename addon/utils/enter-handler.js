@@ -199,6 +199,8 @@ export default EmberObject.extend({
         currentNode.parentNode.removeChild(currentNode); // remove old text node
 
         // Insert the new paragraph right after the current paragraph
+        // TODO: this isn't correct for a p with multiple elements,
+        //e.g <p>PREFIX_TEXT_NODE|cursor|POSTFIX_TEXT_NODE<span>TEXT_NODE</span></p> will not move the span... 
         const newParagraph = document.createElement( "p" );
         newParagraph.appendChild( newTextNode );
         nodeForEnter.domNode.insertAdjacentElement('afterend', newParagraph);

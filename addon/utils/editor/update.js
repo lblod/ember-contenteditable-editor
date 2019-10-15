@@ -79,6 +79,44 @@ import { isVoidElement } from '../dom-helpers';
  */
 function update(selection, { remove, add, set, before, after, append, prepend, desc }) {
   updateDomNodes(selection, this.rootNode, { remove, add, set ,before, after, append, prepend, desc });
+  updateEditorStateAfterUpdate.bind(this)(selection);
+  // TODO: should send out diff events when just the html has changed.
+  // TODO: should probably only trigger diff events if all updates have been executed
+  this.generateDiffEvents.perform([{source: "pernet"}]);
+}
+
+// HELPERS
+
+/**
+ * Verifies the specification and updates the dom nodes according to the specification
+ *
+ * @method updateDomNodes
+ */
+function updateDomNodes( selection, rootNode, { remove, add, set, before, after, append, prepend, desc } ) {
+  if (selection.selections.length == 0)
+    console.warn(`Received empty selection set on update. Nothing will be updated.`); // eslint-disable-line no-console
+
+  verifySpecification({ remove, add, set ,before, after, append, prepend, desc });
+  if ( selection.selectedHighlightRange && isComplexSelection(selection)) {
+    // TODO: find a sensible region to apply the update to
+    console.warn('Handling of complex selection not yet implemented. Nothing will be updated at the moment.', selection); // eslint-disable-line no-console
+  }
+  else if(before || after || append || prepend){
+    insertNodeOnSelection(rootNode, selection, { before, after, append, prepend });
+  }
+  else {
+    updateNodeOnSelection(selection, { remove, add, set, desc });
+  }
+}
+
+/**
+ * Helper update the editor state (positions, rich node of the selection) after an update.
+ *
+ * @param {Object} selection object to work on
+ *
+ * @method updateEditorStateAfterUpdate
+ */
+function updateEditorStateAfterUpdate(selection) {
   const start = Math.min(...selection.selections.map((element) => element.richNode.start));
   const end = Math.max(...selection.selections.map((element) => element.richNode.end));
   // TODO: cursor handling is suboptimal, should be incorporated in update itself.
@@ -95,49 +133,7 @@ function update(selection, { remove, add, set, before, after, append, prepend, d
       this.setCurrentPosition(this.currentPosition);
     }
   }
-  // TODO: should send out diff events when just the html has changed.
-  // TODO: should probably only trigger diff events if all updates have been executed
-  this.generateDiffEvents.perform([{source: "pernet"}]);
 }
-
-// HELPERS
-
-function updateDomNodes( selection, rootNode, { remove, add, set, before, after, append, prepend, desc } ) {
-  if (selection.selections.length == 0)
-    console.warn(`Received empty selection set on update. Nothing will be updated.`); // eslint-disable-line no-console
-
-  verifySpecification({ remove, add, set ,before, after, append, prepend, desc });
-  if ( selection.selectedHighlightRange && isComplexSelection(selection)) {
-    // TODO: find a sensible region to apply the update to
-    console.warn('Handling of complex selection not yet implemented. Nothing will be updated at the moment.', selection); // eslint-disable-line no-console
-  }
-  else if(before || after || append || prepend){
-    insertNodeOnSelection(rootNode, selection, { before, after, append, prepend });
-  }
-  else {
-    const bestApproach = newContextHeuristic( selection, {remove, add, set, desc});
-    let nodes = [];
-    if (bestApproach === WRAP) {
-      nodes = wrapSelection(selection);
-    }
-    else if (bestApproach === WRAPALL) {
-      console.warn(`New context approach ${WRAPALL} is currently not supported.`); // eslint-disable-line no-console
-    }
-    else if (bestApproach === NEST) {
-      nodes = nestSelection(selection);
-    }
-    else {
-      nodes = selection.selections.map((sel) => sel.richNode.domNode );
-    }
-    if (isRDFAUpdate({remove,add,set})) {
-      updateRDFA(nodes, {remove, add, set});
-    }
-    if (isInnerContentUpdate({remove,add,set})) {
-      updateInnerContent(nodes, {remove, add, set});
-    }
-  }
-}
-
 
 // rdfa attributes we understand, currently ignoring src and href
 const RDFAKeys = ['about', 'property','datatype','typeof','resource', 'rel', 'rev', 'content', 'vocab', 'prefix'];
@@ -188,28 +184,53 @@ function insertNodeOnSelection(rootNode, selection, domPosition){
 
   if(!selectionOfInterest) return;
 
-  if(isRDFAUpdate({ before, after, prepend, append }) && isInnerContentUpdate({ before, after, prepend, append })){
+  if (isRDFAUpdate({ before, after, prepend, append }) || isInnerContentUpdate({ before, after, prepend, append })) {
     let referenceNode = selectionOfInterest.richNode.domNode;
     let parent = referenceNode.parentNode;
     let newDomNode = document.createElement('div'); //TODO: now only div, but this must be determined in a smart way.
-    updateRDFA([ newDomNode ], { set: (before || after || prepend || append) });
-    updateInnerContent([ newDomNode ], { set: (before || after || prepend || append) });
-    insertNodes(rootNode, referenceNode, [ newDomNode ], { before, after, prepend, append });
+
+    if(isRDFAUpdate({ before, after, prepend, append }) && isInnerContentUpdate({ before, after, prepend, append })){
+      updateRDFA([ newDomNode ], { set: (before || after || prepend || append) });
+      updateInnerContent([ newDomNode ], { set: (before || after || prepend || append) });
+      insertNodes(rootNode, referenceNode, [ newDomNode ], { before, after, prepend, append });
+    }
+    else if(isRDFAUpdate({ before, after, prepend, append })){
+      updateRDFA([ newDomNode ], { set: (before || after || prepend || append) });
+      insertNodes(rootNode, referenceNode, [ newDomNode ], { before, after, prepend, append });
+    }
+    else if(isInnerContentUpdate({ before, after, prepend, append })){
+      updateInnerContent([ dummyNode ], { set: (before || after || prepend || append) });
+      let childNodes = Array.from(dummyNode.childNodes);
+      insertNodes(rootNode, referenceNode, childNodes, { before, after, prepend, append });
+    }
   }
-  else if(isRDFAUpdate({ before, after, prepend, append })){
-    let referenceNode = selectionOfInterest.richNode.domNode;
-    let parent = referenceNode.parentNode;
-    let newDomNode = document.createElement('div'); //TODO: now only div, but this must be determined in a smart way.
-    updateRDFA([ newDomNode ], { set: (before || after || prepend || append) });
-    insertNodes(rootNode, referenceNode, [ newDomNode ], { before, after, prepend, append });
+}
+
+/**
+ * Updates the nodes of a selection and their content according to the specification
+ *
+ * @method updateNodeOnSelection
+ */
+function updateNodeOnSelection(selection, {remove, add, set, desc}) {
+  const bestApproach = newContextHeuristic( selection, {remove, add, set, desc});
+  let nodes = [];
+  if (bestApproach === WRAP) {
+    nodes = wrapSelection(selection);
   }
-  else if(isInnerContentUpdate({ before, after, prepend, append })){
-    let referenceNode = selectionOfInterest.richNode.domNode;
-    let parent = referenceNode.parentNode;
-    let dummyNode = document.createElement('div'); //TODO: now only div, but this must be determined in a smart way.
-    updateInnerContent([ dummyNode ], { set: (before || after || prepend || append) });
-    let childNodes = Array.from(dummyNode.childNodes);
-    insertNodes(rootNode, referenceNode, childNodes, { before, after, prepend, append });
+  else if (bestApproach === WRAPALL) {
+    console.warn(`New context approach ${WRAPALL} is currently not supported.`); // eslint-disable-line no-console
+  }
+  else if (bestApproach === NEST) {
+    nodes = nestSelection(selection);
+  }
+  else {
+    nodes = selection.selections.map((sel) => sel.richNode.domNode );
+  }
+  if (isRDFAUpdate({remove,add,set})) {
+    updateRDFA(nodes, {remove, add, set});
+  }
+  if (isInnerContentUpdate({remove,add,set})) {
+    updateInnerContent(nodes, {remove, add, set});
   }
 }
 
@@ -427,11 +448,14 @@ function isRDFAUpdate(specification) {
 function removeDOMAttributeValue(domNode, attribute, value) {
   if (domNode.hasAttribute(attribute)) {
     const previousValue = domNode.getAttribute(attribute);
-    const updatedValue = previousValue.replace(value, '').split(" ").reject((s) => s.length === 0).join(" ");
-    if (updatedValue.length === 0)
+    const currentValues = (previousValue || "").split(" ").reject((s) => s.length === 0);
+    const valuesToDelete = value instanceof Array ? value : [value];
+    const newValues = currentValues.filter(x => !valuesToDelete.includes(x));
+    const dedupValues = [...new Set(newValues)]; // Array dedup
+    if (dedupValues.length === 0)
       domNode.removeAttribute(attribute);
     else
-      domNode.setAttribute(attribute, updatedValue);
+      domNode.setAttribute(attribute, dedupValues.join(" "));
   }
 }
 
@@ -444,19 +468,28 @@ function addDomAttributeValue(domNode, attribute, value) {
   if (domNode.hasAttribute(attribute)) {
     const previousValue = domNode.getAttribute(attribute);
 
-    if(attribute == 'prefix'){
+    if (attribute == 'prefix') {
       let updatedPrefix = mergePrefixValue(previousValue, value);
       domNode.setAttribute(attribute, updatedPrefix);
     }
 
-    else if (!previousValue.includes(value)); {
-      const updatedValue = previousValue.split(" ").reject((s) => s.length === 0).concat([value]).join(" ");
-      domNode.setAttribute(attribute, updatedValue);
+    else {
+      const currentValues = (previousValue || "").split(" ").reject((s) => s.length === 0);
+      const newValues = value instanceof Array ? value : [value];
+      const dedupValues = [...new Set([...currentValues, ...newValues])]; // Array join and dedup
+      domNode.setAttribute(attribute, dedupValues.join(" "));
     }
   }
   else {
-    domNode.setAttribute(attribute, value);
+    setDomAttributeValue(domNode, attribute, value);
   }
+}
+
+function setDomAttributeValue(domNode, attribute, value) {
+  if (value instanceof Array) {
+    value = value.join(" "); // Supports multiple values (ex. typeof)
+  }
+  domNode.setAttribute(attribute, value);
 }
 
 function mergePrefixValue(previousValue, newValue){
@@ -762,7 +795,8 @@ function updateRDFA(domNodes, { remove, add, set } ) {
         }
       }
       if (set && set[attribute]) {
-        domNode.setAttribute(attribute, set[attribute]);
+        const value = set[attribute];
+        setDomAttributeValue(domNode, attribute, value)
       }
     }
   }

@@ -1,6 +1,6 @@
 import RichNode from '@lblod/marawa/rich-node';
 import { isAdjacentRange, isEmptyRange } from '@lblod/marawa/range-helpers';
-import { wrapRichNode, replaceRichNodeWith } from '../rich-node-tree-modification';
+import { wrapRichNode } from '../rich-node-tree-modification';
 import { runInDebug } from '@ember/debug';
 import { parsePrefixString } from '@lblod/marawa/rdfa-attributes';
 import { isVoidElement } from '../dom-helpers';
@@ -156,12 +156,12 @@ const WRAPALL = "wrap-all"; // only sensible for contextSelection
  */
 function insertNodeOnSelection(rootNode, selection, domPosition){
   if( (new Set(Object.values(domPosition))).delete(undefined).size > 1 ){
-    console.warn('We currently support only one operation at the time. Returning');
+    console.warn('We currently support only one operation at the time. Returning'); // eslint-disable-line no-console
     return;
   }
   let { before, after, prepend, append } = domPosition;
   if(selection.selectedHighlightRange && (prepend || append)){
-    console.warn('Currently we assume if highlight is selected, only textNodes will be selected. Prepend/Append not possible');
+    console.warn('Currently we assume if highlight is selected, only textNodes will be selected. Prepend/Append not possible'); // eslint-disable-line no-console
     return;
   }
   let selectionOfInterest = null;
@@ -186,7 +186,6 @@ function insertNodeOnSelection(rootNode, selection, domPosition){
 
   if (isRDFAUpdate({ before, after, prepend, append }) || isInnerContentUpdate({ before, after, prepend, append })) {
     let referenceNode = selectionOfInterest.richNode.domNode;
-    let parent = referenceNode.parentNode;
     let newDomNode = document.createElement('div'); //TODO: now only div, but this must be determined in a smart way.
 
     if(isRDFAUpdate({ before, after, prepend, append }) && isInnerContentUpdate({ before, after, prepend, append })){
@@ -199,8 +198,8 @@ function insertNodeOnSelection(rootNode, selection, domPosition){
       insertNodes(rootNode, referenceNode, [ newDomNode ], { before, after, prepend, append });
     }
     else if(isInnerContentUpdate({ before, after, prepend, append })){
-      updateInnerContent([ dummyNode ], { set: (before || after || prepend || append) });
-      let childNodes = Array.from(dummyNode.childNodes);
+      updateInnerContent([ newDomNode ], { set: (before || after || prepend || append) });
+      let childNodes = Array.from(newDomNode.childNodes);
       insertNodes(rootNode, referenceNode, childNodes, { before, after, prepend, append });
     }
   }
@@ -266,7 +265,7 @@ function updateInnerContent(domNodes, {remove, set}) {
 function insertNodes(rootNode, referenceNode, newNodes, { before, after, prepend, append }){
   let parent = referenceNode.parentNode;
   if(!rootNode.contains(parent)){
-    console.warn('Reference node is not contained by parent. Skipping');
+    console.warn('Reference node is not contained by parent. Skipping'); // eslint-disable-line no-console
     return;
   }
   let baseNode = referenceNode;
@@ -508,7 +507,6 @@ function mergePrefixValue(previousValue, newValue){
 
 function cleanPrefixObject(prefixes){
   delete prefixes[""];
-  let updatedHash = {};
   return Object.keys(prefixes).reduce((acc, k) => {
     if(prefixes[k]) acc[k] = prefixes[k];
     return acc;

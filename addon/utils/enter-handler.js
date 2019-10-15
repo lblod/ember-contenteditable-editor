@@ -32,7 +32,7 @@ export default EmberObject.extend({
    * @public
    */
   isHandlerFor(event) {
-    return event.type === "keydown" && event.key === "Enter" && this.get('rawEditor.currentSelectionIsACursor');
+    return this.currentNode && event.type === "keydown" && event.key === "Enter" && this.get('rawEditor.currentSelectionIsACursor');
   },
 
   /**

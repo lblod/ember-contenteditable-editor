@@ -46,7 +46,15 @@ export default EmberObject.extend({
     let node = getRichNodeMatchingDomNode(currentNode, this.richNode);
     let currentPosition = this.currentSelection[0];
     let nodeForEnter = this.relevantNodeForEnter(node);
-    if (tagName(nodeForEnter.domNode) === "li") {
+    if (event.shiftKey && currentNode && currentNode.nodeType === Node.TEXT_NODE) {
+      debug('shift enter');
+      this.rawEditor.externalDomUpdate(
+        'inserting enter in text',
+        () => this.insertBr());
+      return HandlerResponse.create({allowPropagation: false});
+    }
+    else if (tagName(nodeForEnter.domNode) === "li") {
+      // for shift enter fall back to default behaviour
       debug('enter in li');
       this.rawEditor.externalDomUpdate(
         'inserting enter in li',
@@ -54,24 +62,23 @@ export default EmberObject.extend({
       );
       return HandlerResponse.create({allowPropagation: false});
     }
-    else if (tagName(nodeForEnter.domNode) === "p" && !event.shiftKey) {
+    else if (tagName(nodeForEnter.domNode) === "p") {
       debug('enter in p');
       this.rawEditor.externalDomUpdate(
         'splitting p',
         () => this.insertNewParagraph(node, nodeForEnter, currentPosition, currentNode) );
       return HandlerResponse.create({allowPropagation: false});
     }
+    else if (currentNode && currentNode.nodeType === Node.TEXT_NODE) {
+      debug('fallback br in text node');
+      this.rawEditor.externalDomUpdate(
+        'inserting enter in text',
+        () => this.insertBr());
+      return HandlerResponse.create({allowPropagation: false});
+    }
     else {
-      if (currentNode.nodeType === Node.TEXT_NODE) {
-        this.rawEditor.externalDomUpdate(
-          'inserting enter in text',
-          () => this.insertBr());
-        return HandlerResponse.create({allowPropagation: false});
-      }
-      else {
-        debug('-------------- not handling this enter yet------------------');
-        return HandlerResponse.create({allowPropagation: true, allowBrowserDefault: true});
-      }
+      debug('-------------- not handling this enter yet------------------');
+      return HandlerResponse.create({allowPropagation: true, allowBrowserDefault: true});
     }
   },
 

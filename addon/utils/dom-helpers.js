@@ -192,11 +192,11 @@ function siblingLis(node) {
  * @public
  */
 function isEmptyList(node) {
-  if( ! isList ) {
+  if( ! isList(node) ) {
     return false;
   }
   //sometimes lists may contain other stuff then li, if so we ignore this because illegal
-  for(var x = 1; x < node.children.length; x++) {
+  for(var x = 0; x < node.children.length; x++) {
       if (tagName(node.children[x]) === 'li') {
         return false;
       }

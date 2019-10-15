@@ -171,8 +171,15 @@ export default EmberObject.extend({
     if (previousNode === nodeBefore) {
       nodes.pushObject(nodeAfter);
       for (const node of nodes) {
-        if ( ! isList(node) || isEmptyList(node))
+        if (node.nodeType === Node.TEXT_NODE) {
           removeNode(node);
+        }
+        else if (node.children.length === 0 || isEmptyList(node)) {
+          removeNode(node);
+        }
+        else {
+          // still has content, not removing
+        }
       }
     }
     else if (previousNode === this.rawEditor.rootNode) {

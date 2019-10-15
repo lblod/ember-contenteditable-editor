@@ -16,7 +16,6 @@ import { warn } from '@ember/debug';
  *
  * TODO
  * ----
- *  - cursor positonining is uncontrolled right now, after action handled.
  *  - some times empty textnodes are not included in logicalBlock. Probably an issue with the conditoin isDisplayedAsBlock
  *
  * IMPLEMENTED BEHAVIOUR
@@ -374,7 +373,7 @@ const insertNewList = ( rawEditor, logicalListBlocks, listType = 'ul' ) => {
     warn('Lists assume a parent node', {id: 'list-helpers:insertNewList'});
     return;
   }
-
+  parent.insertBefore(document.createTextNode(invisibleSpace), listELocationRef);
   parent.insertBefore(listE, listELocationRef);
   logicalListBlocks.forEach(n => li.appendChild(n));
 

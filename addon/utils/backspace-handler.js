@@ -7,7 +7,9 @@ import {
   isEmptyList,
   isList,
   removeNode,
-  isAllWhitespace
+  isAllWhitespace,
+  isLI,
+  findPreviousLi
 } from './dom-helpers';
 import previousTextNode from './previous-text-node';
 import { warn, debug } from '@ember/debug';
@@ -116,7 +118,14 @@ export default EmberObject.extend({
           if (previousNode) {
             this.rawEditor.updateRichNode();
             this.rawEditor.setCarret(previousNode, previousNode.length);
-            this.backSpace();
+            if (isLI(textNode.parentNode) && richNode.start === richNode.parent.start) {
+              // we're at the start of an li and need to handle this
+              this.removeLI(textNode.parentNode);
+              this.rawEditor.updateRichNode();
+            }
+            else {
+              this.backSpace();
+            }
           }
           else {
             debug('empty previousnode, not doing anything');
@@ -174,6 +183,9 @@ export default EmberObject.extend({
         if (node.nodeType === Node.TEXT_NODE) {
           removeNode(node);
         }
+        else if (isLI(node)) {
+          this.removeLI(node);
+        }
         else if (node.children.length === 0 || isEmptyList(node)) {
           removeNode(node);
         }
@@ -188,6 +200,35 @@ export default EmberObject.extend({
     else {
       nodes.pushObject(nodeAfter);
       this.removeNodesFromTo(previousNode, nodeBefore, nodes);
+    }
+  },
+  /**
+   * handles node removal for list items
+   * list items can also be removed when not empty yet, most online editors seem to move content to a previous or parent node
+   * so that's what we do here
+   */
+  removeLI(listitem) {
+    const previousLI=findPreviousLi(listitem);
+    const list = listitem.parentNode;
+    const parent = list.parentNode ? list.parentNode : null;
+    if (previousLI) {
+      // move contents of node to previousLI and remove node
+      while(listitem.firstChild){
+        previousLI.append(listitem.firstChild); // moves the dom node
+      }
+      console.log('removing', listitem);
+      listitem.remove();
+    }
+    else if(parent) {
+      // move contents to parent LI and remove node
+      while(listitem.firstChild) {
+        parent.append(listitem.firstChild); // moves the dom node
+      }
+      console.log('removing', listitem);
+      listitem.remove();
+    }
+    else {
+      // no parent, do nothing for now
     }
   }
 });

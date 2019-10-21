@@ -222,7 +222,7 @@ import { warn } from '@ember/debug';
 /**
  * handles unordered list
  */
-const unorderedListAction = function ( rawEditor ) {
+function unorderedListAction( rawEditor ) {
   const currentNode = rawEditor.currentNode;
 
   if(!isEligibleForListAction(currentNode)) return;
@@ -230,12 +230,12 @@ const unorderedListAction = function ( rawEditor ) {
   rawEditor.externalDomUpdate('handle unorderedListAction',
                               handleListAction(rawEditor, currentNode, unorderedListAction, 'ul'),
                              true);
-};
+}
 
 /**
  * handles ordered list
  */
-const orderedListAction = function ( rawEditor ) {
+function orderedListAction( rawEditor ) {
   const currentNode = rawEditor.currentNode;
 
   if(!isEligibleForListAction(currentNode)) return;
@@ -243,12 +243,12 @@ const orderedListAction = function ( rawEditor ) {
   rawEditor.externalDomUpdate('handle orderedListAction',
                               handleListAction(rawEditor, currentNode, orderedListAction, 'ol'),
                              true);
-};
+}
 
 /**
  * handles indent Action
  */
-const indentAction = function ( rawEditor ) {
+function indentAction( rawEditor ) {
   const currentNode = rawEditor.currentNode;
 
   if(!isEligibleForListAction(currentNode)) return;
@@ -287,7 +287,7 @@ function unindentAction( rawEditor ) {
   };
 
   rawEditor.externalDomUpdate('handle unindentAction', handleAction, true);
-};
+}
 
 
 /***************************************************
@@ -298,7 +298,7 @@ function unindentAction( rawEditor ) {
  * Boilerplate to handle List action
  * Both for UL and OL
  */
-const handleListAction = ( rawEditor, currentNode, actionType, listType) => {
+function handleListAction( rawEditor, currentNode, actionType, listType) {
   return () => {
     if(!isInList(currentNode)){
       let logicalBlockContents = getLogicalBlockContentsForNewList(currentNode);
@@ -315,7 +315,7 @@ const handleListAction = ( rawEditor, currentNode, actionType, listType) => {
     let logicalBlockContents = getLogicalBlockContentsForIndentationAction(currentNode);
     unindentLogicalBlockContents(rawEditor, logicalBlockContents);
   };
-};
+}
 
 /**
  * Checks whether node is in a list
@@ -350,7 +350,7 @@ const handleListAction = ( rawEditor, currentNode, actionType, listType) => {
  *   </ul>
  *   ```
  */
-const isInList = ( node ) => {
+function isInList( node ) {
   let currNode = node.parentNode;
   while(currNode){
 
@@ -360,13 +360,13 @@ const isInList = ( node ) => {
   }
 
   return false;
-};
+}
 
 /**
  * Inserts a new list.
  *
  */
-const insertNewList = ( rawEditor, logicalListBlocks, listType = 'ul', parentNode ) => {
+function insertNewList( rawEditor, logicalListBlocks, listType = 'ul', parentNode ) {
   let listELocationRef = logicalListBlocks[0];
 
   let listE = document.createElement(listType);
@@ -387,12 +387,12 @@ const insertNewList = ( rawEditor, logicalListBlocks, listType = 'ul', parentNod
   }
   logicalListBlocks.forEach(n => li.appendChild(n));
   makeLogicalBlockCursorSafe([listE]);
-};
+}
 
 /**
  * Unindents logical block contents from context it resides in.
  */
-const unindentLogicalBlockContents = ( rawEditor, logicalBlockContents, moveOneListUpwards= false ) => {
+function unindentLogicalBlockContents( rawEditor, logicalBlockContents, moveOneListUpwards= false ) {
   let currLI = getParentLI(logicalBlockContents[0]);
   let listE = currLI.parentNode;
   let listType = getListTagName(listE);
@@ -461,12 +461,12 @@ const unindentLogicalBlockContents = ( rawEditor, logicalBlockContents, moveOneL
     newLIs.forEach(n => listE.appendChild(n));
     listE.removeChild(currLI);
   }
-};
+}
 
 /**
  * Switches list type where currentNode is situated in.
  */
-const shuffleListType = ( rawEditor, logicalBlockContents) => {
+function shuffleListType( rawEditor, logicalBlockContents) {
   let currlistE = logicalBlockContents[0];
   let currlistType = getListTagName(currlistE);
   let targetListType = currlistType == 'ul'?'ol':'ul';
@@ -478,9 +478,9 @@ const shuffleListType = ( rawEditor, logicalBlockContents) => {
 
   parentE.insertBefore(listE, currlistE);
   parentE.removeChild(currlistE);
-};
+}
 
-const doesActionSwitchListType = ( node, listAction ) => {
+function doesActionSwitchListType( node, listAction ) {
   let li = getParentLI(node);
   let listE = li.parentElement;
   let listType = getListTagName(listE);
@@ -491,25 +491,25 @@ const doesActionSwitchListType = ( node, listAction ) => {
     return false;
   }
   return true;
-};
+}
 
-const getParentLI = (node) => {
+function getParentLI(node) {
   if(!node.parentNode) return null;
   if(isLI(node.parentNode)) return node.parentNode;
   return getParentLI(node.parentNode);
 };
 
-const isLI = ( node ) => {
-  return node.nodeType === node.ELEMENT_NODE && ['li'].includes(node.tagName.toLowerCase());
+function isLI( node ) {
+  return node.nodeType === node.ELEMENT_NODE && tagName(node) === 'li';
 };
 
-const isTextNode = ( node ) => {
+function isTextNode( node ) {
   return node.nodeType === Node.TEXT_NODE;
-};
+}
 
-const getListTagName = ( listElement ) => {
-  return ['ul'].includes(listElement.tagName.toLowerCase()) ? 'ul' : 'ol';
-};
+function getListTagName( listElement ) {
+  return tagName(listElement) === 'ul' ? 'ul' : 'ol';
+}
 
 /**
  * Given a node, we want to grow a region (a list of nodes)
@@ -538,11 +538,11 @@ const getListTagName = ( listElement ) => {
  *
  * @public
  */
-const getLogicalBlockContentsForNewList = ( node ) => {
+function getLogicalBlockContentsForNewList( node ) {
   let baseNode = returnParentNodeBeforeBlockElement(node);
   //left and right adjacent siblings should be added until we hit a block node.
   return growNeighbouringSiblingsUntil(isDisplayedAsBlock, baseNode);
-};
+}
 
 /**
  * Given a node in a list, we want to grow a region (a list of nodes)
@@ -558,10 +558,10 @@ const getLogicalBlockContentsForNewList = ( node ) => {
  *
  * @public
  */
-const getLogicalBlockContentsSwitchListType = ( node ) => {
+function getLogicalBlockContentsSwitchListType( node ) {
   let currLI = getParentLI(node);
   return [ currLI.parentNode ];
-};
+}
 
 /**
  * Given a node in a nested list context, build the logicalBlock contents to perform
@@ -617,7 +617,7 @@ const getLogicalBlockContentsSwitchListType = ( node ) => {
  *
  * @public
  */
-const getLogicalBlockContentsForIndentationAction = ( node ) => {
+function getLogicalBlockContentsForIndentationAction( node ){
   let currLI = getParentLI(node);
   let currLiNodes = [...currLI.childNodes];
   let potentialBlockParentCurrentNode = currLiNodes.find(n => isDisplayedAsBlock(n) && n.contains(node));
@@ -627,7 +627,7 @@ const getLogicalBlockContentsForIndentationAction = ( node ) => {
 
   let baseNode = returnParentNodeBeforeBlockElement(node);
   return growNeighbouringSiblingsUntil(isDisplayedAsBlock, baseNode);
-};
+}
 
 /**
  * Walk up the parents until a blockElement is matched.
@@ -645,7 +645,7 @@ const getLogicalBlockContentsForIndentationAction = ( node ) => {
  *  <span> foo <a href="#"> current node | </a></span>
  *  ```
  */
-const returnParentNodeBeforeBlockElement = ( node ) => {
+function returnParentNodeBeforeBlockElement( node ) {
   if(!node.parentNode) return node;
 
   if(isDisplayedAsBlock(node.parentNode)) {
@@ -653,13 +653,13 @@ const returnParentNodeBeforeBlockElement = ( node ) => {
   }
 
   return returnParentNodeBeforeBlockElement(node.parentNode);
-};
+}
 
 /**
  * Given a node, we want to grow a region (a list of sibling nodes)
  * until we match a condition
  */
-const growNeighbouringSiblingsUntil = ( condition, node ) => {
+function growNeighbouringSiblingsUntil( condition, node ) {
   let nodes = [];
   let currNode = node;
 
@@ -684,25 +684,25 @@ const growNeighbouringSiblingsUntil = ( condition, node ) => {
     currNode = currNode.nextSibling;
   }
   return nodes;
-};
+}
 
-const isEligibleForListAction = ( node ) => {
+function isEligibleForListAction( node ){
   if(!isTextNode(node)){
     warn('Current action only supported for textNodes', {id: 'list-helpers:isEligibleForListAction'});
     return false;
   }
   return true;
-};
+}
 
-const isEligibleForIndentAction = ( node ) => {
+function isEligibleForIndentAction( node ){
   if(!isInList(node)){
       warn('Indent only supported in context of list', {id: 'list-helpers:isEligibleForIndentAction'});
       return false;
   }
   return true;
-};
+}
 
-const siblingsBeforeAndAfterLogicalBlockContents = ( allSiblings, logicalBlockContents ) => {
+function siblingsBeforeAndAfterLogicalBlockContents( allSiblings, logicalBlockContents ) {
   let siblingsBefore = [];
   let siblingsAfter = [];
   let nodeListToUpdate = siblingsBefore;
@@ -716,18 +716,18 @@ const siblingsBeforeAndAfterLogicalBlockContents = ( allSiblings, logicalBlockCo
   }
 
   return [ siblingsBefore, siblingsAfter ];
-};
+}
 
-const createParentWithLogicalBlockContents = ( logicalBlockContents, type ) => {
+function createParentWithLogicalBlockContents( logicalBlockContents, type ){
   let element = document.createElement(type);
   logicalBlockContents.forEach(n => element.appendChild(n));
   return element;
-};
+}
 
 /**
  * Checks wether node is safe to put a cursor in. Checks either left or right from the node.
  */
-const isNodeCursorSafe = ( node, before = true ) => {
+function isNodeCursorSafe( node, before = true ) {
   if(node.nodeType == Node.TEXT_NODE)
     return true;
 
@@ -754,7 +754,8 @@ const isNodeCursorSafe = ( node, before = true ) => {
   }
 
   return true;
-};
+}
+
 
 /**
  * find previous list item
@@ -775,7 +776,7 @@ function findPreviousLi(currLI) {
  * The inbetween elements are ignored.
  * (This function is basically something which should be executed at anthoer level)
  */
-const makeLogicalBlockCursorSafe = ( logicalBlockContents ) => {
+function makeLogicalBlockCursorSafe( logicalBlockContents ) {
   if(logicalBlockContents.length == 0) return logicalBlockContents;
 
   let firstNode = logicalBlockContents[0];
@@ -804,6 +805,5 @@ const makeLogicalBlockCursorSafe = ( logicalBlockContents ) => {
   logicalBlockContents.push(textNode);
 
   return logicalBlockContents;
-};
-
+}
 export { unorderedListAction, orderedListAction, indentAction, unindentAction }

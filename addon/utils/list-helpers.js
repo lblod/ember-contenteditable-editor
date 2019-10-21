@@ -1,7 +1,8 @@
 import {
   invisibleSpace,
   isDisplayedAsBlock,
-  isList
+  isList,
+  tagName
 } from './dom-helpers';
 import { warn } from '@ember/debug';
 
@@ -258,17 +259,22 @@ const indentAction = function ( rawEditor ) {
     let currLI = getParentLI(currentNode);
     let currlistE = currLI.parentNode;
     let currlistType = getListTagName(currlistE);
+    let previousLi = findPreviousLi(currLI);
     let logicalBlockContents = getLogicalBlockContentsForIndentationAction(currentNode);
-    insertNewList(rawEditor, logicalBlockContents, currlistType);
+    insertNewList(rawEditor, logicalBlockContents, currlistType, previousLi);
+    if (previousLi) {
+      // contents of the current LI was moved into the new LI (now available in a nested list under the previous sibling)
+      currLI.remove();
+    }
   };
 
   rawEditor.externalDomUpdate('handle indentAction', handleAction, true);
-};
+}
 
 /**
  * handles unindent Action
  */
-const unindentAction = function ( rawEditor ) {
+function unindentAction( rawEditor ) {
   const currentNode = rawEditor.currentNode;
 
   if(!isEligibleForListAction(currentNode)) return;
@@ -360,23 +366,26 @@ const isInList = ( node ) => {
  * Inserts a new list.
  *
  */
-const insertNewList = ( rawEditor, logicalListBlocks, listType = 'ul' ) => {
+const insertNewList = ( rawEditor, logicalListBlocks, listType = 'ul', parentNode ) => {
   let listELocationRef = logicalListBlocks[0];
 
   let listE = document.createElement(listType);
   let li = document.createElement('li');
   listE.append(li);
 
-  let parent = listELocationRef.parentNode;
-
-  if(!parent){
-    warn('Lists assume a parent node', {id: 'list-helpers:insertNewList'});
-    return;
+  if (parentNode) {
+    parentNode.append(listE);
   }
-  parent.insertBefore(document.createTextNode(invisibleSpace), listELocationRef);
-  parent.insertBefore(listE, listELocationRef);
+  else {
+    let parent = listELocationRef.parentNode;
+    if(!parent){
+      warn('Lists assume a parent node', {id: 'list-helpers:insertNewList'});
+      return;
+    }
+    parent.insertBefore(document.createTextNode(invisibleSpace), listELocationRef);
+    parent.insertBefore(listE, listELocationRef);
+  }
   logicalListBlocks.forEach(n => li.appendChild(n));
-
   makeLogicalBlockCursorSafe([listE]);
 };
 
@@ -746,6 +755,17 @@ const isNodeCursorSafe = ( node, before = true ) => {
 
   return true;
 };
+
+/**
+ * find previous list item
+ */
+function findPreviousLi(currLI) {
+  var previousElement;
+  do {
+    previousElement = currLI.previousSibling;
+  } while(previousElement && tagName(previousElement) !== 'li')
+  return previousElement;
+}
 
 /**
  * Makes sure logicalBlock is cursor safe.

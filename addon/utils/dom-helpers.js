@@ -246,6 +246,36 @@ const createElementsFromHTML = function(htmlString){
   return Array.from(div.childNodes);
 };
 
+
+/**
+ * find previous list item
+ */
+function findPreviousLi(currLI) {
+  var previousElement;
+  do {
+    previousElement = currLI.previousSibling;
+  } while(previousElement && tagName(previousElement) !== 'li')
+  return previousElement;
+}
+
+function getParentLI(node) {
+  if(!node.parentNode) return null;
+  if(isLI(node.parentNode)) return node.parentNode;
+  return getParentLI(node.parentNode);
+};
+
+function isLI( node ) {
+  return node.nodeType === node.ELEMENT_NODE && tagName(node) === 'li';
+};
+
+function isTextNode( node ) {
+  return node.nodeType === Node.TEXT_NODE;
+}
+
+function getListTagName( listElement ) {
+  return tagName(listElement) === 'ul' ? 'ul' : 'ol';
+}
+
 export {
   tagName,
   isDisplayedAsBlock,
@@ -262,5 +292,10 @@ export {
   isIgnorableElement,
   createElementsFromHTML,
   siblingLis,
-  isAllWhitespace
+  isAllWhitespace,
+  getParentLI,
+  isLI,
+  isTextNode,
+  getListTagName,
+  findPreviousLi
 };

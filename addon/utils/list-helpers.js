@@ -2,7 +2,12 @@ import {
   invisibleSpace,
   isDisplayedAsBlock,
   isList,
-  tagName
+  tagName,
+  isLI,
+  getParentLI,
+  isTextNode,
+  getListTagName,
+  findPreviousLi
 } from './dom-helpers';
 import { warn } from '@ember/debug';
 
@@ -493,24 +498,6 @@ function doesActionSwitchListType( node, listAction ) {
   return true;
 }
 
-function getParentLI(node) {
-  if(!node.parentNode) return null;
-  if(isLI(node.parentNode)) return node.parentNode;
-  return getParentLI(node.parentNode);
-};
-
-function isLI( node ) {
-  return node.nodeType === node.ELEMENT_NODE && tagName(node) === 'li';
-};
-
-function isTextNode( node ) {
-  return node.nodeType === Node.TEXT_NODE;
-}
-
-function getListTagName( listElement ) {
-  return tagName(listElement) === 'ul' ? 'ul' : 'ol';
-}
-
 /**
  * Given a node, we want to grow a region (a list of nodes)
  * we consider sensible for inserting a new list
@@ -756,17 +743,6 @@ function isNodeCursorSafe( node, before = true ) {
   return true;
 }
 
-
-/**
- * find previous list item
- */
-function findPreviousLi(currLI) {
-  var previousElement;
-  do {
-    previousElement = currLI.previousSibling;
-  } while(previousElement && tagName(previousElement) !== 'li')
-  return previousElement;
-}
 
 /**
  * Makes sure logicalBlock is cursor safe.

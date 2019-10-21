@@ -42,6 +42,13 @@ export default EmberObject.extend({
       && this.get('rawEditor.currentSelectionIsACursor')
       && this.doesCurrentNodeBelongsToContentEditable();
   },
+  deleteCharacter(textNode, trueRelativePosition) {
+    const text = textNode.textContent;
+    const slicedText = text.slice(trueRelativePosition - 1 , trueRelativePosition);
+    textNode.textContent = text.slice(0, trueRelativePosition - slicedText.length) + text.slice(trueRelativePosition);
+    this.rawEditor.updateRichNode();
+    this.rawEditor.setCarret(textNode, trueRelativePosition - slicedText.length);
+  },
 
   doesCurrentNodeBelongsToContentEditable(){
     return this.currentNode.parentNode && this.currentNode.parentNode.isContentEditable;
@@ -133,11 +140,7 @@ export default EmberObject.extend({
         }
         else {
           // not empty and we're not at the start, delete character before the carret
-          const text = textNode.textContent;
-          const slicedText = text.slice(trueRelativePosition - 1 , trueRelativePosition);
-          textNode.textContent = text.slice(0, trueRelativePosition - slicedText.length) + text.slice(trueRelativePosition);
-          this.rawEditor.updateRichNode();
-          this.rawEditor.setCarret(textNode, trueRelativePosition - slicedText.length);
+          this.deleteCharacter(textNode, trueRelativePosition);
         }
       }
       else {
@@ -216,7 +219,6 @@ export default EmberObject.extend({
       while(listitem.firstChild){
         previousLI.append(listitem.firstChild); // moves the dom node
       }
-      console.log('removing', listitem);
       listitem.remove();
     }
     else if(parent) {
@@ -224,7 +226,6 @@ export default EmberObject.extend({
       while(listitem.firstChild) {
         parent.append(listitem.firstChild); // moves the dom node
       }
-      console.log('removing', listitem);
       listitem.remove();
     }
     else {

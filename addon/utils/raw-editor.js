@@ -4,6 +4,7 @@ import { A } from '@ember/array';
 import { task, timeout } from 'ember-concurrency';
 import DiffMatchPatch from 'diff-match-patch';
 import { walk as walkDomNode } from '@lblod/marawa/node-walker';
+import { positionInRange } from '@lblod/marawa/range-helpers';
 import {
   isDisplayedAsBlock,
   invisibleSpace,
@@ -543,18 +544,25 @@ class RawEditor extends EmberObject.extend({
     if( data && Object.entries(data).length != 0 ) {
       warn( "Data attributes were supplied to highlightRange but this is not supported at the moment", {id: "content-editable.highlight"} );
     }
+    // NOTE: we assume applying a highlight does not update any text ranges, e.g. start and end of all nodes remains the same
+    // TODO: this entire function seems to assume a position and not a selection
+    const richNodeContainingCursor = this.getRichNodeFor(this.currentNode);
     const selection = this.selectHighlight([start,end]);
-    applyProperty(selection, this, highlightProperty); // todo: replace 'this' with proper interface
-    if (this.currentPosition >= start && this.currentPosition <= end) {
-      // cursor was in highlight, reset cursor
-      const richNode = this.getRichNodeFor(this.currentNode);
-      if (richNode) {
-        this.setCarret(richNode.domNode, Math.max(0,this.currentPosition - richNode.start));
+    applyProperty(selection, this, highlightProperty); // TODO: replace 'this' with proper interface
+    // reset the cursor so the browser shows cursor in the correct position
+    if (this.rootNode.contains(richNodeContainingCursor.domNode)) {
+      this.setCarret(richNodeContainingCursor.domNode, this.getRelativeCursorPosition());
+    }
+    else {
+      // domNode containing cursor no longer exists, we have to reset the cursor in a different node
+      // first let's try to find a parent that still exists
+      var newNode = richNodeContainingCursor.parent;
+      while (newNode !== null && !this.rootNode.contains(newNode.domNode)) {
+        newNode = newNode.parent;
       }
-      else {
-        this.set('currentNode', null);
-        this.setCurrentPosition(this.currentPosition);
-      }
+      // set the currentnode to that parent for better positioning
+      this.currentNode = newNode.domNode;
+      this.setCurrentPosition(this.currentPosition);
     }
   }
 

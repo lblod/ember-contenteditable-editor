@@ -172,7 +172,7 @@ class RawEditor extends EmberObject.extend({
     // add new marks
     let counter=0;
     let walkedNode = node;
-    while( walkedNode ) {
+    while( walkedNode && walkedNode != this.rootNode  ) {
       if( tagName( walkedNode ) )
         walkedNode.setAttribute("data-editor-position-level", counter++);
       walkedNode = walkedNode.parentNode;
@@ -180,7 +180,7 @@ class RawEditor extends EmberObject.extend({
     // add new rdfa marks
     let rdfaCounter=0;
     walkedNode = node;
-    while( walkedNode ) {
+    while( walkedNode && walkedNode != this.rootNode ) {
       if( tagName( walkedNode ) ) {
         let isSemanticNode =
             ["about","content","datatype","property","rel","resource","rev","typeof"]

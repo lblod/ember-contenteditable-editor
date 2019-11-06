@@ -16,6 +16,17 @@ import { warn, debug } from '@ember/debug';
 import { A } from '@ember/array';
 
 /**
+ * default uri for block removal
+ * TODO: the initial idea was to put this code in rdfa-editor,
+ *       but it seems to be a tedious task.
+ *       The idea is that eventually, both contenteditable and rdfa-editor should be merged.
+ * @static
+ * @public
+ * @final
+ */
+const BLOCK_REMOVAL_NODE_URI = 'http://lblod.data.gift/vocabularies/editor/isBlockRemovalNode';
+
+/**
  * Backspace Handler, a event handler to handle the generic backspace case
  *
  * @module contenteditable-editor
@@ -110,7 +121,7 @@ export default EmberObject.extend({
       const visibleText = this.visibleText(textNode);
       const visibleLength = visibleText.length;
       textNode.textContent = visibleText;
-      if (visibleLength > 0 && ! isAllWhitespace(textNode)) {
+      if (visibleLength > 0 && !isAllWhitespace(textNode)) {
         // non empty node
         const relPosition = this.absoluteToRelativePosition(richNode, position);
         const textBeforeCursor = originalText.slice(0, relPosition);
@@ -125,7 +136,12 @@ export default EmberObject.extend({
           if (previousNode) {
             this.rawEditor.updateRichNode();
             this.rawEditor.setCarret(previousNode, previousNode.length);
-            if (isLI(textNode.parentNode) && richNode.start === richNode.parent.start) {
+
+            if(this.requiresBlockRemovalOfNode(previousNode, this.rawEditor.rootNode)){
+              this.handleBlockRemovalofNode(previousNode, this.rawEditor.rootNode);
+            }
+
+            else if (isLI(textNode.parentNode) && richNode.start === richNode.parent.start) {
               // we're at the start of an li and need to handle this
               this.removeLI(textNode.parentNode);
               this.rawEditor.updateRichNode();
@@ -139,18 +155,29 @@ export default EmberObject.extend({
           }
         }
         else {
+
+          if(this.requiresBlockRemovalOfNode(textNode, this.rawEditor.rootNode)){
+            this.handleBlockRemovalofNode(textNode, this.rawEditor.rootNode);
+          }
+
           // not empty and we're not at the start, delete character before the carret
-          this.deleteCharacter(textNode, trueRelativePosition);
+          else this.deleteCharacter(textNode, trueRelativePosition);
         }
       }
       else {
         // empty node, move to previous text node and remove nodes in between
-        const previousNode = previousTextNode(textNode, this.rawEditor.rootNode);
+        let previousNode = previousTextNode(textNode, this.rawEditor.rootNode);
         if (previousNode) {
-          // if previousNode is null we should be at the start of the editor and do nothing
           this.removeNodesFromTo(textNode, previousNode);
-          this.rawEditor.updateRichNode();
-          this.rawEditor.setCarret(previousNode, previousNode.length);
+
+          if(this.requiresBlockRemovalOfNode(previousNode, this.rawEditor.rootNode)){
+            this.handleBlockRemovalofNode(previousNode, this.rawEditor.rootNode);
+          }
+          else {
+            // if previousNode is null we should be at the start of the editor and do nothing
+            this.rawEditor.updateRichNode();
+            this.rawEditor.setCarret(previousNode, previousNode.length);
+          }
         }
         else {
           debug('empty previousnode, not doing anything');
@@ -231,5 +258,44 @@ export default EmberObject.extend({
     else {
       // no parent, do nothing for now
     }
+  },
+
+  handleBlockRemovalofNode(node, rootNode){
+    const nodeToDeleteAsBlock = this.getNodeForBlockRemoval(node, this.rawEditor.rootNode);
+    const previousNode = previousTextNode(nodeToDeleteAsBlock, this.rawEditor.rootNode);
+    this.removeNodesFromTo(previousNode, nodeToDeleteAsBlock);
+    nodeToDeleteAsBlock.remove();
+    this.rawEditor.updateRichNode();
+    this.rawEditor.setCarret(previousNode, previousNode.length);
+  },
+
+  requiresBlockRemovalOfNode(node, rootNode){
+    if(this.getNodeForBlockRemoval(node, rootNode)){
+      return true;
+    }
+    return false;
+  },
+
+  getNodeForBlockRemoval(node, rootNode){
+    if(this.hasBlockRemovalProperty(node)){
+      return node;
+    }
+    if(node.isSameNode(rootNode)){
+      return null;
+    }
+    if(node.parentNode){
+      return this.getNodeForBlockRemoval(node.parentNode, rootNode);
+    }
+    return null;
+  },
+
+  hasBlockRemovalProperty(node){
+    if(!node.attributes) return false;
+    if(!node.attributes["property"]) return false;
+    if(!node.attributes["property"].value) return false;
+    //TODO: this direct string matching is done for performance reasons. Marawa should eventually support incremental scanning.
+    if(node.attributes["property"].value.indexOf(BLOCK_REMOVAL_NODE_URI) > -1) return true;
+    return false;
   }
+
 });

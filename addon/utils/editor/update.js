@@ -78,8 +78,11 @@ import { isVoidElement } from '../dom-helpers';
  * options hash would also allow an array in that case.
  */
 function update(selection, { remove, add, set, before, after, append, prepend, desc }) {
+  const relativePosition = this.getRelativeCursorPosition();
+  const currentNode = this.currentNode;
+
   updateDomNodes(selection, this.rootNode, { remove, add, set ,before, after, append, prepend, desc });
-  updateEditorStateAfterUpdate.bind(this)(selection);
+  updateEditorStateAfterUpdate.bind(this)(selection, relativePosition, currentNode);
   // TODO: should send out diff events when just the html has changed.
   // TODO: should probably only trigger diff events if all updates have been executed
   this.generateDiffEvents.perform([{source: "pernet"}]);
@@ -116,22 +119,19 @@ function updateDomNodes( selection, rootNode, { remove, add, set, before, after,
  *
  * @method updateEditorStateAfterUpdate
  */
-function updateEditorStateAfterUpdate(selection) {
+function updateEditorStateAfterUpdate(selection, relativePosition, currentNode) {
   const start = Math.min(...selection.selections.map((element) => element.richNode.start));
   const end = Math.max(...selection.selections.map((element) => element.richNode.end));
   // TODO: cursor handling is suboptimal, should be incorporated in update itself.
   // eg if we're clearing the node that contains our cursor, what would be a good strategy?
   this.updateRichNode();
-  if (this.currentPosition >= start && this.currentPosition <= end) {
-    // cursor was in selection, reset cursor
+
+  if (this.rootNode.contains(currentNode)) {
     const richNode = this.getRichNodeFor(this.currentNode);
-    if (richNode) {
-      this.setCarret(richNode.domNode, Math.max(0,this.currentPosition - richNode.start));
-    }
-    else {
-      this.set('currentNode', null);
-      this.setCurrentPosition(this.currentPosition);
-    }
+    this.setCarret(richNode.domNode, Math.min(relativePosition, richNode.end));
+  } else {
+    this.set('currentNode', null);
+    this.setCurrentPosition(this.currentPosition);
   }
 }
 

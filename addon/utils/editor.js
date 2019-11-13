@@ -2,6 +2,7 @@ import { selectCurrentSelection, selectHighlight, selectContext } from './editor
 import { update } from './editor/update';
 import { triplesDefinedInResource } from './editor/triplestore';
 import { replaceDomNode } from './editor/operation';
+import { isEmpty } from './editor/selection-utils';
 
 /**
  * SELECTION AND UPDATING API
@@ -64,5 +65,6 @@ export {
   selectContext,
   update,
   replaceDomNode,
-  triplesDefinedInResource
+  triplesDefinedInResource,
+  isEmpty
 }

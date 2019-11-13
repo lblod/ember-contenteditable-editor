@@ -43,7 +43,8 @@ import {
   selectContext,
   update,
   replaceDomNode,
-  triplesDefinedInResource
+  triplesDefinedInResource,
+  isEmpty
 } from './editor';
 
 const NON_BREAKING_SPACE = '\u00A0';
@@ -1166,6 +1167,9 @@ class RawEditor extends EmberObject.extend({
   }
   triplesDefinedInResource() {
     return triplesDefinedInResource.bind(this)(...arguments);
+  }
+  isEmpty() {
+    return isEmpty.bind(this)(...arguments);
   }
 }
 

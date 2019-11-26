@@ -1,4 +1,6 @@
-# @lblod/ember-contenteditable-editor
+# @lblod/ember-contenteditable-editor (deprecated)
+*NOTE*: This addon was merged into [ember-rdfa-editor](https://github.com/lblod/ember-rdfa-editor)
+
 Emberjs addon that provides a content editable component. This component is the core of [ember-rdfa-editor](https://github.com/lblod/ember-rdfa-editor), a more feature complete component providing a toolbar and support for plugins.
 
 ember-contenteditable-editor features:
